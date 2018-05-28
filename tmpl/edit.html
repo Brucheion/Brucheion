@@ -1,0 +1,96 @@
+<html>
+<head>
+	<title>Brucheion</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon-guides.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/selection.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/selectionoverlay.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/selectionrect.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/dragging.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/application.css">
+	<link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bulma.css">
+	<style>
+        .tile-resizable {
+            resize: both;
+          overflow: hidden
+        }
+    </style>
+		{{.ImageScript}}
+</head>
+<body>
+	<div class="container is-fluid">
+		<nav class="nav has-shadow">
+		  <div class="container">
+		    <div class="nav-left">
+		      <p class="nav-item">
+		        <img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
+		      </p>
+		      <p class="nav-item is-tab is-hidden-mobile is-active">Brucheion 1.0.0</p>
+		    </div>
+				<div>
+					<p class="button is-primary is-large is-inverted">TRANSCRIPTION EDITOR</p>
+				</div>
+		    <div class="nav-right nav-menu">
+		      <p class="nav-item is-tab">
+		        User: {{printf "%s" .User}}
+		      </p>
+		    </div>
+		  </div>
+		</nav>
+		<section>
+			<div class="tile is-ancestor">
+				<div class="tile is-parent is-12">
+
+				</div>
+			</div>
+		</section>
+
+	<section>
+	  <div class="tile is-ancestor">
+			<div class="tile is-parent">
+				<div class="tile is-child box is-6">
+					<input id="image_urnBox" type="text" size="60" value=""/> <button class="button is-small is-primary" id="image_changeUrn">Change Image</button>
+				</div>
+				<div class="tile is-child box is-5">
+						<p>ImageRef: {{.ImageHTML}}</p>
+				</div>
+				<div class="tile is-child is-1">
+					<div class="column is-12 has-text-right">
+						<a class="button is-medium" href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}">Cancel</a>
+				</div>
+				</div>
+			</div>
+		</div>
+		<div class="tile is-ancestor">
+			<div class="tile is-parent is-vertical">
+				<div class="tile is-child box tile-resizable is-12">
+					<div class="box" style="height: 500px;">
+					<div id="image_imageContainer"></div>
+				</div>
+				</div>
+				<form action="http://localhost{{.Port}}/{{.User}}/save/{{.Title}}" method="POST">
+				<div class="tile is-child box tile-resizable is-12">
+          <p class="subtitle">Transcription</p>
+          <div><textarea name="text" rows="15", cols="120">{{printf "%s" .Text}}</textarea></div>
+					<div><input class="button is-primary" type="submit" value="Save"></div>
+				</div>
+				</form>
+			</div>
+		</div>
+	</section>
+<footer>
+<br/>
+	<p>CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. This tool for working with images cited via CITE2 URNs and transcriptions using the CITE-microservices is ©2017 by Thomas Koentges. Brucheion is available for use, modification, and distribution under the terms of the <a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion is based on Christopher Blackwell's and Mees Gelein's <a href="https://github.com/cite-architecture/ict2">ICT2</a> and on <a href="http://openseadragon.github.io">Openseadragon</a>.</p>
+</footer>
+</div>
+
+<input type="hidden" id = "initialCITE" value = "{{.ImageJS}}" readonly>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/ict2.js"></script>
+</body>
+	</html>

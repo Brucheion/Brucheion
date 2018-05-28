@@ -1,0 +1,289 @@
+<html>
+
+<head>
+	<title>Brucheion</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon-guides.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/selection.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/selectionoverlay.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/selectionrect.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/dragging.js"></script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/application.css">
+	<link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bulma.css">
+	<style>
+		.tile-resizable {
+			resize: both;
+			overflow: hidden
+		}
+.yourClass { background-color: rgb(71, 206, 192);
+color: black; }
+	</style>
+</head>
+
+<body>
+	<div class="container is-fluid">
+		<nav class="nav has-shadow">
+			<div class="container">
+				<div class="nav-left">
+					<p class="nav-item">
+						<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
+					</p>
+					<p class="nav-item is-tab is-hidden-mobile is-active">Brucheion 1.0.0</p>
+				</div>
+				<div>
+					<p class="button is-primary is-large is-inverted">COMPARE WITNESSES</p>
+				</div>
+				<div class="nav-right nav-menu">
+					<p class="nav-item is-tab">
+						User: {{printf "%s" .User}}
+					</p>
+				</div>
+				<div class="nav-right nav-menu">
+					<p class="nav-item is-tab">
+						<a href="http://localhost{{.Port}}/{{.User}}/export/{{.User}}">
+							<i class="fa fa-download">CEX-Download</i>
+						</a>
+					</p>
+				</div>
+
+			</div>
+		</nav>
+		<br/>
+		<section>
+			<div class="tile is-ancestor">
+				<div class="tile is-parent is-vertical column is-6 ">
+					<div class="tile is-parent">
+						<div class="container">
+							<div class="card is-fullwidth">
+								<header class="card-header">
+									<p class="card-header-title">
+										Metadata: {{.Title}}
+									</p>
+									<a href="#" class="card-header-icon card-toggle">
+										<span class="icon">
+											<i class="fa fa-angle-down"></i>
+										</span>
+									</a>
+								</header>
+								<div class="card-content is-hidden">
+									<div class="content">
+										<p class="has-text-right">
+											<a class="button is-small" href="/{{.User}}/editcat/{{.Title}}">EDIT METADATA</a>
+										</p>
+										<br/>
+										<table>
+											<tr>
+												<td>WorkURN: {{.CatID}}</td>
+												<td>Scheme: {{.CatCit}}</td>
+											</tr>
+											<tr>
+												<td>Workgroup: {{.CatGroup}}</td>
+												<td>Title: {{.CatWork}}</td>
+											</tr>
+											<tr>
+												<td>Version: {{.CatVers}}</td>
+												<td>Exemplar: {{.CatExmpl}}</td>
+											</tr>
+											<tr>
+												<td>Online: {{.CatOn}}</td>
+												<td>Language: {{.CatLan}}</td>
+											</tr>
+										</table>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="tile is-parent">
+							<div class="container">
+								<div class="card is-fullwidth">
+									<header class="card-header">
+										<p class="card-header-title">
+											Text: {{.Title}}
+										</p>
+										<a href="#" class="card-header-icon card-toggle">
+											<span class="icon">
+												<i class="fa fa-angle-down"></i>
+											</span>
+										</a>
+									</header>
+									<div class="card-content">
+										<div class="content">
+												{{.Text}}
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+				</div>
+
+				<div class="tile is-parent is-vertical column is-6 ">
+						<div class="tile is-parent">
+							<div class="container">
+								<div class="card is-fullwidth">
+									<header class="card-header">
+										<p class="card-header-title">
+											Metadata: {{.Title2}}
+										</p>
+										<a href="#" class="card-header-icon card-toggle">
+											<span class="icon">
+												<i class="fa fa-angle-down"></i>
+											</span>
+										</a>
+									</header>
+									<div class="card-content is-hidden">
+										<div class="content">
+											<p class="has-text-right">
+												<a class="button is-small" href="/{{.User}}/editcat/{{.Title}}">EDIT METADATA</a>
+											</p>
+											<br/>
+											<table>
+												<tr>
+													<td>WorkURN: {{.CatID2}}</td>
+													<td>Scheme: {{.CatCit2}}</td>
+												</tr>
+												<tr>
+													<td>Workgroup: {{.CatGroup2}}</td>
+													<td>Title: {{.CatWork2}}</td>
+												</tr>
+												<tr>
+													<td>Version: {{.CatVers2}}</td>
+													<td>Exemplar: {{.CatExmpl2}}</td>
+												</tr>
+												<tr>
+													<td>Online: {{.CatOn2}}</td>
+													<td>Language: {{.CatLan2}}</td>
+												</tr>
+											</table>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+	
+						<div class="tile is-parent">
+								<div class="container">
+									<div class="card is-fullwidth">
+										<header class="card-header">
+											<p class="card-header-title">
+												Text: {{.Title2}}
+											</p>
+											<a href="#" class="card-header-icon card-toggle">
+												<span class="icon">
+													<i class="fa fa-angle-down"></i>
+												</span>
+											</a>
+										</header>
+										<div class="card-content">
+											<div class="content">
+													{{.Text2}}
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+					</div>
+
+				
+			</div>
+		</section>
+
+		
+		<footer>
+			<br/>
+			<p>CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. This tool for working with images cited via CITE2 URNs and
+				transcriptions using the CITE-microservices is ©2017 by Thomas Koentges. Brucheion is available for use, modification,
+				and distribution under the terms of the
+				<a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion is based on Christopher Blackwell's and Mees Gelein's
+				<a href="https://github.com/cite-architecture/ict2">ICT2</a> and on
+				<a href="http://openseadragon.github.io">Openseadragon</a>.</p>
+		</footer>
+	</div>
+	<script>
+		document.addEventListener('DOMContentLoaded', function () {
+			let cardToggles = document.getElementsByClassName('card-toggle');
+			for (let i = 0; i < cardToggles.length; i++) {
+				cardToggles[i].addEventListener('click', e => {
+					e.currentTarget.parentElement.parentElement.childNodes[3].classList.toggle('is-hidden');
+				});
+			}
+		});
+	</script>
+</body>
+<script>
+	$( "w[alignment='0']" ).css("color","lightgrey");
+		$('w').hover(function(){
+			var targetlanguage = ""
+				var sourcelanguage = $(this).parent().attr('lnum');
+				switch(sourcelanguage) {
+					case "L1":
+					targetlanguage = "L2";
+					break;
+					case "L2":
+					targetlanguage = "L1";
+					break;
+				}
+				$( "div[lnum='" + targetlanguage + "']" ).children("[id='" + $(this).attr("alignment") + "']").addClass('yourClass');
+				$( "div[lnum='" + sourcelanguage + "']" ).children("[alignment='" + $(this).attr("alignment") + "']").addClass('yourClass');
+		}, function() {
+			$("w").removeClass('yourClass');
+		});
+var source_id = "";
+var target_id = "";
+var side = "";
+$( 'w' ).click(function() {
+	var evalside = $(this).parent().attr('lnum')
+	switch(side) {
+		case evalside:
+		var testid = $(this).attr("id");
+		switch(source_id){
+			case testid:
+			var replace_id = $(this).attr("id");
+			var sourcelanguage = evalside;
+				switch(sourcelanguage) {
+					case "L1":
+					targetlanguage = "L2";
+					break;
+					case "L2":
+					targetlanguage = "L1";
+					break;
+				}
+			$( "div[lnum='" + targetlanguage + "']" ).children("[alignment='" + replace_id + "']").attr("alignment", "0");
+			$(this).attr("alignment", "0");
+			source_id = "";
+		side = "";
+		$( "w" ).css("color","");
+		$( "w[alignment='0']" ).css("color","lightgrey");
+			break;
+			default:
+			alert("To align first click a word from one side and then connect to a word on the other side.");
+			source_id = "";
+		side = "";
+		$( "w" ).css("color","");
+		$( "w[alignment='0']" ).css("color","lightgrey");
+			break;
+		}
+		break;
+		default:
+		if (source_id != "") {
+		$(this).attr("alignment", source_id);
+		$( "div[lnum='" + side + "']" ).children("[id='" + source_id + "']").attr("alignment", $(this).attr("id"));
+		source_id = "";
+		side = "";
+		$( "w" ).css("color","");
+		$( "w[alignment='0']" ).css("color","lightgrey");
+	} else {
+		side = evalside
+	source_id = $(this).attr("id");}
+	}
+});
+		</script>
+
+</html>
