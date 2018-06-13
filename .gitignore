@@ -1,0 +1,11 @@
+# Windows and Mac OS X
+Thumbs.db
+.DS_Store
+
+# exclude image_archive and cex
+static/image_archive/*
+cex/*
+
+# exception to the rule
+!cex/.gitkeep
+!static/image_archive/test/
