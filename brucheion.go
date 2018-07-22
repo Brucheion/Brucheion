@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -16,10 +17,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aebruno/nwalgo"
+	"github.com/ThomasK81/gocite"
+	"github.com/ThomasK81/gonwr"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/html"
 )
+
+type JSONlist struct {
+	Item []string `json:"item"`
+}
 
 type Transcription struct {
 	CTSURN        string
@@ -96,9 +103,9 @@ type Page struct {
 
 var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
+var serverIP = ":7000"
 
 func main() {
-	serverIP := ":7000"
 	router := mux.NewRouter().StrictSlash(true)
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	js := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
@@ -125,8 +132,205 @@ func main() {
 	router.HandleFunc("/{user}/compare/{urn}+{urn2}", comparePage)
 	router.HandleFunc("/{user}/consolidate/{urn}+{urn2}", consolidatePage)
 	router.HandleFunc("/{user}/saveImage/{key}", SaveImageRef)
+	router.HandleFunc("/{user}/newWork", newWork)
+	router.HandleFunc("/{user}/newCollection/{name}/{urns}", newCollection)
+	router.HandleFunc("/{user}/requestImgID/{name}", requestImgID)
+	router.HandleFunc("/{user}/deleteCollection/{name}", deleteCollection)
+	router.HandleFunc("/{user}/requestImgCollection", requestImgCollection)
 	log.Println("Listening at" + serverIP + "...")
 	log.Fatal(http.ListenAndServe(serverIP, router))
+}
+
+// Helper function to pull the href attribute from a Token
+func getHref(t html.Token) (ok bool, href string) {
+	for _, a := range t.Attr {
+		if a.Key == "href" {
+			href = a.Val
+			ok = true
+		}
+	}
+	return
+}
+
+func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
+	urnLink := urn.Namespace + "/" + strings.Replace(urn.Collection, ".", "/", -1) + "/"
+	url := "http://localhost" + serverIP + "/static/image_archive/" + urnLink
+	response, err := http.Get(url)
+	if err != nil {
+		return links, err
+	}
+	z := html.NewTokenizer(response.Body)
+	for {
+		tt := z.Next()
+
+		switch {
+		case tt == html.ErrorToken:
+			// End of the document, we're done
+			return
+		case tt == html.StartTagToken:
+			t := z.Token()
+
+			isAnchor := t.Data == "a"
+			if !isAnchor {
+				continue
+			}
+			ok, url := getHref(t)
+			if strings.Contains(url, ".dzi") {
+				urnStr := urn.Base + ":" + urn.Protocol + ":" + urn.Namespace + ":" + urn.Collection + ":" + strings.Replace(url, ".dzi", "", -1)
+				links = append(links, urnStr)
+			}
+			if !ok {
+				continue
+			}
+		}
+	}
+	return links, nil
+}
+
+func requestImgCollection(w http.ResponseWriter, r *http.Request) {
+	response := JSONlist{}
+	vars := mux.Vars(r)
+	user := vars["user"]
+	dbname := user + ".db"
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	err = db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("imgCollection"))
+		if b == nil {
+			return errors.New("failed to get bucket")
+		}
+		c := b.Cursor()
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			response.Item = append(response.Item, string(k))
+		}
+		return nil
+	})
+	if err != nil {
+		resultJSON, _ := json.Marshal(response)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		fmt.Fprintln(w, string(resultJSON))
+	}
+	resultJSON, _ := json.Marshal(response)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintln(w, string(resultJSON))
+}
+
+func requestImgID(w http.ResponseWriter, r *http.Request) {
+	response := JSONlist{}
+	collection := imageCollection{}
+	vars := mux.Vars(r)
+	user := vars["user"]
+	name := vars["name"]
+	dbname := user + ".db"
+	dbkey := []byte(name)
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("imgCollection"))
+		if bucket == nil {
+			return errors.New("failed to get bucket")
+		}
+		val := bucket.Get(dbkey)
+		if val == nil {
+			return errors.New("failed to retrieve value")
+		}
+		collection, err = gobDecodeImgCol(val)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		resultJSON, _ := json.Marshal(response)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		fmt.Fprintln(w, string(resultJSON))
+	}
+	for i := range collection.Collection {
+		response.Item = append(response.Item, collection.Collection[i].Location)
+	}
+	resultJSON, _ := json.Marshal(response)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintln(w, string(resultJSON))
+}
+
+func newCollection(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	user := vars["user"]
+	name := vars["name"]
+	imageIDs := strings.Split(vars["urns"], ",")
+	var collection imageCollection
+	switch len(imageIDs) {
+	case 0:
+		io.WriteString(w, "failed")
+		return
+	case 1:
+		urn := gocite.SplitCITE(imageIDs[0])
+		switch {
+		case urn.InValid:
+			io.WriteString(w, "failed")
+			return
+		case urn.Object == "*":
+			links, err := extractLinks(urn)
+			if err != nil {
+				io.WriteString(w, "failed")
+			}
+			for i := range links {
+				collection.Collection = append(collection.Collection, image{Internal: true, Location: links[i]})
+			}
+		default:
+			collection.Collection = append(collection.Collection, image{Internal: true, Location: imageIDs[0]})
+		}
+	default:
+		for i := range imageIDs {
+			urn := gocite.SplitCITE(imageIDs[i])
+			switch {
+			case urn.InValid:
+				continue
+			default:
+				collection.Collection = append(collection.Collection, image{Internal: true, Location: imageIDs[i]})
+			}
+		}
+	}
+	newCollectiontoDB(user, name, collection)
+	io.WriteString(w, "success")
+}
+
+func newWork(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	user := vars["user"]
+	if r.Method == "GET" {
+		varmap := map[string]interface{}{
+			"user": user,
+			"port": serverIP,
+		}
+		t, _ := template.ParseFiles("tmpl/newWork.html")
+		t.Execute(w, varmap)
+	} else {
+		r.ParseForm()
+		// logic part of log in
+		workurn := r.Form["workurn"][0]
+		scheme := r.Form["scheme"][0]
+		group := r.Form["workgroup"][0]
+		title := r.Form["title"][0]
+		version := r.Form["version"][0]
+		exemplar := r.Form["exemplar"][0]
+		online := r.Form["online"][0]
+		language := r.Form["language"][0]
+		newWork := cexMeta{URN: workurn, CitationScheme: scheme, GroupName: group, WorkTitle: title, VersionLabel: version, ExemplarLabel: exemplar, Online: online, Language: language}
+		fmt.Println(newWork)
+		err := newWorktoDB(user, newWork)
+		if err != nil {
+			io.WriteString(w, "failed")
+		} else {
+			io.WriteString(w, "Success")
+		}
+	}
 }
 
 func MainPage(w http.ResponseWriter, r *http.Request) {
@@ -1109,7 +1313,74 @@ func loadCompPage(transcription, transcription2 Transcription, port string) (*Co
 		Port:      port}, nil
 }
 
+func fieldNWA(aln1, aln2 string) (fields1, fields2 []string) {
+	charSl1 := strings.Split(aln1, "")
+	charSl2 := strings.Split(aln2, "")
+	strA, strB := "", ""
+	for i := range charSl1 {
+		strA = strA + charSl1[i]
+		strB = strB + charSl2[i]
+		if charSl1[i] == " " && charSl2[i] == " " {
+			fields1 = append(fields1, strA)
+			fields2 = append(fields2, strB)
+			strA, strB = "", ""
+		}
+	}
+	fields1 = append(fields1, strA)
+	fields2 = append(fields2, strB)
+	return fields1, fields2
+}
+
+func addSansHyphens(s string) string {
+	hyphen := []rune(`&shy;`)
+	after := []rune{rune('a'), rune('ā'), rune('i'), rune('ī'), rune('u'), rune('ū'), rune('ṛ'), rune('ṝ'), rune('ḷ'), rune('ḹ'), rune('e'), rune('o'), rune('ṃ'), rune('ḥ')}
+	notBefore := []rune{rune('ṃ'), rune('ḥ'), rune(' ')}
+	runeSl := []rune(s)
+	newSl := []rune{}
+	next := false
+	possible := false
+	for i := 2; i < len(runeSl)-2; i++ {
+		for j := range after {
+			if after[j] == runeSl[i] {
+				possible = true
+				break
+			}
+		}
+		if !possible {
+			newSl = append(newSl, runeSl[i])
+			continue
+		}
+		for j := range notBefore {
+			if notBefore[j] == runeSl[i+1] {
+				next = true
+				break
+			}
+		}
+		if next {
+			next = false
+			newSl = append(newSl, runeSl[i])
+			continue
+		}
+		if runeSl[i] == rune('a') {
+			if runeSl[i+1] == rune('i') || runeSl[i+1] == rune('u') {
+				newSl = append(newSl, runeSl[i])
+				continue
+			}
+		}
+		if runeSl[i-1] == rune(' ') {
+			newSl = append(newSl, runeSl[i])
+			continue
+		}
+		newSl = append(newSl, runeSl[i])
+		newSl = append(newSl, hyphen...)
+		possible = false
+	}
+	return string(newSl)
+}
+
 func nwa(text, text2 string) []string {
+	hashreg := regexp.MustCompile(`#+`)
+	punctreg := regexp.MustCompile(`[^\p{L}\s#]+`)
 	start := `<div class="tile is-child" lnum="L1">`
 	start2 := `<div class="tile is-child" lnum="L2">`
 	end := `</div>`
@@ -1117,63 +1388,57 @@ func nwa(text, text2 string) []string {
 	for i := range collection {
 		collection[i] = strings.ToLower(collection[i])
 	}
-	basestring := strings.Fields(collection[0])
 	var basetext []Word
 	var comparetext []Word
-	for i := range basestring {
-		basetext = append(basetext, Word{Appearance: basestring[i], Id: i + 1})
-	}
+	var highlight float32
 
-	comparestring := strings.Fields(collection[1])
-	comparetext = []Word{}
-	for i := range comparestring {
-		comparetext = append(comparetext, Word{Appearance: comparestring[i]})
-	}
-	aln1, aln2, score := nwalgo.Align(collection[0], collection[1], 1, -1, -1)
-	aligned1 := strings.Fields(aln1)
-	aligned2 := strings.Fields(aln2)
-	var score_range []float64
-	var index int
-	for j := range aligned1 {
-		score_range = []float64{}
-		for i, _ := range aligned2 {
-			aln1, aln2, score = nwalgo.Align(aligned1[j], aligned2[i], 1, -1, -1)
-			var penalty float64
-			switch {
-			case i > j:
-				penalty = float64((i - j)) / 2.0
-			case i < j:
-				penalty = float64((j - i)) / 2.0
-			default:
-				penalty = 0
-			}
-			var f float64 = (float64(score) - penalty) / float64(len(aln1))
-			score_range = append(score_range, f)
+	runealn1, runealn2, _ := gonwr.Align([]rune(collection[0]), []rune(collection[1]), rune('#'), 1, -1, -1)
+	aln1 := string(runealn1)
+	aln2 := string(runealn2)
+	aligned1, aligned2 := fieldNWA(aln1, aln2)
+	for i := range aligned1 {
+		tmpA := hashreg.ReplaceAllString(aligned1[i], "")
+		tmpB := hashreg.ReplaceAllString(aligned2[i], "")
+		tmp2A := punctreg.ReplaceAllString(tmpA, "")
+		tmp2B := punctreg.ReplaceAllString(tmpB, "")
+		_, _, score := gonwr.Align([]rune(tmp2A), []rune(tmp2B), rune('#'), 1, -1, -1)
+		base := len([]rune(tmpA))
+		if len([]rune(tmpB)) > base {
+			base = len([]rune(tmpB))
 		}
-		index = maxfloat(score_range)
-		comparetext[index].Alignment = j + 1
-		comparetext[index].Id = index + 1
-		basetext[j].Id = j + 1
+		switch {
+		case score <= 0:
+			highlight = 1.0
+		case score >= base:
+			highlight = 0.0
+		default:
+			highlight = 1.0 - float32(score)/float32(base)
+		}
+		basetext = append(basetext, Word{Appearance: tmpA, Id: i + 1, Alignment: i + 1, Highlight: highlight})
+		comparetext = append(comparetext, Word{Appearance: tmpB, Id: i + 1, Alignment: i + 1, Highlight: highlight})
+
 	}
 	text2 = start2
 	for i := range comparetext {
+		s := fmt.Sprintf("%.2f", comparetext[i].Highlight)
 		switch comparetext[i].Id {
 		case 0:
-			text2 = text2 + "<w id=\"" + strconv.Itoa(i+1) + "\" alignment=\"" + strconv.Itoa(comparetext[i].Alignment) + "\">" + comparetext[i].Appearance + "</w>" + " "
+			text2 = text2 + "<span hyphens=\"manual\" style=\"background: rgba(255, 221, 87, " + s + ");\" id=\"" + strconv.Itoa(i+1) + "\" alignment=\"" + strconv.Itoa(comparetext[i].Alignment) + "\">" + addSansHyphens(comparetext[i].Appearance) + "</span>" + " "
 		default:
-			text2 = text2 + "<w id=\"" + strconv.Itoa(i+1) + "\" alignment=\"" + strconv.Itoa(comparetext[i].Alignment) + "\">" + comparetext[i].Appearance + "</w>" + " "
+			text2 = text2 + "<span hyphens=\"manual\" style=\"background: rgba(255, 221, 87, " + s + ");\" id=\"" + strconv.Itoa(i+1) + "\" alignment=\"" + strconv.Itoa(comparetext[i].Alignment) + "\">" + addSansHyphens(comparetext[i].Appearance) + "</span>" + " "
 		}
 	}
 	text2 = text2 + end
 
 	text = start
 	for i := range basetext {
+		s := fmt.Sprintf("%.2f", basetext[i].Highlight)
 		for j := range comparetext {
 			if comparetext[j].Alignment == basetext[i].Id {
 				basetext[i].Alignment = comparetext[j].Id
 			}
 		}
-		text = text + "<w id=\"" + strconv.Itoa(basetext[i].Id) + "\" alignment=\"" + strconv.Itoa(basetext[i].Alignment) + "\">" + basetext[i].Appearance + "</w>" + " "
+		text = text + "<span hyphens=\"manual\" style=\"background: rgba(255, 221, 87, " + s + ");\" + id=\"" + strconv.Itoa(basetext[i].Id) + "\" alignment=\"" + strconv.Itoa(basetext[i].Alignment) + "\">" + addSansHyphens(basetext[i].Appearance) + "</span>" + " "
 	}
 	text = text + end
 

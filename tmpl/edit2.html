@@ -1,7 +1,8 @@
 <html>
+
 <head>
 	<title>Brucheion</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<script type="text/javascript" src="http://localhost{{.Port}}/js/jquery-3.2.1.min.js"></script>
 	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon.js"></script>
 	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon-guides.js"></script>
@@ -16,75 +17,139 @@
 	<link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.min.css">
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bulma.css">
 	<style>
-        .tile-resizable {
-            resize: both;
-          overflow: hidden
-        }
-    </style>
+		.tile-resizable {
+			resize: both;
+			overflow: hidden
+		}
+	</style>
 </head>
+
 <body>
 	<div class="container is-fluid">
-    <nav class="nav has-shadow">
-  	  <div class="container">
-  	    <div class="nav-left">
-  	      <p class="nav-item">
-  	        <img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
-  	      </p>
-  	      <p class="nav-item is-tab is-hidden-mobile is-active">Brucheion 1.0.0</p>
-  	    </div>
-  			<div>
-  				<p class="button is-primary is-large is-inverted">IMAGE REFERENCES EDITOR</p>
-  			</div>
-  	    <div class="nav-right nav-menu">
-  	      <p class="nav-item is-tab">
-  	        User: {{printf "%s" .User}}
-  	      </p>
-  	    </div>
-  	  </div>
-  	</nav>
-	<section>
-		<div class="tile is-ancestor">
-      <div class="tile is-parent">
-        <div class="tile is-child is-12">
-					<div class="column is-12 has-text-right">
-						<a class="button is-medium" href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}">Cancel</a>
+		<nav class="nav has-shadow">
+			<div class="container">
+				<div class="nav-left">
+					<p class="nav-item">
+						<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
+					</p>
+					<p class="nav-item is-tab is-hidden-mobile is-active">Brucheion 1.0.0</p>
 				</div>
-      </div>
-    </div>
-  </div>
-    <div class="tile is-ancestor">
-			<div class="tile is-parent">
-			<div class="tile is-vertical">
-				<div class="tile is-child box tile-resizable">
-          <input id="image_urnBox" type="text" size="60" value=""/> <button class="button is-small is-primary" id="image_changeUrn">Change Image</button>
-          <ul id="image_urnList"></ul>
+				<div>
+					<p class="button is-primary is-large is-inverted">IMAGE REFERENCES EDITOR</p>
 				</div>
-				<div class="tile is-child box tile-resizable" style="height: 500px;">
-					<div id="image_imageContainer"></div>
+				<div class="nav-right nav-menu">
+					<p class="nav-item is-tab">
+						User: {{printf "%s" .User}}
+					</p>
 				</div>
 			</div>
-		</div>
-			<div class="tile is-parent">
-        <div class="tile is-vertical is-8">
-          <div class="tile is-child">
-            <form action="http://localhost{{.Port}}/{{.User}}/saveImage/{{.Title}}" method="POST">
-            <p class="subtitle">ImageRef <div><input class="button is-primary" type="submit" value="Save"> <a id="deletearea" class="button is-danger" href="#" onclick="function deleteLink(){document.getElementById('imageTextArea').value = '';}; deleteLink(); return false;">Clear</a></div></p>
-  					<p><textarea id="imageTextArea" name="text" rows="4", cols="60">{{.ImageRef}}</textarea></p>
-          </form>
-  				</div>
-				<div class="tile is-child box is-12 tile-resizable">
-					<p>{{printf "%s" .Text}}</p>
+		</nav>
+		<section>
+			<div class="tile is-ancestor">
+				<div class="tile is-parent">
+					<div class="tile is-child is-12">
+						<div class="column is-12 has-text-right">
+							<a class="button is-medium" href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}">Cancel</a>
+						</div>
+					</div>
 				</div>
-      </div>
 			</div>
-		</div>
-	</section>
-	<footer>
-	<br/>
-		<p>CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. This tool for working with images cited via CITE2 URNs and transcriptions using the CITE-microservices is ©2017 by Thomas Koentges. Brucheion is available for use, modification, and distribution under the terms of the <a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion is based on Christopher Blackwell's and Mees Gelein's <a href="https://github.com/cite-architecture/ict2">ICT2</a> and on <a href="http://openseadragon.github.io">Openseadragon</a>.</p>
-	</footer>
-</div>
-<input type="hidden" id = "initialCITE" value = "{{.ImageJS}}" readonly>
-<script type="text/javascript" src="http://localhost{{.Port}}/js/ict2.js"></script>
+			<div class="tile is-ancestor">
+				<div class="tile is-parent">
+					<div class="tile is-vertical">
+						<div class="tile is-child box tile-resizable">
+							<button class="button is-small is-primary" id="image_changeUrn">Change Image</button>
+							<div class="form-group">
+								<label for="sel1">Select list:</label>
+								<select class="form-control" id="image_colSelect" onchange="refreshURL()">
+								</select>
+							</div>
+							<div class="form-group">
+								<label for="sel1">Select list:</label>
+								<select class="form-control" id="image_urnSelect">
+								</select>
+							</div>
+							<ul id="image_urnList"></ul>
+						</div>
+						<div class="tile is-child box tile-resizable" style="height: 500px;">
+							<div id="image_imageContainer"></div>
+						</div>
+					</div>
+				</div>
+				<div class="tile is-parent">
+					<div class="tile is-vertical is-8">
+						<div class="tile is-child">
+							<form action="http://localhost{{.Port}}/{{.User}}/saveImage/{{.Title}}" method="POST">
+								<p class="subtitle">ImageRef
+									<div>
+										<input class="button is-primary" type="submit" value="Save">
+										<a id="deletearea" class="button is-danger" href="#" onclick="function deleteLink(){document.getElementById('imageTextArea').value = '';}; deleteLink(); return false;">Clear</a>
+									</div>
+								</p>
+								<p>
+									<textarea id="imageTextArea" name="text" rows="4" , cols="60">{{.ImageRef}}</textarea>
+								</p>
+							</form>
+						</div>
+						<div class="tile is-child box is-12 tile-resizable">
+							<p>{{printf "%s" .Text}}</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+		<footer>
+			<br/>
+			<p>CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. This tool for working with images cited via CITE2 URNs and
+				transcriptions using the CITE-microservices is ©2017 by Thomas Koentges. Brucheion is available for use, modification,
+				and distribution under the terms of the
+				<a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion is based on Christopher Blackwell's and Mees Gelein's
+				<a href="https://github.com/cite-architecture/ict2">ICT2</a> and on
+				<a href="http://openseadragon.github.io">Openseadragon</a>.</p>
+		</footer>
+	</div>
+	<input type="hidden" id="initialCITE" value="{{.ImageJS}}" readonly>
+	<script>
+		let dropdown2 = $('#image_colSelect');
+
+		dropdown2.empty();
+
+		dropdown2.append('<option selected="true" disabled>Choose collection</option>');
+		dropdown2.prop('selectedIndex', 0);
+
+		const collectionurl = 'http://localhost:7000/thomas/requestImgCollection';
+
+		// Populate dropdown with list of provinces
+		$.getJSON(collectionurl, function (data) {
+			$.each(data.item, function (key, entry) {
+				dropdown2.append($('<option></option>').attr('value', entry).text(entry));
+			})
+		});
+	</script>
+
+	<script>
+	var imageurl = "http://localhost:7000/thomas/requestImgID/morgantina";
+
+	function refreshURL(){
+		console.log(imageurl);
+		imageurl = 'http://localhost:7000/thomas/requestImgID/' + $('#image_colSelect').val(); 
+		console.log(imageurl); 
+		let dropdown = $('#image_urnSelect');
+
+		dropdown.empty();
+
+		dropdown.append('<option selected="true" disabled>Choose folio</option>');
+		dropdown.prop('selectedIndex', 0);
+
+		// Populate dropdown with list of provinces
+		$.getJSON(imageurl, function (data) {
+			$.each(data.item, function (key, entry) {
+				dropdown.append($('<option></option>').attr('value', entry).text(entry));
+			})
+		});
+	}
+	</script>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/ict2.js"></script>
 </body>
+
 </html>
