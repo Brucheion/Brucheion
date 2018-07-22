@@ -21,7 +21,7 @@
 			resize: both;
 			overflow: hidden
 		}
-.yourClass { background-color: rgb(71, 206, 192);
+.yourClass { font-weight: bold;
 color: black; }
 	</style>
 </head>
@@ -182,7 +182,7 @@ color: black; }
 											</a>
 										</header>
 										<div class="card-content">
-											<div class="content">
+											<div hyphens="auto" class="content">
 													{{.Text2}}
 											</div>
 										</div>
@@ -218,8 +218,8 @@ color: black; }
 	</script>
 </body>
 <script>
-	$( "w[alignment='0']" ).css("color","lightgrey");
-		$('w').hover(function(){
+	$( "span[alignment='0']" ).css("color","lightgrey");
+		$('span').hover(function(){
 			var targetlanguage = ""
 				var sourcelanguage = $(this).parent().attr('lnum');
 				switch(sourcelanguage) {
@@ -233,7 +233,7 @@ color: black; }
 				$( "div[lnum='" + targetlanguage + "']" ).children("[id='" + $(this).attr("alignment") + "']").addClass('yourClass');
 				$( "div[lnum='" + sourcelanguage + "']" ).children("[alignment='" + $(this).attr("alignment") + "']").addClass('yourClass');
 		}, function() {
-			$("w").removeClass('yourClass');
+			$("span").removeClass('yourClass');
 		});
 var source_id = "";
 var target_id = "";

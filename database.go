@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/ThomasK81/gocite"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
 )
@@ -47,6 +51,173 @@ type BoltURN struct {
 
 type BoltJSON struct {
 	JSON string
+}
+
+type cexMeta struct {
+	URN, CitationScheme, GroupName, WorkTitle, VersionLabel, ExemplarLabel, Online, Language string
+}
+
+type imageCollection struct {
+	Collection []image
+}
+
+type image struct {
+	Internal bool
+	Location string
+}
+
+func deleteCollection(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	user := vars["user"]
+	newkey := vars["name"]
+	dbname := user + ".db"
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	db.Update(func(tx *bolt.Tx) error {
+		err := tx.Bucket([]byte("imgCollection")).Delete([]byte(newkey))
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		return nil
+	})
+}
+
+func newCollectiontoDB(dbName, collectionName string, collection imageCollection) error {
+	pwd, _ := os.Getwd()
+	dbname := pwd + "/" + dbName + ".db"
+	dbkey := []byte(collectionName)
+	dbvalue, err := gobEncode(&collection)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer db.Close()
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("imgCollection"))
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		val := bucket.Get(dbkey)
+		if val != nil {
+			fmt.Println("collection exists already")
+			return errors.New("collection exists already")
+		}
+		err = bucket.Put(dbkey, dbvalue)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func newWorktoDB(dbName string, meta cexMeta) error {
+	pwd, _ := os.Getwd()
+	dbname := pwd + "/" + dbName + ".db"
+	dbkey := []byte(meta.URN)
+	dbvalue, err := gobEncode(&meta)
+
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("meta"))
+		if err != nil {
+			return err
+		}
+		val := bucket.Get(dbkey)
+		if val != nil {
+			return errors.New("work exists already")
+		}
+		err = bucket.Put(dbkey, dbvalue)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateWorkMeta(dbName string, meta cexMeta) error {
+	pwd, _ := os.Getwd()
+	dbname := pwd + "/" + dbName + ".db"
+	dbkey := []byte(meta.URN)
+	dbvalue, err := gobEncode(&meta)
+
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("meta"))
+		if err != nil {
+			return err
+		}
+		val := bucket.Get(dbkey)
+		if val == nil {
+			return errors.New("work does not exist")
+		}
+		err = bucket.Put(dbkey, dbvalue)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func gobEncode(p interface{}) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	enc := gob.NewEncoder(buf)
+	err := enc.Encode(p)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func gobDecodeImgCol(data []byte) (imageCollection, error) {
+	var p *imageCollection
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&p)
+	if err != nil {
+		return imageCollection{}, err
+	}
+	return *p, nil
+}
+
+func gobDecodePassage(data []byte) (gocite.Passage, error) {
+	var p *gocite.Passage
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&p)
+	if err != nil {
+		return gocite.Passage{}, err
+	}
+	return *p, nil
 }
 
 func BoltRetrieveFirstKey(path, bucket string) string {
