@@ -1,0 +1,155 @@
+<html>
+
+<head>
+    <title>Brucheion</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script type="text/javascript" src="http://localhost{{.Port}}/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon.js"></script>
+    <script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon-guides.js"></script>
+    <script type="text/javascript" src="http://localhost{{.Port}}/js/selection.js"></script>
+    <script type="text/javascript" src="http://localhost{{.Port}}/js/selectionoverlay.js"></script>
+    <script type="text/javascript" src="http://localhost{{.Port}}/js/selectionrect.js"></script>
+    <script type="text/javascript" src="http://localhost{{.Port}}/js/dragging.js"></script>
+    <script type="text/javascript" src="http://localhost{{.Port}}/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/application.css">
+    <link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bulma.css">
+    <style>
+        .tile-resizable {
+            resize: both;
+            overflow: hidden
+        }
+
+        .yourClass {
+            font-weight: bold;
+            color: black;
+        }
+
+        div.items div:not(:target) {
+            display: none
+        }
+
+        div.items div:target {
+            display: block
+        }
+
+        .initiallyHidden { display: none; }
+
+        /* div.items2 div:not(:target) {
+            display: none
+        }
+
+        div.items2 div:target {
+            display: block
+        } */
+    </style>
+</head>
+
+<body>
+    <div class="container is-fluid">
+        <nav class="nav has-shadow">
+            <div class="container">
+                <div class="nav-left">
+                    <p class="nav-item">
+                        <img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
+                    </p>
+                    <p class="nav-item is-tab is-hidden-mobile is-active">Brucheion 1.0.0</p>
+                </div>
+                <div>
+                    <p class="nav-item is-tab">
+                        Multicompare
+                    </p>
+                </div>
+                <div class="nav-right nav-menu">
+                    <p class="nav-item is-tab">
+                        User: {{printf "%s" .User}}
+                    </p>
+                </div>
+                <div class="nav-right nav-menu">
+                    <p class="nav-item is-tab">
+                        <a href="http://localhost{{.Port}}/{{.User}}/export/{{.User}}">
+                            <i class="fa fa-download">CEX-Download</i>
+                        </a>
+                    </p>
+                </div>
+
+            </div>
+        </nav>
+        <br/>
+        <section>
+            {{.TextHTML}}
+        </section>
+
+
+        <footer>
+            <br/>
+            <p>CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. This tool for working with images cited via CITE2
+                URNs and transcriptions using the CITE-microservices is ©2017 by Thomas Koentges. Brucheion is available
+                for use, modification, and distribution under the terms of the
+                <a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion is based on Christopher Blackwell's and Mees Gelein's
+                <a href="https://github.com/cite-architecture/ict2">ICT2</a> and on
+                <a href="http://openseadragon.github.io">Openseadragon</a>.</p>
+        </footer>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let cardToggles = document.getElementsByClassName('card-toggle');
+            for (let i = 0; i < cardToggles.length; i++) {
+                cardToggles[i].addEventListener('click', e => {
+                    e.currentTarget.parentElement.parentElement.childNodes[3].classList.toggle('is-hidden');
+                });
+            }
+        });
+    </script>
+</body>
+<script>
+    var newid = "crit1";
+    $("span[alignment='0']").css("color", "lightgrey");
+    $('span').hover(function () {
+        $("div[lnum]").children("[id='" + $(this).attr("alignment") + "']").addClass('yourClass');
+    }, function () {
+        $("span").removeClass('yourClass');
+    });
+    $('span').click(function () {
+        document.getElementById(newid).style.display="none";
+        var num = this.id;
+        var n = num.toString();
+        newid = "crit" + n;
+        document.getElementById(newid).removeAttribute("style");
+    });
+    var source_id = "";
+    var target_id = "";
+    var side = "";
+
+</script>
+<script>
+    function highlfunc(linkElement) {
+        var loc = $(linkElement).attr('href')
+        var splitted = loc.split("#");
+        if (splitted[1] == null) {
+            return;
+        };
+
+        var header = document.getElementById("trmenu");
+        var current = header.getElementsByClassName("is-primary");
+        if (current.length != 0) {
+            current[0].className = current[0].className.replace(" is-primary", "");
+        };
+        var linkid = "button_" + splitted[1];
+        document.getElementById(linkid).className += " is-primary";
+    };
+    // var header = document.getElementById("trmenu");
+    // var btns = $("[id^=button_]");
+    // for (var i = 0; i < btns.length; i++) {
+    //     btns[i].addEventListener("click", function () {
+    //         for (var j = 0; j < btns.length; j++) {
+    //             btns[j].replace(" is-primary", ""); 
+    //         }
+    //         this.className += " is-primary";
+    //     });
+    // }
+</script>
+
+</html>
