@@ -119,7 +119,7 @@ func main() {
 	router.HandleFunc("/{user}/new/{key}", newText)
 	router.HandleFunc("/{user}/view/{urn}", ViewPage)
 	router.HandleFunc("/{user}/tree/", TreePage)
-	router.HandleFunc("/{user}/multicompare/", MultiPage)
+	router.HandleFunc("/{user}/multicompare/{urn}", MultiPage)
 	router.HandleFunc("/{user}/edit/{urn}", EditPage)
 	router.HandleFunc("/{user}/editcat/{urn}", EditCatPage)
 	router.HandleFunc("/{user}/save/{key}", SaveTranscription)
@@ -1344,13 +1344,86 @@ func fieldNWA(alntext []string) [][]string {
 	return fields
 }
 
+// func addSansHyphens(s string) string {
+// 	hyphen := []rune(`&shy;`)
+// 	after := []rune{rune('a'), rune('ā'), rune('i'), rune('ī'), rune('u'), rune('ū'), rune('ṛ'), rune('ṝ'), rune('ḷ'), rune('ḹ'), rune('e'), rune('o'), rune('ṃ'), rune('ḥ')}
+// 	notBefore := []rune{rune('ṃ'), rune('ḥ'), rune(' ')}
+// 	runeSl := []rune(s)
+// 	newSl := []rune{}
+// 	if len(runeSl) <= 2 {
+// 		return s
+// 	}
+// 	newSl = append(newSl, runeSl[0:2]...)
+
+// 	for i := 2; i < len(runeSl)-2; i++ {
+// 		next := false
+// 		possible := false
+// 		for j := range after {
+// 			if after[j] == runeSl[i] {
+// 				possible = true
+// 			}
+// 		}
+// 		if !possible {
+// 			newSl = append(newSl, runeSl[i])
+// 			continue
+// 		}
+// 		for j := range notBefore {
+// 			if notBefore[j] == runeSl[i+1] {
+// 				next = true
+// 			}
+// 		}
+// 		if next {
+// 			newSl = append(newSl, runeSl[i])
+// 			next = false
+// 			continue
+// 		}
+// 		if runeSl[i] == rune('a') {
+// 			if runeSl[i+1] == rune('i') || runeSl[i+1] == rune('u') {
+// 				newSl = append(newSl, runeSl[i])
+// 				continue
+// 			}
+// 		}
+// 		if runeSl[i-1] == rune(' ') {
+// 			newSl = append(newSl, runeSl[i])
+// 			continue
+// 		}
+// 		newSl = append(newSl, runeSl[i])
+// 		for k := range hyphen {
+// 			newSl = append(newSl, hyphen[k])
+// 		}
+// 	}
+// 	newSl = append(newSl, runeSl[len(runeSl)-1:]...)
+// 	return string(newSl)
+// }
+
+func findSpace(runeSl []rune) (spBefore, spAfter int, newSl []rune) {
+	spAfter = 0
+	spBefore = 0
+	for i := 0; i < len(runeSl); i++ {
+		if runeSl[i] == rune(' ') {
+			spBefore++
+		} else {
+			break
+		}
+	}
+	for i := len(runeSl) - 1; i >= 0; i-- {
+		if runeSl[i] == rune(' ') {
+			spAfter++
+		} else {
+			break
+		}
+	}
+	return spBefore, spAfter, runeSl[spBefore : len(runeSl)-spAfter]
+}
+
 func addSansHyphens(s string) string {
 	hyphen := []rune(`&shy;`)
 	after := []rune{rune('a'), rune('ā'), rune('i'), rune('ī'), rune('u'), rune('ū'), rune('ṛ'), rune('ṝ'), rune('ḷ'), rune('ḹ'), rune('e'), rune('o'), rune('ṃ'), rune('ḥ')}
 	notBefore := []rune{rune('ṃ'), rune('ḥ'), rune(' ')}
 	runeSl := []rune(s)
+	spBefore, spAfter, runeSl := findSpace(runeSl)
 	newSl := []rune{}
-	if len(runeSl) < 2 {
+	if len(runeSl) <= 2 {
 		return s
 	}
 	newSl = append(newSl, runeSl[0:2]...)
@@ -1392,7 +1465,17 @@ func addSansHyphens(s string) string {
 			newSl = append(newSl, hyphen[k])
 		}
 	}
+	SpBefore := []rune{}
+	SpAfter := []rune{}
+	for i := 0; i < spBefore; i++ {
+		SpBefore = append(SpBefore, rune(' '))
+	}
+	for i := 0; i < spAfter; i++ {
+		SpAfter = append(SpAfter, rune(' '))
+	}
 	newSl = append(newSl, runeSl[len(runeSl)-2:]...)
+	newSl = append(newSl, SpAfter...)
+	newSl = append(SpBefore, newSl...)
 	return string(newSl)
 }
 
@@ -1955,43 +2038,62 @@ type Alignment struct {
 func MultiPage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
+	urn := vars["urn"]
 
-	id2 := "urn:cts:sktlit:skt0001.nyaya002.msC3D:3.1.1"
-	id1 := "urn:cts:sktlit:skt0001.nyaya002.edThk:3.1.1"
-	id3 := "urn:cts:sktlit:skt0001.nyaya002.msJ1D:3.1.1"
-	id4 := "urn:cts:sktlit:skt0001.nyaya002.msJ2D:3.1.1"
-	id5 := "urn:cts:sktlit:skt0001.nyaya002.msKuS:3.1.1"
-	id6 := "urn:cts:sktlit:skt0001.nyaya002.msL1D:3.1.1"
-	id7 := "urn:cts:sktlit:skt0001.nyaya002.msM2D:3.1.1"
-	id8 := "urn:cts:sktlit:skt0001.nyaya002.msM3D:3.1.1"
-	id9 := "urn:cts:sktlit:skt0001.nyaya002.msMy2D:3.1.1"
-	id10 := "urn:cts:sktlit:skt0001.nyaya002.msP2D:3.1.1"
-	id11 := "urn:cts:sktlit:skt0001.nyaya002.msP4D:3.1.1"
-	id12 := "urn:cts:sktlit:skt0001.nyaya002.msS1S:3.1.1"
-	id13 := "urn:cts:sktlit:skt0001.nyaya002.msTML:3.1.1"
-	id14 := "urn:cts:sktlit:skt0001.nyaya002.msU1D:3.1.1"
-	id15 := "urn:cts:sktlit:skt0001.nyaya002.msV2D:3.1.1"
-	id16 := "urn:cts:sktlit:skt0001.nyaya002.msV7D:3.1.1"
+	dbname := user + ".db"
 
-	text2 := "{C3D 57r7}parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate tac cātmādīty ātmā vivicyate kiṃ dehendriyamanobuddhisaṃghātamātra ātmā āhosvit tadvyatirikta iti kutaḥ saṃśayaḥ vyapadeśasyobhayathā siddheḥ kriyākaraṇayoḥ kartrā saṃbandhasyābhidhānaṃ vyapadeśaḥ sa dvividhaḥ avayavena samudāyasya mūlair vṛkṣas tiṣṭhati stambhaiḥ prāsādo dhriyata iti {C3D 57v1}anyenānyasya vyapadeśaḥ paraśunā vṛścati pradīpena paśyati asti cāyaṃ vyapadeśaḥ cakṣuṣā paśyati manasā vijānāti buddhyā vicārayati śarīreṇa sukhaduḥkham anubhavatīti tatra nāvadhāryate kim avayavena samudāyasya dehādisaṃghātasya athānyenāsya tadvyatiriktasyeti anyenāyam anyasya vyapadeśaḥ kasmāt darśanasparśanābhyām ekārthagrahaṇāt darśanena kaścid artho gṛhītaḥ sparśanenāpi so rtho gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanenāpi spṛśāmīti yaṃ cāspārkṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti ekaviṣayau cemau pratyayāv ekakarttṛkau pratisandhīyete na ca saṃghātakartṛkau nendriyeṇaikakartṛkau tad yo sau cakṣuṣā tvagindriyeṇa caikārthasya saṃgṛhītā bhinnanimittāv ananyakartṛkau pratyayau samānaviṣayau pratisandadhāti so rthāntarabhūta ātmā kathaṃ punar nendriyeṇaikakartṛkau indriyaṃ khalu svaṃ svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisandhātum arhati nendriyāntarasya viṣayāntaragrahaṇam iti kathaṃ na saṃghātakartṛkau ekaḥ khalv ayaṃ bhinnanimittau svātmakartṛkau pratisaṃhitau vedayate na saṃghātaḥ kasmāt anivṛttaṃ hi saṃghāte pratyekaṃ viṣayāntaragrahaṇasyāpratisandhānam indriyāṃtareṇeveti"
-	text1 := "parīkṣitāni pramāṇāni | prameyam idānīṃ parīkṣyate | tac cātmādīty ātmā vivicyate kiṃ dehendriyamanobuddhivedanāsaṅghātamātram ātmāho svit tato vyatirikta iti | kutaḥ saṃśayaḥ | vyapadeśasyobhayathā siddheḥ saṃśayaḥ | kriyākaraṇayoḥ kartrā sambandhasyābhidhānaṃ vyapadeśaḥ | sa dvividhaḥ | avayavena samudāyasya mūlair vṛkṣas tiṣṭhati stambhaiḥ prāsādo dhriyata iti | anyena cānyasya vyapadeśaḥ paraśunā vṛścati pradīpena paśyatīti | asti cāyaṃ vyapadeśaś cakṣuṣā paśyati manasā vijānāti buddhyā vicārayati śarīreṇa sukhaduḥkham anubhavatīti | tatra nāvadhāryate kim avayavena samudāyasya dehādisaṅghātasya vyapadeśaḥ | athānyenānyasya tadvyatiriktasya veti | anyenānyasya vyapadeśaḥ | kasmāt | darśanasparśanābhyām ekārthagrahaṇāt | darśanena kaścid artho gṛhītaḥ sparśanenāpi so 'rtho gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanenāpi spṛśāmīti yaṃ cāspārkṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti | ekaviṣayau dvāv imau pratyayāv ekakartṛkau pratisandhīyete | na ca saṅghātakartṛkau nendriyeṇaikakartṛkau | tad yo 'sau cakṣuṣā tvagindriyeṇa caikārthasya grahītā bhinnanimittāv ananyakartṛkau pratyayau samānaviṣayau pratisandadhāti so 'rthāntarabhūta ātmeti | kathaṃ punar nendriyeṇaikakartṛkau | indriyaṃ khalu svaṃ svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisandhātum arhati nendriyāntarasya viṣayāntaragrahaṇam iti | kathaṃ na saṅghātakartṛkau | ekaḥ khalv ayaṃ bhinnanimittau svātmakartṛkau pratyayau pratisaṃhitau vedayate na saṅghātaḥ | kasmāt | anivṛttaṃ hi saṅghāte pratyekaṃ viṣayāntaragrahaṇasyāpratisandhānam indriyāntareṇeveti | "
-	text3 := "{J1D 37r4}parīkṣitāni pramā-ṇāni prameyam idānīṃ parīkṣyate | tac cātmādīty ātmā vicāryate | kiṃ deheṃdriyamano¤buddhisaṃghātamātram ātmā āhosvit tato vyatirikta iti 〈|〉 kutaḥ saṃśayo vyapadeśasyobhayathā siddheḥ saṃśayaḥ 〈|〉 kriyāka-raṇayoḥ karttrābhisambandhasyābhidhānaṃ vyapadeśaḥ 〈|〉 sa dvividho 〈|〉 ’vayavena ca samudāyasya || ¤ mūlair vṛkṣas tiṣṭhati 〈|〉 staṃbhaiḥ prāsādo dhriyata iti | anyena cānyasya paraśunā vṛścati 〈|〉 pradīpena paśyatīti | asti cāyaṃ vya-padeśaḥ 〈|〉 cakṣuṣā paśyati manasā vijānāti 〈|〉 budhyā vicārayati 〈|〉 śarīreṇa sukhaduḥkham anubhavati | tatra nā.adhāryate kim avayavena samudāyasya dehādisaṃghātasya vyapadeśo ’thānyenānyasya tadvyatiriktasyeti | anyenāyam anyasya vyapadeśaḥ 〈|〉 kasmāt 〈|〉 darśanasparśanābhyām ekārthagrahaṇāt | darśanena kaścid artho ‥hītaḥ sparśanenāpi gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanenāpi spṛsāmīti | yaṃ cāsprākṣaṃ sparśanena taṃ cakṣuṣā pasyāmī-ti | ekaviṣayau dvāv imau pratyayāv ekakartṛkau pratisaṃdhīyete na saṃghātakartṛkau neṃdri(ye)ṇaikakartṛkau tad yo sau cakṣuṣā tvagiṃdriyeṇa caikasyārthasya grahītā bhinnanimittāv ananyakarttṛkau pratyayau [pratisaṃdadhā]{J1D 37v1}samānaviṣayau pratisaṃdadhāti so rthāṃtarabhūta ātmeti 〈|〉 kathaṃ punar nne.driyeṇaikakartṛkau 〈|〉 iṃdriyaṃ khalu svaṃ svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisaṃdhātum arhatiṃ neṃdriyāṃtarasya viṣayagrahaṇam iti | kathaṃ na saṃghātakartṛkau ekaḥkhalv ayaṃ bhinnanimittau pratyayau svātmakartṛkau pratisaṃhitau vedayate na saṃghātaḥ kasmād anivṛttaṃ (h)i saṃghāte pratye[ya]〈kaṃ〉 viṣayāntaragrahaṇasyāpratisandhānam iṃdriyāṃtareṇeveti | "
-	text4 := "{J2D 27r3}parīkṣitāni pramāṇāni 〈|〉 prameyam idānīṃ parīkṣyate | tac cātmādīty ātmā vicāryate | kiṃ deheṃdriyamanobuddhisaṃghātamātram ātmā āhosvit tato vyatirikta | iti 〈|〉 kutaḥ saṃśayo 〈|〉 vyapadeśasyobhayathā siddheḥ saṃśayaḥ 〈|〉 kriyākaraṇayoḥ karttrābhisambandhasyābhidhānaṃ vyapadeśaḥ 〈|〉 sa dvividho 〈|〉 ’vayavena ca samudāyasya 〈|〉 mūlair vṛkṣas tiṣṭhati 〈|〉 staṃbhaiḥ prāsādo dhriyata iti | anyena cānyasya paraśunā vṛścati 〈|〉 pradīpena paśyatīti | asti cāyaṃ vyapadeśaḥ 〈|〉 cakṣuṣā paśyati 〈|〉 manasā vijānāti 〈|〉 buddhyā vicārayati 〈|〉 śarīreṇa sukhaduḥkham anubhavati | tatra nāvadhāryate kim avayavena samudāyasya dehādisaṃghātasya vyapadeśo 〈|〉 ’thānyenā-¤nyasya tadvyatiriktasyeti | anyenāyam anyasya vyapadeśaḥ 〈|〉 kasmāt | darśanasparśanābhyām ekārthagra-haṇāt 〈||〉 darśanena kaścid artho gṛhītaḥ 〈|〉 sparśanenāpi gṛhyate 〈|〉 yam aham adrākṣaṃ cakṣuṣā-¤ taṃ sparśanenāpi spṛśāmīti | yaṃ cāsprākṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti[ḥ] 〈|〉| ekaviṣayau dvāv imau pratyayāv ekakartṛkau pratisaṃdhīyete 〈|〉 na saṃghātakartṛkau 〈|〉 neṃdriyeṇai¤kakarttṛkau 〈|〉 tad yo sau cakṣuṣā tvagiṃdriyeṇa caikasyārthasya grahītā 〈|〉 bhinnanimittāv ananyakarttṛkau pratyayau samānaviṣayau pratisaṃdadhāti so rthāṃtarabhūta ātmeti kathaṃ-¤ puna〈|r〉 [nni]〈nneṃ〉driyeṇaikakartṛkau 〈|〉 iṃdriyaṃ khalu svaṃ svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisaṃdhātum arhati neṃdriyāṃtarasya viṣayagrahaṇam iti | kathaṃ na saṃghātakartṛkau 〈|〉 ekaḥ khalv ayaṃ bhinnanimittau pra|¤tyayau svātmakartṛkau pratisaṃhitau vedayate na saṃghātaḥ 〈|〉 kasmā〈|〉d anivṛttaṃ hi saṃghāte pratyekaṃ viṣayāntaragrahaṇasyāpratisandhānam iṃdriyāṃtareṇeveti | "
-	text5 := "{KuS 66ar16}śrīgaṇādhipo jayatu || parīkṣitāni pramāṇāni ^ prameyam idānīṃ parīkṣyate tac cātmādīty ātmā [vicāryate]〈vivicyate〉² 〈|〉² kiṃ dehendriyamanobuddhi〈vedanā〉²saṅghātamātram ātmā āhosvit tato vyatirikta iti ^ kutaḥ saṃśayaḥ [||]2 vyapadeśasyobhayathā siddheḥ [saṃśayaḥ]2 [||]2 kriyākaraṇayoḥ ka[rttā]〈rtrā〉² sambandhasyābhidhānaṃ vyapadeśaḥ {KuS 66av1}sa [ca]2 dvividhaḥ avayavena samudāyasya mūlair vṛkṣas tiṣṭhati stambhaiḥ prāsā[dā]〈do〉² dhriya[nta]〈ta〉² iti ^ anye[na cā]〈nā〉²nyasya vyapadeśaḥ paraśunā vṛśca[tīti]〈ti pradīpena paśyati |〉² asti cāyaṃ vyapadeśaḥ cakṣuṣā paśya[tīti]〈ti〉² manasā vijānāti buddhyā vi[jñānasya]〈cāraya〉²ti śarīreṇa 〈sukhaṃ〉²duḥkhaṃm anubhavatīti tatra nāvadhāryate kim avayavena samudāyasya dehādisaṅghātasya athānyenānyasya tadvyatirikta[syeti]〈sya veti〉² || 1 || anyenāyam anyasya vyapadeśaḥ kasmāt || darśanasparśanābhyām ekārthagrahaṇāt || darśanena kaścid artho gṛhītaḥ sparśanenāpi [sa evārtho]〈so ’rtho〉² gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanena sparśāmīti yam cāspārkṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti 〈^〉 ekaviṣayau cemau pratyayāv ekakartṛkau pratisandhīyete na [‥]〈ca〉² saṅghātakartṛkau nendriyeṇaikakartṛkau ^ ta[d yo rasau]〈d yo ’sau〉² cakṣuṣā tvagindriyeṇa caikārthasya 〈saṃ〉²grahītā bhinnanimittā[v eka]〈v ananya〉²kartṛkau pratyayau samānaviṣayau pratisandadhāti so 〈’〉²rthāntarabhūta ātm[eti]〈tmā〉² 〈^〉 kathaṃ punar nendriyeṇekakartṛkau indriyaṃ khalu sva〈ṃ〉² sva〈ṃ〉² viṣayagrahaṇam ananyakartṛkaṃ pratisandhātum arhati nendriyāntarasya viṣayāntaragrahaṇam iti | kathaṃ na saṅghātakartṛkau ekaḥ khalv ayaṃ bhinnanimittau [ātmaika]〈svātma〉²kartṛkau pratyayau pratisaṃhi{KuS 67ar1}tau vedayate na saṅghātaḥ kasmāt anivṛttaṃ hi saṅghāte pratyekaṃ viṣayāntaragrahaṇasyāpratisandhānam indriyāntare[ṇa veti]〈ṇaiveti〉² || 2 || "
-	text6 := "{L1D 1v1}|| parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate tac cātmādīty ātmā vibicyate kiṃ dehendriyamanovuddhisaṃghātamātra ātmā āhosvit tadvyatirikta iti kutaḥ saṃśayaḥ vyapadeśasyobhayathā siddheḥ kriyākaraṇayoḥ kartrā saṃbandhasyābhidhānaṃ vyapadeśaḥ sa dvividhaḥ avayavena samudāyasya mūlair vṛkṣas tiṣṭati stambhaiḥ prāsādo dhriyata iti anyenānyasya vyapadeśaḥ paraśunā vṛścati pradīpena paśyati asti cāyaṃ vyapadeśaḥ cakṣuṣā paśyati manasā vi-jānāti vuddhyā vicārayati śarīreṇa sukhaduḥkham anubhavatīti tatra nāvadhāryate kim avayavena samudāya-sya dehādisaṃghātasya athānyenāsya tadvyatiriktasyeti anyenāyam anyasya vyapadeśaḥ kasmāt darśanasparśanābhyām ekārthagrahaṇāt darśanena kaścid artho gṛhītaḥ sparśanenāpi so rtho gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanenāpi spṛśāmīti yaṃ cāspārkṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti ekaviṣayau cemau pra-tyayāv ekakarttṛkau pratisandhīyete na ca saṃghātakartṛkau nendriyeṇaikakartṛkau tad yo sau cakṣuṣā tvagindriyeṇa caikārthasya saṃgṛhītā bhinnanimittāv ananyakarttṛkau pratyayau samānaviṣayau pratisandadhāti so rthāntarabhūta ātmā kathaṃ punar nendriyeṇaikakarttṛkau indriyaṃ khalu svaṃ svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisandhātum arhati nendriyāntarasya viṣayāntaragrahaṇam iti kathaṃ na saṃghātakartṛkau ekaḥ khalv ayaṃ bhinnanimittau svātmakartṛkau pratisaṃhitau vedayate na saṃghātaḥ kasmāt anivṛttaṃ hi saṃghāte pratyekaṃ viṣayāṃ{L1D 2r1}ntaragrahaṇasyāpratisandhānam indriyāntareṇeveti "
-	text7 := "{M2D 31r14}parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate | ātmādīti ātmā vicāryyate | deheṃdriyamanobuddhisaṃghātamātram ātmā āhosvit tato vyatirikta iti | kutaḥ saṃśayaḥ | vyapadeśasyobhayathā siddheḥ saṃśayaḥ | kriyākaraṇayoḥ kartrā nidhānaṃ | vyapadeśo pi dvividhaḥ | avayavena samudāyasya mūlair vṛkṣas tiṣṭati | staṃbhaiḥ prāsādo dhriyate iti | anyena vā anyasya vyapadeśaḥ | paraśunā vṛścati pradīpena paśyati 〈a〉sti cāyaṃ vyapadeśaḥ | cakṣuṣā paśyati manasā vijānāti buddhyā vicārayati śarīreṇa sukhaduḥkham anubhavatīti | tatra nāvadhāryyate ki[ṃ]m avayavena samudāyasya de[śā]hādisaṃghātasya [..]〈vya〉〈pa〉deśaḥ | athānyena anyasya tadvya{M2D 31v1}tiriktasyeti | anyena anyasya vyapadeśaḥ | kasmād darśanasparśanābhyām ekārthagrahaṇāt | darśanena kaścid artho gṛhītaḥsparśanenāpi gṛhyate | yam adrākṣaṃ cakṣu[sāṃ]〈ṣā〉 taṃ sparśanenāpi spṛśāmīti | yaṃ asprākṣaṃ spa[.śa]〈rśa〉nena taṃ cakṣuṣā paśyāmīti |ekaviṣayau cemau pratyayā[kke]〈v eka〉karttṛkau pratisaṃdhīyete | na saṃghātakartṛkau neṃdriyeṇaikakartṛkau tad yo ’sau cakṣuṣā tam iṃdriyeṇa caikasyārthasya grahītā bhinnanimittāv ananyakartṛkau pratyayau samānaviṣayau pratisaṃdadhāti | so ’rthāṃtarastūta ātmeti |kathaṃ punar neṃdriyeṇaikakartṛkāv iṃdriyaṃ khalu svaṃ viṣayagrahaṇaṃ ananyakartṛkaṃ pratisaṃdhātum arhati | neṃdriyāṃtarasya viṣayagrahaṇam iti na saṃghātakartṛkau ekaṃ khalv ayaṃ bhinnanimittau pratyayau svātmakartṛkau pratisaṃhita veda[ye]〈ya〉te | na saṃghātaḥ | kasmād anivṛttaṃ saṃ〈ghāte pratyekaṃ viṣayāṃtaragrahaṇasya pratisaṃdhānam iṃdriyāṃtareṇeveti | na "
-	text8 := "{M3D 98,13}śrīr astu parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate tad ātmādīty ātmā vicāryate kiṃ dehendriyamanobuddhisaṅghātamātram ātmā’’hosvit tato vyatirikta iti kutaḥ saṃśayaḥ | — sū || vyapadeśasyobhayatā siddheḥ saṃ〈śa〉yaḥ || kriyākaraṇayoḥ kartṛsambandhābhidhānaṃ vyapadeśaḥ sa dvividhaḥ avayavena samudāyasya mūlair vṛkṣas tiṣṭhati stambhaiḥ prāsādo dhriyata iti anyena cānyasya paraśunā vṛścati pradīpena paśyatīti asti cāyaṃ vyapadeśaś cakṣuṣā paśyati manasā vijānāti budhyā vicārayati śa{M3D 99,1}rīreṇa sukhaduḥkham anubhavatīti | tatra nāvadhāryate kim avayavena samudāyasya dehādisaṅghātasya vyapadeśo thānyenānyasya tadvyatiriktasyeti anyenāyam anyasya vyapadeśaḥ kasmāt | — sū || darśanasparśanābhyām ekārthagrahaṇāt || darśanena kiṃcid artho gṛhītaḥ sparśanenāpi gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanenāpi spṛśāmīti yaṃ cārsprākṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti ekaviṣayau cemau pratyayāv ekakartṛkau pratisandhīyete na saṅghātakartṛkeṇendriyeṇaikakartṛ[.au]〈kau〉 tad vyāsau cakṣuṣā tvagindriyeṇa caikasyārthasya ca gṛhītā bhinnanimittāv ananyakartṛkau pratyayau pratisandadhāti so rthāntarabhūta ātmeti | kathaṃ punar nendriyeṇaikakartṛkeṇendriyaṃ khalu svaviṣayagrahaṇam ananyakartṛkaṃ pratisa[nda]〈ndhā〉tum arhatīti nendriyāntarasya viṣayāntaragrahaṇam iti kathaṃ na saṅghāta[ṃ]kartṛkeṇaikaḥ khalv ayaṃ bhinnanimittau pratyayau svātmakartṛkau pratisaṃhitau vedayate na saṅghātaḥ kasmād anivṛttaṃ hi saṅghāte pratyekaṃ viṣayāntaragrahaṇasya pratisandhānam indriyāntareṇeti | "
-	text9 := "{My2D 1v1}śrīgaṇeśāya namaḥ || parīkṣitāni [pramāṇyāni] pramāṇāni prameyam idānīṃ parīkṣyate ^ tac cātmādī[nya]ty ātmā vivicā[r(ssa)te]ryate | kiṃ deheṃdriyamano〈buddhi〉saṃ[dha]ghātamātram ātr.tmā āhosvit tato vyatirikta iti | kuṃtaḥ saṃ[y.]śayaḥ vyapadeśasyobhayathā si[|]ddheḥ | kriyākaraṇayoḥ kartrā saṃbaṃdhasyābhi〈lāpo〉 vyapadeśaḥ ^ sa dvividhaḥ | avayavena samudāyasya ^ mūlair vṛkṣa[s.]s tiṣṭhati [sthi] staṃbhaiḥ prāsādo dhriyata iti anyenānyasya vyapadeśaḥ | paraśunā vṛścati pradīpena paśyati | asti cāyaṃ vyapadeśaś cakṣuṣā paśyati manasā vijānāti [|] buddhyā vicārayati [|] śarīreṇa sukhaduḥkham anubhavatīti | tatra nāvadhāryate [ma]〈kim a〉vayavena samudāyasya dehādisaṃghātasya athānyenānyasya tadvyatiriktasyeti | anyenāyam anyasya vyapadeśaḥ kasmāt || daśarnasparśanābhyām ekārthagrahaṇāt || || darśanena kaścid artho gṛhītaḥ sparśanenāpi [sparśanenāpi] so rtho gṛhyate yam aham adrākṣaṃ cakṣuṣo taṃ sparśanenāpi spṛśāmīti | yaṃ cāspārkṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti | ekavi[ṣe]〈ṣa〉yau dyai mau pratyayāv ekakartṛkau pratisaṃdhīyete na ca saṅghāta[dṛ]kartṛkau neṃdriye [ne]〈ṇai〉kakartṛkau tad yo sau cakṣuṣā tvagiṃdriyeṇa caikārthasya grahītā [|] bhinnanimittāv ananyakartṛkau pratyayau samānaviṣayau pratisaṃ[dā]〈da〉dhāti [|] so ’rthāṃtarabhūta ātmā | kathaṃ punar neṃdriyeṇaikakartṛkau ^ iṃdriyaṃ khalu sva〈sva〉 vi[ṣe]〈ṣa〉[ye]〈ya〉grahaṇam ananyakartṛkaṃ pratisaṃdhātum arhati neṃdriyāṃtarasya viṣayāṃtaragrahaṇam iti | kathaṃ na saṃghātakartṛkau | ekaḥ khalv ayaṃ [bhinna] bhinnanimittau svātmakartṛkau pratyayau pratisaṃhitau vedayate na saṅghātaḥ | 〈kasmāt〉 anivṛttaṃ hi saṃghātena pratyekaviṣayāṃtaragrahaṇasyāpra{My2D 2r1}tisaṃdhānam iṃdriyāṃtareṇeveti || "
-	text10 := "{P2D 1v1}śrīgaṇeśāya namaḥ | 〈atheṃdriyavyatirekaḥ〉 parīkṣetāni pramāṇāni prameyam idānīṃ parīkṣyate | tad yārtmedīty ānmā vivicyate kiṃ de〈heṃ〉driyamanobuddhisaṃghātamātram ātmā āhosvit tadvyatirikta iti | kutaḥ saṃśayaḥ vyapadeśasyobhayathā siddheḥ kriyākaraṇayoḥ kartrā saṃbaṃdhasyābhidhānaṃ vyapade〈śaḥ〉 sa dvividhaḥ ^ avayavena samudāyasya mūlair vṛkṣas tiṣṭhati staṃbhaiḥ prāsādo dhriyata iti | anyenānyasya vyapadeśaḥ paraśunā vṛścati pradīpena paśyati | asti cāyaṃ vyapadeśaḥ | cakṣuṣā paśyati manasā vijānāti buddhyā vicārayati śarīreṇa su〈kha〉[sa]duḥkharm anubhaṃvatīti | tatra nāvadhāryate kim avayavena samudāyasya dehādisaṃghātasya athānyenānyasya tadvyatiriktasyeti | anyenāyam aṃnyasya vyapadeśaḥ kasmākt ^ darśanasparśanābhyām ekārthagrahaṇā[kt]〈t〉 darśanena kaścid artho gṛhātaḥ sparśanenāpi so rtho gṛhyate [tya]〈ya〉m aham adrākṣaṃ cakṣuṣā taṃ sparśanenāpi spṛśāmīti | yaṃ cāspārkṣaṃ sparśanena taṃ cabhuṣā paśyāmīti ekaviṣayau cemau pratyayāv ekakartṛkau pratisaṃdhīyete | na ca saṃghātakartṛkau neṃdriyeṇaikakartṛkau | tad yo sau cakṣuṣā tvagiṃdriyeṇa caikārthasya grahītā bhinnanimittāv ananyakartṛkau pratyayau samānaviṣayau pratisaṃdadhāti | so ’rthāṃtarabhūta ātmā kathaṃ puna naidriyeṇaikakartṛkau iṃdriyaṃ khalu [skaṃ]〈svaṃ〉 svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisaṃdhātum arhati neṃdriyāṃtarasya viṣayāṃtaragra[ha]haṇam iti [ki] 〈| ka〉thaṃ na saṅghātakartṛkau | ekaḥ khaltv ayaṃ bhinnanimittau svātmakartṛkau pratisaṃhitau cedayate na saṃghātaḥ | kasmākt ^ anivṛttaṃ hi saṃghāte pratyekaṃ viṣayāṃtaragrahaṇasyāpratisaṃdhānam iṃdriyāṃtareṇaiveti | "
-	text11 := "{P4D 51v1}parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate tac cātmādīpt ātmā vivicyate kiṃ deheṃdriyamanobuddhisaṃghātamātram ātmā āhosvit tadvyatirikta iti kutaḥ saṃśayaḥ vyapadeśasyobhayathā siddheḥ kriyākaraṇayoḥ kartrā saṃbaṃdhasyābhidhānaṃ vyapadeśaḥ sa dvividhaḥ avayavena samudāyasya mūlair vṛkṣas tiṣṭhati staṃbhaiḥ prāsādo dhriyata iti anyenānyasya vyapadeśaḥ paraśunā vṛścati pradīpena paśyati asti cāyaṃ vyapadeśaḥ cakṣuṣā paśyati manasā vijānāti buddhyā vicārayati śarīreṇa sukhaduḥkham anubhavati tatra nāvadhāryate kim avayavena samudāyadehādisaṃghātasya athānyenānyasya tadvyatiriktasyeti anyenāyam anyasya vyapadeśaḥ kasmāt darśanasparśanābhyām ekārthagrahaṇāt darśanena kaścid artho gṛhītaḥ sparśanenāpi so rtho gṛhyate | yam aham adrākṣaṃ cakṣuṣā taṃ sparśanenāpi spṛśāmīti yaṃ cāspārkṣaṃ sparśanana taṃ cakṣuṣā paśyāmīti ekaviṣayau cemau pratyayāv ekakartṛkau pratisaṃdhīyete na ca saṃghātakartṛkau neṃdriyeṇaikakartṛkau tad yo sau cakṣuṣā tvagiṃdriyeṇa caikārthasya gṛhītā bhinnanimittāv ananyakartṛkau pratyayau samānaviṣayau pratisadadhāti so ’rthāṃtarabhūta ātmā kathaṃ punar neṃdriyeṇaikakartṛkau iṃdriyaṃ khalu svaṃ svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisadhātum arhati neṃdriyāṃtarasya viṣayāṃtaragrahaṇam iti {P4D 52r1}kathaṃ na saṃghātakartṛkau ekaḥ khalv ayaṃ bhinnanimittau svātmakartṛkau pratisaṃhitau vedayate na saṃghātaḥ kasmāt anivṛttaṃ hi saṃghāte pratyekaṃ viṣayāṃtaragrahaṇasyāpratisaṃdhānam iṃdriyāṃtareṇa veti "
-	text12 := "{S1S 44v4}parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate tac cātmādīty ātmā vicāryate kiṃ dehendriyamanobuddhisaṅghātamātram ātmā āhosvit tato vyatirikta iti kutaḥ saṃśayaḥ vyapadeśasyeti || vyapadeśasyobhayathā siddheḥ saṃśayaḥ || kriyākaraṇayoḥ kartrā sambandhasyābhidhānaṃ vyapadeśaḥ sa ca dvividhaḥ avayavena samudāyasya mūlair vṛkṣas tiṣṭhati stambhaiḥ prāsādā dhriyanta iti anyena cānyasya vyapadeśaḥ paraśunā vṛścatīti asti cāyaṃ vyapadeśaḥ cakṣuṣā paśyatīti manasā vijānāti buddhyā vijñāsyati śarīreṇa duḥkhasukham anubhavatīti tatra nāvadhāryate kim avayavena samudāyasya dehādisaṅghātasya athānyenānyasya tadvyatiriktasyeti 1 anyenāyam anyasya vyapadeśaḥ kasmāt darśaneti || darśanasparśanābhyām ekārthagrahaṇāt ||darśanena kaścid artho gṛhītaḥ sparśanenāpi sa evārtho gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanena spṛśāmīti yam aspārkṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti ekaviṣayau cemau pratyayāv ekakartṛkau pratisandhīyete na ca saṅghātakartṛkau nendriyeṇaikakartṛkau tayor asau cakṣuṣā tvagindriyeṇa caikārthasya grahītā bhinna[bha]nimittāv ekakartṛkau pratyayau samānaviṣayau pratisandadhāti so rthāntarabhūta ātmeti kathaṃ punar nendriyeṇaikakartṛkau indriyaṃ khalu svasvaviṣayagrahaṇam ananyakartṛkaṃ pratisandhātum arhati nendriyāntarasya viṣayāntaragrahaṇam iti kathaṃ na saṅghātakartṛkau ekaḥ khalv a-yaṃ bhinnanimittau svātmaikakartṛkau pratyayau pratisaṃhitau vedayate na saṅghātaḥ kasmāt anivṛttaṃ hi saṅghāte pratyekaṃ viṣa{S1S 45r1}yāntaragrahaṇasyāpratisandhānam indriyāntareṇaveti 2 neti ^ na"
-	text13 := "{TM 44v1}parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate tad ātmādīty ātmā vicāryate kin dehendriyamanobuddhisaṃghātamātram ātmā āhosvit tato vyatirikta iti kutas saṃśayaḥ ❀ vyapadeśasyobhayathā siddhes saṃśayaḥ | kriyākaraṇayoḥ karttṛsambandhābhidhānaṃ vyapadeśaḥ sa dvividhaḥ avayavena samudāyasya mūlair vvṛkṣas tiṣṭhati staṃbhaiḥ prāsādo dhriyata iti anyena cānyasya paraśunā vṛścati pradīpena paśyatīti asti cāyaṃ vyapadeśaḥ cakṣuṣā paśyati manasā vijānāti buddhyā vicārayati śarīreṇasukhaduḥkham anubhavatīti tatra nāvadhāryya¤te kim avayavena samudāyasya dehādisaṃghātasya vyapadeśo thā¤nyenānyasya tadvyatiriktasyeti anyenāyam anya[nya]vyapadeśaḥ kasmāt ❀ darśa¤nasparśanābhyām ekārtthagrahaṇāt ^ darśanena kiñcid artho gṛhīta sparśa¤nenāpi gṛhyate yam aham adrākṣañ cakṣuṣā taṃ sparśanenāpi spṛśāmīti yañ cā¤spārkṣaṃ sparśanena tañ cakṣuṣā paśyāmīti ekaviṣayau cemau¤ pratyayāv ekakarttṛkeṇa prati(sa)ndhīyete na saṃghātakarttṛkeṇendriye¤ṇaikakarttṛkau tad yo sau cakṣuṣā tvagindriyeṇa caiksyā¤rtthasya ca gṛhītā bhinnakarttṛkīnimittāv ananyakarttṛkau pratyayau pratisandadh¤āti so rtthāntarabhūta ātmeti katham punar nnendriyeṇaikakarttṛkeṇa indriyaṃ khalu svaviṣayagrahaṇam ananyakarttṛkaṃ pratisandhātum arhatīti nendriyāntarasya viṣayāntaragrahaṇam iti kathan na saṃghātakarttṛkeṇa ekaḥ khalv ayam bhinnanimittena pratyayena svātmakarttṛkau pratisaṃhitau vedayate na saṃghātaḥ kasmād anivṛttaṃ hi saṃghāte pratyekaṃ viṣayāntaragrahaṇasya pratisandhānam indriyāntareṇeti ❀{TM 45r1}"
-	text14 := "{U1D 84v1}oṃ namaḥ śivāya || parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate || tac cātmādīty ātmā bibicyate || kiṃ deheṃdriyamanobuddhi〈vedanā〉saṅghātamātram ātmā āhosvit tadvyatirikta iti kutas tatsaṃśayaḥ ^ vyapadeśasyobhayathā siddheḥ kriyākaraṇayoḥ kartrā saṃbaṃdhasyābhidhānaṃ vyapadeśaḥ || sa dvividhaḥ || avayavena samudāyasya mūlair bṛkṣas tiṣṭhati staṃbhaiḥ prāsādo dhriyata iti || anyenānyasya vyapadeśaḥ paraśunā bṛścati pradīpena paśyati asti cāyaṃ vyapadeśaḥ cakṣuṣā paśyati manasā bijānāti budhyā vicārayati || śarīreṇa sukhaduḥkham anubhavati || atra nāvadhāryyate kim avayavena samudāyasya dehādisaṃghātasya athānyenānyasya tadvyatiriktasya beti || anyenāyam anyasya vyapadeśaḥ kasmāt || darśanasparśanābhyām akārthagrahaṇāt || darśanena yāvad artho gṛhītaḥ sparśanenāpi 〈so gṛhyate [tv acatya]〈cāya〉m artham asprākṣaṃ〉² taṃ cakṣuṣā paśyāmīti || ekaviṣa[ye]〈yau〉 cemau pratyayāv ekakartṛkau pratisaṃdhīyete || na ca saṃghātakartṛkau {U1D 85r1}neṃdriyeṇaikakartṛkau || tad yo sau cakṣuṣā tvagiṃdriyeṇa ca ekārthasya grahītā bhinnanimittāv ekakartṛkau pratyayau samānabiṣayau pratisaṃdadhāti so ’rthāṃtarabhūta ātmā ^ kathaṃ punar neṃdriyeṇaikakartṛkau iṃdriyaṃ khalu svasvaviṣayagrahaṇam ananyakarttṛkaṃ pratisaṃdhātum arhati neṃdriyāṃtarasya biṣayāṃtaragrahaṇam iti || kathaṃ na saṃghātakartṛkau ^ ekaḥ khalv ayaṃ bhinnanimittau svātmakartṛkau pratyayau pratisaṃhitau bedayate na saṃghātaḥ || kasmāt || anivṛttaṃ hi saṃghāte pratyekaṃ viṣayāṃtaragrahaṇasyāpratisaṃdhānam iṃdriyāṃtareṇeveti || "
-	text15 := "{V2D 47r2}parīkṣitāni pramāṇāni prameyam idānīṃ parīkṣyate | tac cātmādīty ātmā vivicyate | kiṃ deheṃdriyamanobuddhivedanāsaṃghātamātram ātmā āhosvit tadvyatirikta iti | kutaḥ saṃśayaḥ vyapadeśasyobhayathā siddheḥ kriyākaraṇayoḥ kartrā saṃbaṃddhasyābhidhānaṃ vyapadeśaḥ sa dvividhaḥ avayavena samudāyasya mūlair vṛ[kṣā]〈kṣa〉s tiṣṭhati staṃbhaiḥ prāsādo dhriyata iti | anyenānyasya vyapadeśaḥ paraśunā vṛścati pradīpena paśyati || asti cāyaṃ vyapadeśaḥ | cakṣuṣā paśyati manasā vijānāti budhyā vicārayati śarīreṇa sukhaṃ duḥkham anubhavatīti | tatra nāvadhāryate kim avayavena samudāyasya dehādisaṃghātasya athānyenānyasya tadvyatiriktasyeti athānyenāyam anyasya vyapadeśaḥ kasmāt ^ darśanasparśanābhyām e(kā)rthagraha(ṇā)t ^ darśanena kaścid artho gṛhītaḥ sparśanenāpi so rtho gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanenāpi spṛśāmīti | yaṃ cāspārkṣaṃ sparśanena taṃ cakṣuṣā paśyāmīti ekaviṣayau cemau pratyayāv ekakartṛkau pratisaṃdhīyete | na ca saṃghātakartṛkau neṃdriyeṇaikakartṛkau | tad yo sau cakṣuṣā tvagiṃdriyeṇa caikārthasya grahītā bhinnanimittāv ananyakartṛkau pratyayau samānaviṣayau pratisaṃdadhāti | so rthāṃtarabhūta ātmā | kathaṃ punar neṃdriyeṇaikakartṛkau iṃdriyaṃ khalu svaṃ svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisaṃdhātum arhati neṃdriyāṃtarasya viṣayāṃtaragrahaṇam iti | kathaṃ na saṃghātakartṛkau | ekaḥ khalv ayaṃ bhinnanimittau svātmakartṛkau pratisaṃhitau vedayate na saṃghātaḥ | kasmāt anivṛttaṃ hi saṃghāte pratyekaṃ viṣayāṃtaragrahaṇasyāpratisaṃdhānam iṃdriyāṃtareṇeve{V2D 47v1}ti || "
-	text16 := "{V7D 78v4}parītāni prāṇāni prameyam idānīṃ parīkṣyate ^ tac cātmādīty ātmā vivāryate kiṃ deheṃdriyamanovuddhivedanāsaṃghātamātram ātmā āhosvit tato vyatirikta iti kutaḥ saṃśayaḥ vyapadeśasyobhathayā siddheḥ kriyākaraṇayoḥ karttrā saṃvaṃdhasyābhidhānaṃ vyapadeśaḥ sa ca dvividhaḥ avayavena samudāyasya mūlair vṛkṣas tiṣṭhati staṃbhaiḥ prāsādo dhriyata iti anyena cānyasya vyapadeśaḥ paraśunā vṛścatīti {V7D 79r1}pradīpena paśyati asti cāyaṃ vyapadeśaḥ cakṣuṣā paśyati manasā jānāti vuddhyā vicārayati śarīreṇa sukhaduḥkham anubhavatīti | tatra nāvadhāryate kiṃm avayavena samudāyasya dehādisaṃghātasya athānyenānyasya tadvyatiriktasyeti | anyenāyam anyasya vyapadeśaḥ kasmāt || darśanasparśanābhyām ekārthagrahaṇāt || darśanena kaścid artho gṛhītaḥ sparśanenāpi sa eva gṛhyate yam aham adrākṣaṃ cakṣuṣā taṃ sparśanena spṛśāmi | yam aspārkṣaṃ sparśanena taṃ cakṣuṣā paśyā|mīti ekaviṣayau camau pratyayāv ekakartṛkau pratisaṃdhīyete na ca saṃghātakatṛkau tad yo sau cakṣuṣā tvagiṃdriyeṇa caikārthasya grahītā bhinnanimittāv ekakartṛkau pratyayau samānaviṣayau pratisaṃdadhāti so rthāṃtarabhūta ātmā ^ kathaṃ puna nneṃdriyeṇaikakatṛkau iṃdriyaṃ khalu svaṃ svaṃ viṣayagrahaṇam ananyakartṛkaṃ pratisaṃdhātum arhati ^ neṃdriyāntarasya viṣayāntaragrahaṇam iti kathaṃ na saṃghātakarttṛkau [ātma]{V7D 79v1}ekaḥ khalv ayaṃ bhinnanimittau ātmakartṛkau pratyayau pratisaṃhitau vedayate ^ na saṃghātaḥ kasmāt aninivṛttaṃ hi saṃghāte pratyekaṃ viṣayāntaragrahaṇasyāpratisaṃdhānam iṃdriyāntaraṇaveti || "
+	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
+	work := strings.Join(strings.Split(strings.Split(requestedbucket, ":")[3], ".")[0:1], ".")
+	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedjson := BoltURN{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	id1 := retrievedjson.URN
+	text1 := retrievedjson.Text
+	swirlreg := regexp.MustCompile(`{[^}]*}`)
+	text1 = swirlreg.ReplaceAllString(text1, "")
+	text1 = strings.Replace(text1, "-NEWLINE-", "", -1)
+	ids := []string{}
+	texts := []string{}
+	passageId := strings.Split(urn, ":")[4]
 
-	ids := []string{id2, id3, id4, id5, id6, id7, id8, id9, id10, id11, id12, id13, id14, id15, id16}
-	texts := []string{text2, text3, text4, text5, text6, text7, text8, text9, text10, text11, text12, text13, text14, text15, text16}
+	buckets := Buckets(dbname)
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	for i := range buckets {
+		if buckets[i] == requestedbucket {
+			continue
+		}
+		if !gocite.IsCTSURN(buckets[i]) {
+			continue
+		}
+		if strings.Join(strings.Split(strings.Split(buckets[i], ":")[3], ".")[0:1], ".") != work {
+			continue
+		}
+		db.View(func(tx *bolt.Tx) error {
+			// Assume bucket exists and has keys
+			b := tx.Bucket([]byte(buckets[i]))
+
+			c := b.Cursor()
+
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				retrievedjson := BoltURN{}
+				json.Unmarshal([]byte(v), &retrievedjson)
+				ctsurn := retrievedjson.URN
+				text := strings.Replace(retrievedjson.Text, "-NEWLINE-", "", -1)
+				if passageId != strings.Split(ctsurn, ":")[4] {
+					continue
+				}
+				ids = append(ids, ctsurn)
+				texts = append(texts, text)
+			}
+
+			return nil
+		})
+	}
+
 	alignments := nwa2(text1, id1, texts, ids)
 	slsl := [][]string{}
 	for i := range alignments.Alignment {
@@ -2255,6 +2357,7 @@ func testAllTheSame(testset [][]string) bool {
 func testStringSl(slsl [][]string) (slsl2 [][][]int, ok bool) {
 	ok = testAllTheSame(slsl)
 	if !ok {
+		fmt.Println("!!! not all the same !!!")
 		slsl2 = [][][]int{}
 		return slsl2, ok
 	}
