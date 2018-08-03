@@ -2359,114 +2359,182 @@ func testAllTheSame(testset [][]string) bool {
 }
 
 func testStringSl(slsl [][]string) (slsl2 [][][]int, ok bool) {
-	ok = testAllTheSame(slsl)
-	if !ok {
-		fmt.Println("!!! not all the same !!!")
+	if len(slsl) == 0 {
+		// fmt.Println("zero length")
 		slsl2 = [][][]int{}
 		return slsl2, ok
 	}
-
-	calcStr1 := ""
-	calcStr2 := ""
-	tmpstr := ""
-	accessed := false
-	count := 0
+	ok = testAllTheSame(slsl)
+	if !ok {
+		// fmt.Println("slices not same length")
+		slsl2 = [][][]int{}
+		return slsl2, ok
+	}
+	// fmt.Println("passed testAllTheSame")
 
 	length := len(slsl)
 
 	base := make([]int, length)
 	cursor := make([]int, length)
 	indeces := make([][]int, length)
+	testr := ""
 	slsl2 = make([][][]int, length)
 
-	for i, v := range slsl[0][base[0]:] {
+	for i := 0; i < len(slsl[0]); i++ {
 		match := false
-		smaller := false
-		calcStr1 = calcStr1 + v
-		if len([]rune(calcStr1)) < len([]rune(calcStr2)) {
-			cursor[0]++
-			indeces[0] = append(indeces[0], i)
-			continue
-		}
-		for j, w := range slsl[1][base[1]:] {
-			tmpstr = calcStr2
-			calcStr2 = calcStr2 + w
-			if len([]rune(calcStr1)) < len([]rune(calcStr2)) {
-				smaller = true
-				if accessed {
-					calcStr2 = tmpstr
-					accessed = false
-				} else {
-					calcStr2 = ""
-				}
+		indeces[0] = append(indeces[0], i)
+		testr = testr + slsl[0][i]
+		// fmt.Println("test", testr)
+		// fmt.Scanln()
 
-				break
-			}
-			if len([]rune(calcStr1)) > len([]rune(calcStr2)) {
-				cursor[1]++
-				count++
-				indeces[1] = append(indeces[1], j+base[1])
+		for k := range slsl {
+			if k == 0 {
 				continue
 			}
-			if calcStr1 == calcStr2 {
-				for k := range slsl {
-					if k < 2 {
-						continue
-					}
-					cursor[k], indeces[k], match = testString(calcStr1, slsl[k], base[k])
-					if !match {
-						accessed = true
-						break
-					}
-
-				}
-
-				indeces[0] = append(indeces[0], i)
-				indeces[1] = append(indeces[1], j+base[1])
-				cursor[1]++
-				cursor[0]++
-				base[1] = cursor[1]
-				base[0] = cursor[0]
+			cursor[k], indeces[k], match = testString(testr, slsl[k], base[k])
+			if !match {
+				// fmt.Println(testr, "and", slsl[k][base[k]:], "do not match")
+				// fmt.Scanln()
 				break
 			}
-			break
-		}
-		if smaller {
-			cursor[0]++
-			cursor[1] = cursor[1] - count
-			base[1] = cursor[1]
-			count = 0
-			indeces[1] = []int{}
-			indeces[0] = append(indeces[0], i)
-			continue
 		}
 		if match {
-			accessed = false
-			count = 0
+			// fmt.Println("write to slice!!")
+			// fmt.Scanln()
 			for k := range slsl {
 				slsl2[k] = append(slsl2[k], indeces[k])
-				if k < 2 {
+				if k == 0 {
 					continue
 				}
 				base[k] = cursor[k]
 			}
-
 			indeces[0] = []int{}
-			indeces[1] = []int{}
-			calcStr1 = ""
-			calcStr2 = ""
-
-			if base[0] == len(slsl[0]) {
-				ok = true
-				return slsl2, ok
-			}
-			continue
+			testr = ""
 		}
-
 	}
-	ok = false
-	for k := range slsl {
-		slsl2[k] = [][]int{}
-	}
+	ok = true
 	return slsl2, ok
 }
+
+// old stuff
+
+// 	calcStr1 := ""
+// 	calcStr2 := ""
+// 	tmpstr := ""
+// 	accessed := false
+// 	count := 0
+
+// 	length := len(slsl)
+
+// 	base := make([]int, length)
+// 	cursor := make([]int, length)
+// 	indeces := make([][]int, length)
+// 	slsl2 = make([][][]int, length)
+
+// 	for i, v := range slsl[0][base[0]:] {
+// 		match := false
+// 		smaller := false
+// 		calcStr1 = calcStr1 + v
+// 		if len([]rune(calcStr1)) < len([]rune(calcStr2)) {
+// 			cursor[0]++
+// 			indeces[0] = append(indeces[0], i)
+// 			continue
+// 		}
+// 		for j, w := range slsl[1][base[1]:] {
+// 			tmpstr = calcStr2
+// 			calcStr2 = calcStr2 + w
+// 			fmt.Println("compare", calcStr1, "and", calcStr2)
+// 			fmt.Scanln()
+// 			if len([]rune(calcStr1)) < len([]rune(calcStr2)) {
+// 				smaller = true
+// 				if accessed {
+// 					calcStr2 = tmpstr
+// 					// accessed = false
+// 				} else {
+// 					calcStr2 = ""
+// 				}
+
+// 				break
+// 			}
+// 			if len([]rune(calcStr1)) > len([]rune(calcStr2)) {
+// 				fmt.Println(len([]rune(calcStr1)), "and", len([]rune(calcStr2)))
+// 				fmt.Scanln()
+// 				cursor[1]++
+// 				count++
+// 				indeces[1] = append(indeces[1], j+base[1])
+// 				continue
+// 			}
+// 			if calcStr1 == calcStr2 {
+// 				fmt.Println("strings 1 + 2 match")
+// 				fmt.Scanln()
+// 				for k := range slsl {
+// 					if k < 2 {
+// 						continue
+// 					}
+// 					cursor[k], indeces[k], match = testString(calcStr1, slsl[k], base[k])
+// 					if !match {
+// 						fmt.Println(calcStr1, "and", slsl[k][base[k]:], "do not match")
+// 						fmt.Scanln()
+// 						accessed = true
+// 						break
+// 					}
+
+// 				}
+
+// 				indeces[0] = append(indeces[0], i)
+// 				indeces[1] = append(indeces[1], j+base[1])
+// 				cursor[1]++
+// 				cursor[0]++
+// 				count = 0
+// 				base[1] = cursor[1]
+// 				base[0] = cursor[0]
+// 				break
+// 			}
+// 			break
+// 		}
+// 		if smaller {
+// 			fmt.Println("smaller. count:", count)
+// 			cursor[0]++
+// 			cursor[1] = cursor[1] - count
+// 			base[1] = cursor[1]
+// 			fmt.Println("restart with", slsl[1][base[1]])
+// 			fmt.Scanln()
+// 			count = 0
+// 			indeces[1] = []int{}
+// 			indeces[0] = append(indeces[0], i)
+// 			continue
+// 		}
+// 		if match {
+// 			fmt.Println("write to slice!!")
+// 			fmt.Scanln()
+// 			accessed = false
+// 			count = 0
+// 			for k := range slsl {
+// 				slsl2[k] = append(slsl2[k], indeces[k])
+// 				if k < 2 {
+// 					continue
+// 				}
+// 				base[k] = cursor[k]
+// 			}
+
+// 			indeces[0] = []int{}
+// 			indeces[1] = []int{}
+// 			calcStr1 = ""
+// 			calcStr2 = ""
+
+// 			if base[0] == len(slsl[0]) {
+// 				ok = true
+// 				return slsl2, ok
+// 			}
+// 			continue
+// 		}
+
+// 	}
+// 	fmt.Println("!!! accessed this!!")
+// 	fmt.Scanln()
+// 	ok = false
+// 	for k := range slsl {
+// 		slsl2[k] = [][]int{}
+// 	}
+// 	return slsl2, ok
+// }
