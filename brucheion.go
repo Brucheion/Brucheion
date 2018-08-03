@@ -1473,7 +1473,11 @@ func addSansHyphens(s string) string {
 	for i := 0; i < spAfter; i++ {
 		SpAfter = append(SpAfter, rune(' '))
 	}
-	newSl = append(newSl, runeSl[len(runeSl)-2:]...)
+	if len(runeSl) < 4 {
+		newSl = append(newSl, runeSl[len(runeSl)-1:]...)
+	} else {
+		newSl = append(newSl, runeSl[len(runeSl)-2:]...)
+	}
 	newSl = append(newSl, SpAfter...)
 	newSl = append(SpBefore, newSl...)
 	return string(newSl)
