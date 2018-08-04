@@ -2053,6 +2053,10 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	id1 := retrievedjson.URN
 	text1 := retrievedjson.Text
+	next1 := retrievedjson.Next
+	first1 := retrievedjson.First
+	last1 := retrievedjson.Last
+	previous1 := retrievedjson.Previous
 	swirlreg := regexp.MustCompile(`{[^}]*}`)
 	text1 = swirlreg.ReplaceAllString(text1, "")
 	text1 = strings.Replace(text1, "-NEWLINE-", "", -1)
@@ -2090,8 +2094,11 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 				if passageId != strings.Split(ctsurn, ":")[4] {
 					continue
 				}
-				ids = append(ids, ctsurn)
-				texts = append(texts, text)
+				// make sure only witness that contain text are included
+				if len(strings.Replace(text, " ", "", -1)) > 5 {
+					ids = append(ids, ctsurn)
+					texts = append(texts, text)
+				}
 			}
 
 			return nil
@@ -2231,6 +2238,10 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 
 	transcription := Transcription{
 		Transcriber:   user,
+		Next:          next1,
+		Previous:      previous1,
+		First:         first1,
+		Last:          last1,
 		Transcription: tmpstr}
 	port := ":7000"
 	p, _ := loadMultiPage(transcription, port)
@@ -2239,7 +2250,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 
 func loadMultiPage(transcription Transcription, port string) (*Page, error) {
 	user := transcription.Transcriber
-	return &Page{User: user, TextHTML: template.HTML(transcription.Transcription), Port: port}, nil
+	return &Page{User: user, TextHTML: template.HTML(transcription.Transcription), Next: transcription.Next, Previous: transcription.Previous, First: transcription.First, Last: transcription.Last, Port: port}, nil
 }
 
 func fieldNWA2(alntext []string) [][]string {
