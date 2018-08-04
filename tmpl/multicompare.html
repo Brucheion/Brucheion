@@ -27,6 +27,11 @@
             color: black;
         }
 
+        .yourClass2 {
+            font-weight: bold;
+            color: hsl(0, 0%, 21%);
+        }
+
         div.items div:not(:target) {
             display: none
         }
@@ -79,6 +84,18 @@
         </nav>
         <br/>
         <section>
+            <div class="tile is-ancestor">
+                <div class="tile is-parent is-12">
+                    <div class="column is-6">
+                <p class="has-text-centered"><a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.First}}"><i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
+                     <a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
+                     {{.Title}}
+                     <a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Next}}"><i class="fa fa-chevron-right"></i></a>
+                     <a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Last}}"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
+                </p>
+            </div>
+        </section>
+        <section>
             {{.TextHTML}}
         </section>
 
@@ -107,17 +124,21 @@
 <script>
     var newid = "crit1";
     $("span[alignment='0']").css("color", "lightgrey");
+
     $('span').hover(function () {
         $("div[lnum]").children("[id='" + $(this).attr("alignment") + "']").addClass('yourClass');
     }, function () {
         $("span").removeClass('yourClass');
     });
+
     $('span').click(function () {
+        $('.yourClass2').removeClass('yourClass2');;
         document.getElementById(newid).style.display="none";
         var num = this.id;
         var n = num.toString();
         newid = "crit" + n;
         document.getElementById(newid).removeAttribute("style");
+        $(this).addClass('yourClass2');
     });
     var source_id = "";
     var target_id = "";
@@ -140,16 +161,6 @@
         var linkid = "button_" + splitted[1];
         document.getElementById(linkid).className += " is-primary";
     };
-    // var header = document.getElementById("trmenu");
-    // var btns = $("[id^=button_]");
-    // for (var i = 0; i < btns.length; i++) {
-    //     btns[i].addEventListener("click", function () {
-    //         for (var j = 0; j < btns.length; j++) {
-    //             btns[j].replace(" is-primary", ""); 
-    //         }
-    //         this.className += " is-primary";
-    //     });
-    // }
 </script>
 
 </html>
