@@ -1,20 +1,16 @@
-/* efaults and Globals */
+/* defaults and Globals */
+/* changed a lot */
 
+// var viewer = null
 var viewer = null
 
-// "http://www.homermultitext.org/iipsrv?DeepZoom=/project/homer/pyramidal/VenA/"
-var defaultServiceUrl = "http://www.homermultitext.org/iipsrv?"
+var defaultServiceUrl = ""
 var defaultServiceZoomService = "DeepZoom="
-var defaultServicePath = "/project/homer/pyramidal/deepzoom/"
+var defaultServicePath = ""
 var defaultServiceSuffix = ".tif"
 var defaultServiceZoomPostfix = ".dzi"
 var defaultLocalpath = "/static/image_archive/"
 var defaultThumbWidth = 250;
-
-
-//var defaultLocalpath = "image_archive/"
-//var defaultLocalpath = "image_archive/"
-
 
 var serviceUrl = defaultServiceUrl
 var servicePath = defaultServicePath
@@ -22,7 +18,6 @@ var serviceUrlAndPath = serviceUrl + defaultServiceZoomService + servicePath
 var imagePath = "";
 var serviceSuffix = defaultServiceSuffix
 var servicePostfix = serviceSuffix + defaultServiceZoomPostfix
-
 
 var localPath = defaultLocalpath;
 var localSuffix = ".dzi";
@@ -198,31 +193,7 @@ function initOpenSeadragon() {
 		viewer = null
 	}
 
-	// this for internal iamges and external iiif. getTilesSources need tweaking.
-	viewer = OpenSeadragon({
-		id: 'image_imageContainer',
-		prefixUrl: 'http://localhost:7000/static/css/images/',
-		crossOriginPolicy: "Anonymous",
-		defaultZoomLevel: 1,
-		tileSources: getTileSources(imgUrn),
-		minZoomImageRatio: 0.1, // of viewer size
-		immediateRender: true
-	});
-
-	// this to openseadragonize external static images
-	// viewer = OpenSeadragon({
-	// 	id: 'image_imageContainer',
-	// 	prefixUrl: 'http://localhost:7000/static/css/images/',
-	// 	defaultZoomLevel: 1,	
-	// 	tileSources: {
-	// 		type: 'image',
-	// 		url:  'https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg'
-	// 	},
-	// 	buildPyramid: false,
-	// 	minZoomImageRatio: 0.1, // of viewer size
-	// 	immediateRender: true
-	// });
-
+	viewer = getViewerByURN(imgUrn)
 
 	viewer.addHandler('full-screen', function (viewer) {
 		refreshRois();
@@ -305,18 +276,6 @@ function loadDefaultROI(imgUrn) {
 		});
 		updateShareUrl();
 	}
-
-	/*
-  CAN BE REMOVED?
-  if (imgUrn.split("@").length > 1){
-		var newRoi = imgUrn.split("@")[1];
-		var newGroup = getGroup(roiArray.length+1);
-		var roiObj = {index: roiArray.length, roi: newRoi, mappedUrn: imgUrn, group: newGroup.toString()};
-		roiArray.push(roiObj);
-		addRoiOverlay(roiObj);
-		addRoiListing(roiObj);
-	}
-	*/
 }
 
 /**
@@ -627,7 +586,9 @@ function setUpUI() {
 		var e = document.getElementById("image_urnSelect");
 		var newUrn = e.options[e.selectedIndex].value;
 		console.log(newUrn)
+		// var newUrn = $("input#image_urnBox").prop("value").trim()
 		imgUrn = newUrn
+		reloadImage();
 	});
 
 	//Handlers for all the configuration fields
@@ -712,14 +673,63 @@ function getTileSources(imgUrn) {
 	var imgId = plainUrn.split(":")[4]
 	imagePath = getImagePathFromUrn(plainUrn);
 	var ts = ""
-	if (useLocal) {
-		//var localDir = plainUrn.split(":")[0] + "_" + plainUrn.split(":")[1] + "_" + plainUrn.split(":")[2] + "_" + plainUrn.split(":")[3] + "_/"
-		ts = usePath + imagePath + imgId + useSuffix
-	} else {
-		ts = usePath + imagePath + imgId + useSuffix
-	}
+	ts = usePath + imagePath + imgId + useSuffix
 	// ts = "https://libimages1.princeton.edu/loris/pudl0001%2F4609321%2Fs42%2F00000004.jp2/info.json"
 	// ts = "https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
 	// ts = "https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/info.json"
 	return ts
+}
+
+/**
+ * Returns the Viewer for the given Image URN
+ * @param  {string} imgUrn the URN of the Image
+ * @return {json}       the Viewer
+ */
+function getViewerByURN(imgUrn) {
+	var tmpviewer = null
+	var newMeta = metaForUrn();
+	var newType = newMeta[0];
+	var neURL = newMeta[1];
+	console.log("reached this")
+	if (newType == "internal") {
+		tmpviewer = OpenSeadragon({
+			id: 'image_imageContainer',
+			prefixUrl: 'http://localhost:7000/static/css/images/',
+			crossOriginPolicy: "Anonymous",
+			defaultZoomLevel: 1,
+			tileSources: getTileSources(imgUrn),
+			minZoomImageRatio: 0.1, // of viewer size
+			immediateRender: true
+		});
+	} else if (newType == "static") {
+		tmpviewer = OpenSeadragon({
+			id: 'image_imageContainer',
+			prefixUrl: 'http://localhost:7000/static/css/images/',
+			defaultZoomLevel: 1,
+			tileSources: {
+				type: 'image',
+				url: 'https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg'
+			},
+			buildPyramid: false,
+			minZoomImageRatio: 0.1, // of viewer size
+			immediateRender: true
+		});
+	} else if (newType == "iiif") {
+		tmpviewer = OpenSeadragon({
+			id: 'image_imageContainer',
+			prefixUrl: 'http://localhost:7000/static/css/images/',
+			crossOriginPolicy: "Anonymous",
+			defaultZoomLevel: 1,
+			tileSources: "https://libimages1.princeton.edu/loris/pudl0001%2F4609321%2Fs42%2F00000004.jp2/info.json",
+			minZoomImageRatio: 0.1, // of viewer size
+			immediateRender: true
+		});
+	};
+	return tmpviewer;
+};
+
+function metaForUrn() {
+	type = "internal"
+	url = ""
+	return [type, url];
 }
