@@ -58,18 +58,25 @@ type cexMeta struct {
 }
 
 type imageCollection struct {
-	Collection []image
+	URN        string  `json:"urn"`
+	Name       string  `json:"name"`
+	Collection []image `json:"location"`
 }
 
 type image struct {
-	Internal bool
-	Location string
+	URN      string `json:"urn"`
+	Name     string `json:"name"`
+	Protocol string `json:"protocol"`
+	License  string `json:"license"`
+	External bool   `json:"external"`
+	Location string `json:"location"`
 }
 
 func deleteCollection(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
-	newkey := vars["name"]
+	newkey := r.URL.Query().Get("name")
+	newkey = strings.Replace(newkey, "\"", "", -1)
 	dbname := user + ".db"
 	db, err := bolt.Open(dbname, 0644, nil)
 	if err != nil {
@@ -111,6 +118,96 @@ func newCollectiontoDB(dbName, collectionName string, collection imageCollection
 		if val != nil {
 			fmt.Println("collection exists already")
 			return errors.New("collection exists already")
+		}
+		err = bucket.Put(dbkey, dbvalue)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func newCITECollectionDB(dbName, collectionName string) error {
+	pwd, _ := os.Getwd()
+	dbname := pwd + "/" + dbName + ".db"
+	dbkey := []byte(collectionName)
+	collection := imageCollection{}
+	dbvalue, err := gobEncode(&collection)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer db.Close()
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("imgCollection"))
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		val := bucket.Get(dbkey)
+		if val != nil {
+			fmt.Println("collection exists already")
+			return errors.New("collection exists already")
+		}
+		err = bucket.Put(dbkey, dbvalue)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func addtoCITECollection(dbName, collectionName string, newImage image) error {
+	collection := imageCollection{}
+	pwd, _ := os.Getwd()
+	dbname := pwd + "/" + dbName + ".db"
+	dbkey := []byte(collectionName)
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer db.Close()
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("imgCollection"))
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		val := bucket.Get(dbkey)
+		// fmt.Println("got", string(dbkey))
+
+		if val != nil {
+			collection, _ = gobDecodeImgCol(val)
+		}
+		found := false
+		for coli, colv := range collection.Collection {
+			if colv.URN == newImage.URN {
+				found = true
+				collection.Collection[coli] = newImage
+			}
+		}
+		if !found {
+			collection.Collection = append(collection.Collection, newImage)
+			found = false
+		}
+		dbvalue, err2 := gobEncode(&collection)
+		if err2 != nil {
+			fmt.Println(err)
+			return err
 		}
 		err = bucket.Put(dbkey, dbvalue)
 		if err != nil {
