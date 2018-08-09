@@ -135,8 +135,12 @@ func main() {
 	router.HandleFunc("/{user}/saveImage/{key}", SaveImageRef)
 	router.HandleFunc("/{user}/newWork", newWork)
 	router.HandleFunc("/{user}/newCollection/{name}/{urns}", newCollection)
+	router.HandleFunc("/{user}/newCITECollection/{name}", newCITECollection)
+	router.HandleFunc("/{user}/getImageInfo/{name}/{imageurn}", getImageInfo)
+	router.HandleFunc("/{user}/addtoCITE", addCITE)
+
 	router.HandleFunc("/{user}/requestImgID/{name}", requestImgID)
-	router.HandleFunc("/{user}/deleteCollection/{name}", deleteCollection)
+	router.HandleFunc("/{user}/deleteCollection", deleteCollection)
 	router.HandleFunc("/{user}/requestImgCollection", requestImgCollection)
 	log.Println("Listening at" + serverIP + "...")
 	log.Fatal(http.ListenAndServe(serverIP, router))
@@ -219,6 +223,45 @@ func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, string(resultJSON))
 }
 
+func getImageInfo(w http.ResponseWriter, r *http.Request) {
+	retImage := imageCollection{}
+	newImage := image{}
+	vars := mux.Vars(r)
+	user := vars["user"]
+	collectionName := vars["name"]
+	imageurn := vars["imageurn"]
+	dbkey := []byte(collectionName)
+	dbname := user + ".db"
+	db, err := bolt.Open(dbname, 0644, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	err = db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("imgCollection"))
+		if b == nil {
+			return errors.New("failed to get bucket")
+		}
+		val := b.Get(dbkey)
+		// fmt.Println("got", string(dbkey))
+		retImage, _ = gobDecodeImgCol(val)
+		for _, v := range retImage.Collection {
+			if v.URN == imageurn {
+				newImage = v
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		resultJSON, _ := json.Marshal(newImage)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		fmt.Fprintln(w, string(resultJSON))
+	}
+	resultJSON, _ := json.Marshal(newImage)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintln(w, string(resultJSON))
+}
+
 func requestImgID(w http.ResponseWriter, r *http.Request) {
 	response := JSONlist{}
 	collection := imageCollection{}
@@ -253,11 +296,44 @@ func requestImgID(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, string(resultJSON))
 	}
 	for i := range collection.Collection {
-		response.Item = append(response.Item, collection.Collection[i].Location)
+		response.Item = append(response.Item, collection.Collection[i].URN)
 	}
 	resultJSON, _ := json.Marshal(response)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintln(w, string(resultJSON))
+}
+
+func newCITECollection(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	user := vars["user"]
+	name := vars["name"]
+	newCITECollectionDB(user, name)
+	io.WriteString(w, "success")
+}
+
+func addCITE(w http.ResponseWriter, r *http.Request) {
+	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
+	vars := mux.Vars(r)
+	user := vars["user"]
+	name := r.URL.Query().Get("name")
+	name = strings.Replace(name, "\"", "", -1)
+	imageurn := r.URL.Query().Get("urn")
+	imageurn = strings.Replace(imageurn, "\"", "", -1)
+	location := r.URL.Query().Get("location")
+	location = strings.Replace(location, "\"", "", -1)
+	// fmt.Println(location)
+	protocol := r.URL.Query().Get("protocol")
+	protocol = strings.Replace(protocol, "\"", "", -1)
+	externalstr := r.URL.Query().Get("external")
+	externalstr = strings.Replace(externalstr, "\"", "", -1)
+	external := false
+	if externalstr == "true" {
+		external = true
+	}
+	newimage := image{URN: imageurn, External: external, Protocol: protocol, Location: location}
+	// fmt.Println(user, name, newimage)
+	addtoCITECollection(user, name, newimage)
+	io.WriteString(w, "success")
 }
 
 func newCollection(w http.ResponseWriter, r *http.Request) {
@@ -282,10 +358,10 @@ func newCollection(w http.ResponseWriter, r *http.Request) {
 				io.WriteString(w, "failed")
 			}
 			for i := range links {
-				collection.Collection = append(collection.Collection, image{Internal: true, Location: links[i]})
+				collection.Collection = append(collection.Collection, image{External: false, Location: links[i]})
 			}
 		default:
-			collection.Collection = append(collection.Collection, image{Internal: true, Location: imageIDs[0]})
+			collection.Collection = append(collection.Collection, image{External: false, Location: imageIDs[0]})
 		}
 	default:
 		for i := range imageIDs {
@@ -294,7 +370,7 @@ func newCollection(w http.ResponseWriter, r *http.Request) {
 			case urn.InValid:
 				continue
 			default:
-				collection.Collection = append(collection.Collection, image{Internal: true, Location: imageIDs[i]})
+				collection.Collection = append(collection.Collection, image{External: false, Location: imageIDs[i]})
 			}
 		}
 	}

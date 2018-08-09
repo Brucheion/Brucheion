@@ -2,7 +2,7 @@
 /* changed a lot */
 
 // var viewer = null
-var viewer = null
+var viewer = null;
 
 var defaultServiceUrl = ""
 var defaultServiceZoomService = "DeepZoom="
@@ -186,14 +186,14 @@ jQuery(function ($) {
 });
 
 /* Initiatlize OpenSeadragon viewer with guides, selection, and pre-load any urn */
-function initOpenSeadragon() {
+async function initOpenSeadragon() {
 
 	if (viewer != null) {
 		viewer.destroy();
-		viewer = null
+		viewer = null;
 	}
 
-	viewer = getViewerByURN(imgUrn)
+	viewer = await getViewerByURN(imgUrn)
 
 	viewer.addHandler('full-screen', function (viewer) {
 		refreshRois();
@@ -685,13 +685,13 @@ function getTileSources(imgUrn) {
  * @param  {string} imgUrn the URN of the Image
  * @return {json}       the Viewer
  */
-function getViewerByURN(imgUrn) {
+async function getViewerByURN(imgUrn) {
 	var tmpviewer = null
-	var newMeta = metaForUrn();
+	var newMeta = await metaForUrn();
 	var newType = newMeta[0];
-	var neURL = newMeta[1];
-	console.log("reached this")
-	if (newType == "internal") {
+	var newURL = newMeta[1];
+	console.log(newMeta)
+	if (newType == "localDZ" || newType == "") {
 		tmpviewer = OpenSeadragon({
 			id: 'image_imageContainer',
 			prefixUrl: 'http://localhost:7000/static/css/images/',
@@ -708,7 +708,7 @@ function getViewerByURN(imgUrn) {
 			defaultZoomLevel: 1,
 			tileSources: {
 				type: 'image',
-				url: 'https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg'
+				url: newURL
 			},
 			buildPyramid: false,
 			minZoomImageRatio: 0.1, // of viewer size
@@ -720,7 +720,7 @@ function getViewerByURN(imgUrn) {
 			prefixUrl: 'http://localhost:7000/static/css/images/',
 			crossOriginPolicy: "Anonymous",
 			defaultZoomLevel: 1,
-			tileSources: "https://libimages1.princeton.edu/loris/pudl0001%2F4609321%2Fs42%2F00000004.jp2/info.json",
+			tileSources: newURL,
 			minZoomImageRatio: 0.1, // of viewer size
 			immediateRender: true
 		});
@@ -729,7 +729,23 @@ function getViewerByURN(imgUrn) {
 };
 
 function metaForUrn() {
-	type = "internal"
-	url = ""
-	return [type, url];
+	return new Promise(function (resolve, reject) {
+		baseArray = imgUrn.split(":", 4);
+		baseURN = baseArray.join(":");
+		baseURN = baseURN + ":";
+		console.log(imgUrn.indexOf('@'));
+		if (imgUrn.indexOf('@') != -1) {
+			redURN = imgUrn.substring(0, imgUrn.indexOf('@'));
+			querystring = 'http://localhost:7000/thomas/getImageInfo/' + baseURN + '/' + redURN;
+		} else {
+			querystring = 'http://localhost:7000/thomas/getImageInfo/' + baseURN + '/' + imgUrn;
+		}
+		console.log(querystring);
+		$.getJSON(querystring, function (data) {
+			url = data.location;
+			type = data.protocol;
+			console.log([type, url]);
+			resolve([type, url]);
+		});
+	});
 }
