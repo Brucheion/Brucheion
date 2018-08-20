@@ -21,8 +21,27 @@ import (
 	"github.com/ThomasK81/gonwr"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie" //for generating the cookieStore key
+	"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
 	"golang.org/x/net/html"
+
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/github"
+	"github.com/markbates/goth/providers/gitlab"
 )
+
+type CookiestoreConfig struct {
+	Host         string `json:"host"`
+	Port         string `json:"port"`
+	GitHubKey    string `json:"gitHubKey"`
+	GitHubSecret string `json:"githHubSecret"`
+	GitLabKey    string `json:"gitLabKey"`
+	GitLabSecret string `json:"gitLabSecret"`
+	GitLabScope  string `json:"gitLabScope"`
+	//	GoogleKey	  string `json:"googleKey"`
+	//	GoogleSecret  string `json:"googleSecret"`
+}
 
 type JSONlist struct {
 	Item []string `json:"item"`
@@ -101,7 +120,9 @@ type Page struct {
 	CatLan       string
 }
 
-var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html", "tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html"))
+var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html",
+	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
+	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 var serverIP = ":7000"
 
@@ -113,6 +134,8 @@ func main() {
 	router.PathPrefix("/static/").Handler(s)
 	router.PathPrefix("/js/").Handler(js)
 	router.PathPrefix("/cex/").Handler(cex)
+
+	router.HandleFunc("/login/", login)
 	router.HandleFunc("/{user}/{urn}/treenode.json", Treenode)
 	router.HandleFunc("/{user}/main/", MainPage)
 	router.HandleFunc("/{user}/load/{cex}", LoadDB)
@@ -144,6 +167,25 @@ func main() {
 	router.HandleFunc("/{user}/requestImgCollection", requestImgCollection)
 	log.Println("Listening at" + serverIP + "...")
 	log.Fatal(http.ListenAndServe(serverIP, router))
+}
+
+//experimaental login function using goth.
+func login(w http.ResponseWriter, r *http.Request) {
+
+	renderTemplate(w, "login", p)
+}
+
+//Helper function to loads and parses JSON config file. Returns Config.
+func LoadConfiguration(file string) Config {
+	var config CookiestoreConfig               //initialize config as Config
+	configFile, openFileError := os.Open(file) //attempt to open file
+	defer configFile.Close()                   //push closing on call list
+	if openFileError != nil {                  //error handling
+		fmt.Println("Open file error: " + openFileError.Error())
+	}
+	jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
+	jsonParser.Decode(&config)                //parse configFile to config
+	return config                             //return ServerConfig config
 }
 
 // Helper function to pull the href attribute from a Token
@@ -1690,7 +1732,7 @@ func ViewPage(w http.ResponseWriter, r *http.Request) {
 	first := retrievedjson.First
 	last := retrievedjson.Last
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
-	switch len(imageref) > 0 {
+	switch len(imageref) > 0 { //why is this a switch/case (not a simple if-statement?)
 	case true:
 		imagejs = imageref[0]
 	}
