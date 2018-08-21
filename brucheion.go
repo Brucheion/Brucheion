@@ -21,12 +21,14 @@ import (
 	"github.com/ThomasK81/gonwr"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie" //for generating the cookieStore key
-	"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
 	"golang.org/x/net/html"
+	/*
+		"github.com/gorilla/securecookie" //for generating the cookieStore key
+		"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
+	*/
 
 	"github.com/markbates/goth"
-	"github.com/markbates/goth/gothic"
+	//"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
 )
@@ -120,22 +122,38 @@ type Page struct {
 	CatLan       string
 }
 
+type LoginPage struct {
+	User      string
+	Title     string
+	Port      string
+	Providers *ProviderIndex
+}
+
+type ProviderIndex struct {
+	Providers    []string
+	ProvidersMap map[string]string
+}
+
+var cookiestoreConfig = LoadConfiguration("./config.json")
+
 var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html",
 	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
 	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
-var serverIP = ":7000"
+
+var serverIP = cookiestoreConfig.Port
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	js := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
 	cex := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
+
 	router.PathPrefix("/static/").Handler(s)
 	router.PathPrefix("/js/").Handler(js)
 	router.PathPrefix("/cex/").Handler(cex)
 
-	router.HandleFunc("/login/", login)
+	router.HandleFunc("/login/", Login)
 	router.HandleFunc("/{user}/{urn}/treenode.json", Treenode)
 	router.HandleFunc("/{user}/main/", MainPage)
 	router.HandleFunc("/{user}/load/{cex}", LoadDB)
@@ -170,13 +188,27 @@ func main() {
 }
 
 //experimaental login function using goth.
-func login(w http.ResponseWriter, r *http.Request) {
+func Login(res http.ResponseWriter, req *http.Request) {
 
-	renderTemplate(w, "login", p)
+	/*
+		func loadCrudPage(transcription Transcription, port string) (*Page, error) {
+		user := transcription.Transcriber
+		var textrefrences []string
+		for i := range transcription.TextRef {
+			textrefrences = append(textrefrences, transcription.TextRef[i])
+		}
+		textref := strings.Join(textrefrences, " ")
+		return &Page{User: user, Text: template.HTML(textref), Port: port}, nil
+	}*/
+
+	//port := ":7000"
+	port := cookiestoreConfig.Port
+	p, _ := loadLoginPage(port)
+	renderLoginTemplate(res, "login", p)
 }
 
-//Helper function to loads and parses JSON config file. Returns Config.
-func LoadConfiguration(file string) Config {
+//Helper function to load and parse JSON config file. Returns Config.
+func LoadConfiguration(file string) CookiestoreConfig {
 	var config CookiestoreConfig               //initialize config as Config
 	configFile, openFileError := os.Open(file) //attempt to open file
 	defer configFile.Close()                   //push closing on call list
@@ -1263,6 +1295,48 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Success")
 }
 
+func loadLoginPage(port string) (*LoginPage, error) {
+	//the stub following construction plan of other loadPage funcs
+	user := ""
+	title := ""
+
+	//building the authentification paths for the choosen providers
+	gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
+	gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
+
+	//tell goth to use the coosen providers:
+	goth.UseProviders(
+		github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
+		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope),
+	)
+
+	//initialization of the Goth authentification process: building the providerIndex
+	//create providersMap to include in providerIndex later
+	providersMap := make(map[string]string)
+
+	//populate providersMap
+	providersMap["github"] = "Github"
+	providersMap["gitlab"] = "Gitlab"
+
+	//extract and sort keys from providersMap
+	var keys []string
+	for k := range providersMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	//set up providerIndex
+	providerIndex := &ProviderIndex{Providers: keys, ProvidersMap: providersMap}
+
+	//the stub following construction plan of other loadPage funcs
+	return &LoginPage{
+		User:      user,
+		Title:     title,
+		Port:      port,
+		Providers: providerIndex}, nil
+
+}
+
 func loadPage(transcription Transcription, port string) (*Page, error) {
 	user := transcription.Transcriber
 	imagejs := transcription.ImageJS
@@ -1698,7 +1772,14 @@ func renderCompTemplate(w http.ResponseWriter, tmpl string, p *CompPage) {
 	}
 }
 
-// ViewPage generates the webpage based on the sent request
+func renderLoginTemplate(w http.ResponseWriter, tmpl string, p *LoginPage) {
+	err := templates.ExecuteTemplate(w, tmpl+".html", p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// ViewPage generates the webpage based on the sent request # possibly old comment?
 func ViewPage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	urn := vars["urn"]
