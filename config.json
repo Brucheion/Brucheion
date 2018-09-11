@@ -1,0 +1,12 @@
+{
+"host": "localhost",
+"port": ":7000",
+"gitHubKey": "e24debbde4119f3e189e",
+"githHubSecret": "dd29ff40c8b906cf5c098e449c016589efd2df5f",
+"gitLabKey": "84b5a90b6cbaa7e1ca8a912e7bd48cfa2921b838d70cf95dc301d88489154501",
+"gitLabSecret": "4f3e9482d6eacc4b560ec16019894dbdb4c142613bce57fa06c36786ecf30a75",
+"gitLabScope": "read_user"
+}
+
+//"googleKey": "",
+//"googleSecret": "",

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Skeleton - Free Bulma template</title>
+  <title>Brucheion Login</title>
   <link rel="stylesheet" href="/static/css/font-awesome.min.css">
   <link rel="stylesheet" type="text/css" href="/static/css/bulma.css">
 </head>
@@ -17,30 +17,34 @@
         <div class="columns is-vcentered">
           <div class="column is-4 is-offset-4">
             <h1 class="title">
-              Login
+              Login with Gitlab or Github
             </h1>
             <div class="box">
               <form method="post" action="/login">
+              <label class="label">Enter the username you want to use in Brucheion and authentificate using GH or GL</label>
+              <hr>
               <label class="label">User name</label>
               <p class="control">
                 <input class="input" type="text" id="username" name="username" placeholder="jsmith">
               </p>
-              <label class="label">Password</label>
+              <p/>
               <p class="control">
-                <input class="input" type="password" id="password" name="password" placeholder="●●●●●●●">
-              </p>
-              <hr>
-              <p class="control">
-                <button class="button is-primary" type = "submit">Login</button>
-                <button class="button is-default">Cancel</button>
+                <a href="/auth/github/" target="_blank" type = "submit" class="button is-primary is-default is-large">
+                  <span class="icon">
+                    <i class="fab fa-github"></i>
+                  </span>
+                  <span>Github</span>
+                </a>
+                <a href="/auth/gitlab/" target="_blank" type = "submit" class="button is-large">
+                  <span class="icon">
+                    <i class="fab fa-github"></i>
+                  </span>
+                  <span>Gitlab</span>
+                </a>
               </p>
             </form>
             </div>
             <p class="has-text-centered">
-              <a href="Register">Register an Account</a>
-              |
-              <a href="#">Forgot password</a>
-              |
               <a href="#">Need help?</a>
             </p>
           </div>
