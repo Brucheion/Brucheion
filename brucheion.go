@@ -22,13 +22,12 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/html"
-	/*
-		"github.com/gorilla/securecookie" //for generating the cookieStore key
-		"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
-	*/
+
+	"github.com/gorilla/securecookie" //for generating the cookieStore key
+	"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
 
 	"github.com/markbates/goth"
-	//"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
 )
@@ -123,15 +122,15 @@ type Page struct {
 }
 
 type LoginPage struct {
-	User      string
-	Title     string
-	Port      string
-	Providers *ProviderIndex
+	User string
+	Port string
+	//Providers *ProviderIndex
 }
 
-type ProviderIndex struct {
-	Providers    []string
-	ProvidersMap map[string]string
+type AuthPage struct {
+	User     string
+	Port     string
+	GothUser goth.User
 }
 
 var cookiestoreConfig = LoadConfiguration("./config.json")
@@ -149,11 +148,26 @@ func main() {
 	js := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
 	cex := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
 
+	//building the authentification paths for the choosen providers
+	gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
+	gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
+
+	//tell goth to use the coosen providers:
+	goth.UseProviders(
+		github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
+		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope),
+	)
+
+	//Create new Cookiestore
+	SetCookieSore()
+
 	router.PathPrefix("/static/").Handler(s)
 	router.PathPrefix("/js/").Handler(js)
 	router.PathPrefix("/cex/").Handler(cex)
 
-	router.HandleFunc("/login/", Login)
+	router.HandleFunc("/login/", Login)                          //the loginpage choice of authentification provider
+	router.HandleFunc("/auth/{provider}", Auth)                  //initializing the authentication, redirecting to authification provider
+	router.HandleFunc("/auth/{provider}/callback", AuthCallback) //success message display
 	router.HandleFunc("/{user}/{urn}/treenode.json", Treenode)
 	router.HandleFunc("/{user}/main/", MainPage)
 	router.HandleFunc("/{user}/load/{cex}", LoadDB)
@@ -187,24 +201,74 @@ func main() {
 	log.Fatal(http.ListenAndServe(serverIP, router))
 }
 
+//setting cookiestore for login and authentification
+func SetCookieSore() {
+
+	key := securecookie.GenerateRandomKey(64)
+	if key == nil {
+		fmt.Println("Error generating random session key")
+	}
+
+	maxAge := 86400 * 10 //time of a day in seconds * days
+
+	//keySet = len(key) != 0
+
+	cookieStore := sessions.NewCookieStore([]byte(key))
+	cookieStore.Options.HttpOnly = true
+	cookieStore.MaxAge(maxAge)
+
+	gothic.Store = cookieStore
+}
+
 //experimaental login function using goth.
 func Login(res http.ResponseWriter, req *http.Request) {
 
 	/*
-		func loadCrudPage(transcription Transcription, port string) (*Page, error) {
-		user := transcription.Transcriber
-		var textrefrences []string
-		for i := range transcription.TextRef {
-			textrefrences = append(textrefrences, transcription.TextRef[i])
-		}
-		textref := strings.Join(textrefrences, " ")
-		return &Page{User: user, Text: template.HTML(textref), Port: port}, nil
-	}*/
+		//building the authentification paths for the choosen providers
+		gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
+		gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
 
-	//port := ":7000"
+		//tell goth to use the coosen providers:
+		goth.UseProviders(
+			github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
+			gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope),
+		)*/
+
+	//the user should be inserted int the textfield and be passed on to authentification
+	//the port is necessary for rendering
+	user := ""
 	port := cookiestoreConfig.Port
-	p, _ := loadLoginPage(port)
+
+	p := &LoginPage{
+		User: user,
+		Port: port}
+	//	p, _ := loadLoginPage(port)
+
 	renderLoginTemplate(res, "login", p)
+}
+
+func Auth(res http.ResponseWriter, req *http.Request) {
+
+	gothic.BeginAuthHandler(res, req)
+}
+
+func AuthCallback(res http.ResponseWriter, req *http.Request) {
+	gothUser, err := gothic.CompleteUserAuth(res, req) //gets the user authentification from the session that is already existing.
+	if err != nil {
+		fmt.Fprintln(res, err)
+		return
+	}
+
+	user := ""
+	port := cookiestoreConfig.Port
+
+	p := &AuthPage{
+		User:     user,
+		Port:     port,
+		GothUser: gothUser}
+
+	renderAuthTemplate(res, "callback", p)
+
 }
 
 //Helper function to load and parse JSON config file. Returns Config.
@@ -489,6 +553,9 @@ func MainPage(w http.ResponseWriter, r *http.Request) {
 	user := vars["user"]
 	dbname := user + ".db"
 	buckets := Buckets(dbname)
+	fmt.Println()
+	fmt.Println("func MainPage. Printing buckets:")
+	fmt.Println()
 	fmt.Println(buckets)
 }
 
@@ -1295,48 +1362,6 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Success")
 }
 
-func loadLoginPage(port string) (*LoginPage, error) {
-	//the stub following construction plan of other loadPage funcs
-	user := ""
-	title := ""
-
-	//building the authentification paths for the choosen providers
-	gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
-	gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
-
-	//tell goth to use the coosen providers:
-	goth.UseProviders(
-		github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
-		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope),
-	)
-
-	//initialization of the Goth authentification process: building the providerIndex
-	//create providersMap to include in providerIndex later
-	providersMap := make(map[string]string)
-
-	//populate providersMap
-	providersMap["github"] = "Github"
-	providersMap["gitlab"] = "Gitlab"
-
-	//extract and sort keys from providersMap
-	var keys []string
-	for k := range providersMap {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	//set up providerIndex
-	providerIndex := &ProviderIndex{Providers: keys, ProvidersMap: providersMap}
-
-	//the stub following construction plan of other loadPage funcs
-	return &LoginPage{
-		User:      user,
-		Title:     title,
-		Port:      port,
-		Providers: providerIndex}, nil
-
-}
-
 func loadPage(transcription Transcription, port string) (*Page, error) {
 	user := transcription.Transcriber
 	imagejs := transcription.ImageJS
@@ -1773,6 +1798,13 @@ func renderCompTemplate(w http.ResponseWriter, tmpl string, p *CompPage) {
 }
 
 func renderLoginTemplate(w http.ResponseWriter, tmpl string, p *LoginPage) {
+	err := templates.ExecuteTemplate(w, tmpl+".html", p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func renderAuthTemplate(w http.ResponseWriter, tmpl string, p *AuthPage) {
 	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

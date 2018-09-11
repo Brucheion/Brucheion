@@ -21,25 +21,15 @@
             </h1>
             <div class="box">
               <form method="post" action="/login">
-              <label class="label">Enter the username you want to use in Brucheion and authentificate using GH or GL</label>
+              <label class="label">Login Successfull with {{.Provider}}</label>
+
+              
               <hr>
-              <label class="label">User name</label>
+              <label class="label">Go to Main Page</label>
+              <p>
               <p class="control">
-                <input class="input" type="text" id="username" name="username" placeholder="jsmith">
-              </p>
-              <p/>
-              <p class="control">
-                <a href="/auth/github/" target="_blank" type = "submit" class="button is-primary is-default is-large">
-                  <span class="icon">
-                    <i class="fab fa-github"></i>
-                  </span>
-                  <span>Github</span>
-                </a>
-                <a href="/auth/gitlab/" target="_blank" type = "submit" class="button is-large">
-                  <span class="icon">
-                    <i class="fab fa-github"></i>
-                  </span>
-                  <span>Gitlab</span>
+                <a href="/user/main/" target="_blank" type = "submit" class="button is-primary is-default is-large">
+                  <span>Forward to Mainpage</span>
                 </a>
               </p>
             </form>
