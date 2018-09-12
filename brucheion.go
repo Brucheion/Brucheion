@@ -122,8 +122,9 @@ type Page struct {
 }
 
 type LoginPage struct {
-	User string
-	Port string
+	User  string
+	Port  string
+	Title string
 	//Providers *ProviderIndex
 }
 
@@ -131,13 +132,14 @@ type AuthPage struct {
 	User     string
 	Port     string
 	GothUser goth.User
+	Provider string
 }
 
 var cookiestoreConfig = LoadConfiguration("./config.json")
 
 var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html",
 	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
-	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html"))
+	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
 var serverIP = cookiestoreConfig.Port
@@ -236,12 +238,12 @@ func Login(res http.ResponseWriter, req *http.Request) {
 
 	//the user should be inserted int the textfield and be passed on to authentification
 	//the port is necessary for rendering
-	user := ""
+	title := "Brucheion Login Page"
 	port := cookiestoreConfig.Port
 
 	p := &LoginPage{
-		User: user,
-		Port: port}
+		Port:  port,
+		Title: title}
 	//	p, _ := loadLoginPage(port)
 
 	renderLoginTemplate(res, "login", p)
@@ -253,11 +255,17 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 }
 
 func AuthCallback(res http.ResponseWriter, req *http.Request) {
+
 	gothUser, err := gothic.CompleteUserAuth(res, req) //gets the user authentification from the session that is already existing.
 	if err != nil {
 		fmt.Fprintln(res, err)
 		return
 	}
+
+	provider, _ := gothic.GetProviderName(req)
+	/*	if err != nil {
+		return goth.User{}, err
+	}*/
 
 	user := ""
 	port := cookiestoreConfig.Port
@@ -265,7 +273,8 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	p := &AuthPage{
 		User:     user,
 		Port:     port,
-		GothUser: gothUser}
+		GothUser: gothUser,
+		Provider: provider}
 
 	renderAuthTemplate(res, "callback", p)
 
@@ -1805,6 +1814,9 @@ func renderLoginTemplate(w http.ResponseWriter, tmpl string, p *LoginPage) {
 }
 
 func renderAuthTemplate(w http.ResponseWriter, tmpl string, p *AuthPage) {
+	/*	user := p.GothUser
+		url := user[url]
+		fmt.Println(url) */
 	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
