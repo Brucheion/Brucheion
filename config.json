@@ -1,10 +1,10 @@
 {
 "host": "localhost",
 "port": ":7000",
-"gitHubKey": "e24debbde4119f3e189e",
-"githHubSecret": "dd29ff40c8b906cf5c098e449c016589efd2df5f",
-"gitLabKey": "84b5a90b6cbaa7e1ca8a912e7bd48cfa2921b838d70cf95dc301d88489154501",
-"gitLabSecret": "4f3e9482d6eacc4b560ec16019894dbdb4c142613bce57fa06c36786ecf30a75",
+"gitHubKey": "8c8d1d0664ab4b19bb93",
+"githHubSecret": "7c24b9a48fca3afee8bef46ad1eb797018091e8c",
+"gitLabKey": "270aedaa433171d4f32aac6df4c08f5d918a37bcaded0e647fa13082ea107a34",
+"gitLabSecret": "6ad9c6a416eeae876993a63d5ca1b3f36d026eb0a84add2a9ad24bd04a69bf11",
 "gitLabScope": "read_user"
 }
 
