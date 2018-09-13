@@ -122,9 +122,11 @@ type Page struct {
 }
 
 type LoginPage struct {
-	User  string
-	Port  string
-	Title string
+	UserName string
+	Provider string
+	Message  map[string]string
+	Port     string
+	Title    string
 	//Providers *ProviderIndex
 }
 
@@ -167,7 +169,8 @@ func main() {
 	router.PathPrefix("/js/").Handler(js)
 	router.PathPrefix("/cex/").Handler(cex)
 
-	router.HandleFunc("/login/", Login)                          //the loginpage choice of authentification provider
+	router.HandleFunc("/login/", Login).Methods("GET") //the loginpage choice of authentification provider
+	router.HandleFunc("/login/", Auth).Methods("POST")
 	router.HandleFunc("/auth/{provider}", Auth)                  //initializing the authentication, redirecting to authification provider
 	router.HandleFunc("/auth/{provider}/callback", AuthCallback) //success message display
 	router.HandleFunc("/{user}/{urn}/treenode.json", Treenode)
@@ -225,33 +228,51 @@ func SetCookieSore() {
 //experimaental login function using goth.
 func Login(res http.ResponseWriter, req *http.Request) {
 
-	/*
-		//building the authentification paths for the choosen providers
-		gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
-		gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
-
-		//tell goth to use the coosen providers:
-		goth.UseProviders(
-			github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
-			gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope),
-		)*/
-
 	//the user should be inserted int the textfield and be passed on to authentification
 	//the port is necessary for rendering
+	//message in case no username was entered
 	title := "Brucheion Login Page"
 	port := cookiestoreConfig.Port
 
-	p := &LoginPage{
+	//this should populate Loginpage with initial data and the form values
+	lp := &LoginPage{
 		Port:  port,
 		Title: title}
-	//	p, _ := loadLoginPage(port)
 
-	renderLoginTemplate(res, "login", p)
+	renderLoginTemplate(res, "login", lp)
+
 }
 
 func Auth(res http.ResponseWriter, req *http.Request) {
 
-	gothic.BeginAuthHandler(res, req)
+	fmt.Println("Logindata from FormValue: " + req.FormValue("username"))
+
+	title := "Brucheion Login Page"
+	port := cookiestoreConfig.Port
+
+	lp := &LoginPage{
+		UserName: req.FormValue("username"),
+		Provider: req.FormValue("provider"),
+		Port:     port,
+		Title:    title}
+
+	if lp.Validate() == false {
+		renderLoginTemplate(res, "login", lp)
+	} else {
+		gothic.BeginAuthHandler(res, req)
+	}
+
+}
+
+func (loginPage *LoginPage) Validate() bool {
+
+	loginPage.Message = make(map[string]string)
+
+	fmt.Println("Validating: " + loginPage.UserName)
+	if strings.TrimSpace(loginPage.UserName) == "" {
+		loginPage.Message["Username"] = "Please choose a username."
+	}
+	return len(loginPage.Message) == 0
 }
 
 func AuthCallback(res http.ResponseWriter, req *http.Request) {

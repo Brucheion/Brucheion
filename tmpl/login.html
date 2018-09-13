@@ -21,28 +21,28 @@
             </h1>
             <div class="box">
               <form method="post" action="/login">
-              <label class="label">Enter the username you want to use in Brucheion and authentificate using GH or GL</label>
-              <hr>
-              <label class="label">User name</label>
-              <p class="control">
-                <input class="input" type="text" id="username" name="username" placeholder="jsmith">
-              </p>
-              <p/>
-              <p class="control">
-                <a href="/auth/github/" target="_self" type = "submit" class="button is-primary is-default is-large">
-                  <span class="icon">
-                    <i class="fab fa-github"></i>
-                  </span>
-                  <span>Github</span>
-                </a>
-                <a href="/auth/gitlab/" target="_self" type = "submit" class="button is-large">
-                  <span class="icon">
-                    <i class="fab fa-github"></i>
-                  </span>
-                  <span>Gitlab</span>
-                </a>
-              </p>
-            </form>
+                <label class="label">Enter the username you want to use in Brucheion and authentificate using GH or GL</label>
+                <hr>
+                <label class="label">User name</label>
+                {{ with .Message.Username }}
+                <p class="error">{{ . }}</p>
+                {{ end }}
+                <p class="control">
+                  <input class="input" type="text" id="username" name="username" placeholder="jsmith">
+                </p>
+                <br>
+                <p class="control">
+                  <select class="select" id="provider" name="provider" >
+                    <option value="GitHub">GitHub</option>
+                    <option value="GitLab">GitLab</option>
+                  </select>
+                </p>
+                <br>
+                <p class="control">
+                  <button class="button is-primary" type = "submit">Login</button> 
+                  <button class="button is-default">Cancel</button>
+                </p>
+              </form>
             </div>
             <p class="has-text-centered">
               <a href="#">Need help?</a>
