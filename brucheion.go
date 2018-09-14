@@ -124,7 +124,7 @@ type Page struct {
 type LoginPage struct {
 	UserName string
 	Provider string
-	Message  map[string]string
+	Message  string
 	Port     string
 	Title    string
 	//Providers *ProviderIndex
@@ -135,6 +135,11 @@ type AuthPage struct {
 	Port     string
 	GothUser goth.User
 	Provider string
+}
+
+type UnameValidation struct {
+	Message   string
+	ErrorCode bool
 }
 
 var cookiestoreConfig = LoadConfiguration("./config.json")
@@ -170,7 +175,7 @@ func main() {
 	router.PathPrefix("/cex/").Handler(cex)
 
 	router.HandleFunc("/login/", Login).Methods("GET") //the loginpage choice of authentification provider
-	router.HandleFunc("/login/", Auth).Methods("POST")
+	router.HandleFunc("/login/", Login).Methods("POST")
 	router.HandleFunc("/auth/{provider}", Auth)                  //initializing the authentication, redirecting to authification provider
 	router.HandleFunc("/auth/{provider}/callback", AuthCallback) //success message display
 	router.HandleFunc("/{user}/{urn}/treenode.json", Treenode)
@@ -234,45 +239,53 @@ func Login(res http.ResponseWriter, req *http.Request) {
 	title := "Brucheion Login Page"
 	port := cookiestoreConfig.Port
 
-	//this should populate Loginpage with initial data and the form values
-	lp := &LoginPage{
-		Port:  port,
-		Title: title}
+	username := req.FormValue("username")
+	fmt.Println("username: " + username)
 
-	renderLoginTemplate(res, "login", lp)
-
-}
-
-func Auth(res http.ResponseWriter, req *http.Request) {
-
-	fmt.Println("Logindata from FormValue: " + req.FormValue("username"))
-
-	title := "Brucheion Login Page"
-	port := cookiestoreConfig.Port
-
+	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
 		UserName: req.FormValue("username"),
 		Provider: req.FormValue("provider"),
 		Port:     port,
 		Title:    title}
 
-	if lp.Validate() == false {
-		renderLoginTemplate(res, "login", lp)
-	} else {
-		gothic.BeginAuthHandler(res, req)
-	}
+	fmt.Println("lp.UserName: " + lp.UserName)
+	fmt.Println("lp.Provider: " + lp.Provider)
 
+	unameValidation := Validate(username)
+
+	//authPath := "/auth/" + username + "/" + strings.ToLower(lp.Provider) + "/"
+	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/"
+	fmt.Println("authPath: " + authPath)
+
+	if unameValidation.ErrorCode {
+		res.Header().Set("UserName", username)
+		http.Redirect(res, req, authPath, http.StatusFound)
+	} else {
+		//lp.Message = unameValidation.Message
+		renderLoginTemplate(res, "login", lp)
+	}
 }
 
-func (loginPage *LoginPage) Validate() bool {
+func Auth(res http.ResponseWriter, req *http.Request) {
+	gothic.BeginAuthHandler(res, req)
+}
 
-	loginPage.Message = make(map[string]string)
+func Validate(username string) *UnameValidation {
 
-	fmt.Println("Validating: " + loginPage.UserName)
-	if strings.TrimSpace(loginPage.UserName) == "" {
-		loginPage.Message["Username"] = "Please choose a username."
+	unameValidation := &UnameValidation{
+		Message:   "",
+		ErrorCode: false,
 	}
-	return len(loginPage.Message) == 0
+
+	fmt.Println("Validating: " + username)
+	if strings.TrimSpace(username) == "" {
+		unameValidation.Message = "Please choose a username."
+		return unameValidation
+	} else {
+		unameValidation.ErrorCode = true
+		return unameValidation
+	}
 }
 
 func AuthCallback(res http.ResponseWriter, req *http.Request) {

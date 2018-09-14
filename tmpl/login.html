@@ -20,19 +20,19 @@
               Login with Gitlab or Github
             </h1>
             <div class="box">
-              <form method="post" action="/login">
+              <form action="/login/" method="POST" novalidate>
                 <label class="label">Enter the username you want to use in Brucheion and authentificate using GH or GL</label>
                 <hr>
-                <label class="label">User name</label>
-                {{ with .Message.Username }}
-                <p class="error">{{ . }}</p>
+                {{ if .Message }}
+                <p class="error">{{ .Message }}</p>
                 {{ end }}
+                <label class="label">User name</label>
                 <p class="control">
-                  <input class="input" type="text" id="username" name="username" placeholder="jsmith">
+                  <input class="input" type="text" name="username" placeholder="placeholder">
                 </p>
                 <br>
                 <p class="control">
-                  <select class="select" id="provider" name="provider" >
+                  <select class="select" name="provider" >
                     <option value="GitHub">GitHub</option>
                     <option value="GitLab">GitLab</option>
                   </select>
