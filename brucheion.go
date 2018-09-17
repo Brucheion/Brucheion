@@ -151,6 +151,11 @@ var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
 var serverIP = cookiestoreConfig.Port
 
+//The sessionName of the Brucheion Session
+const SessionName = "_brucheion_session_"
+
+var BrucheionStore sessions.Store
+
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
@@ -167,42 +172,44 @@ func main() {
 		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope),
 	)
 
-	//Create new Cookiestore
-	SetCookieSore()
+	//Create new Cookiestore for _gothic_session
+	gothic.Store = GetCookieStore()
+
+	BrucheionStore = GetCookieStore()
 
 	router.PathPrefix("/static/").Handler(s)
 	router.PathPrefix("/js/").Handler(js)
 	router.PathPrefix("/cex/").Handler(cex)
 
-	router.HandleFunc("/login/", Login).Methods("GET") //the loginpage choice of authentification provider
-	router.HandleFunc("/login/", Login).Methods("POST")
-	router.HandleFunc("/auth/{provider}", Auth)                  //initializing the authentication, redirecting to authification provider
-	router.HandleFunc("/auth/{provider}/callback", AuthCallback) //success message display
-	router.HandleFunc("/{user}/{urn}/treenode.json", Treenode)
+	router.HandleFunc("/login/", LoginGET).Methods("GET") //the loginpage choice of authentification provider
+	router.HandleFunc("/login/", LoginPOST).Methods("POST")
+	router.HandleFunc("/auth/{provider}/", Auth)                  //initializing the authentication, redirecting to authification provider
+	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //success message display
+	router.HandleFunc("/{user}/{urn}/treenode.json/", Treenode)
 	router.HandleFunc("/{user}/main/", MainPage)
-	router.HandleFunc("/{user}/load/{cex}", LoadDB)
-	router.HandleFunc("/{user}/new/{key}", newText)
-	router.HandleFunc("/{user}/view/{urn}", ViewPage)
+	router.HandleFunc("/{user}/load/{cex}/", LoadDB)
+	router.HandleFunc("/{user}/new/{key}/", newText)
+	router.HandleFunc("/{user}/view/{urn}/", ViewPage)
 	router.HandleFunc("/{user}/tree/", TreePage)
-	router.HandleFunc("/{user}/multicompare/{urn}", MultiPage)
-	router.HandleFunc("/{user}/edit/{urn}", EditPage)
-	router.HandleFunc("/{user}/editcat/{urn}", EditCatPage)
-	router.HandleFunc("/{user}/save/{key}", SaveTranscription)
-	router.HandleFunc("/{user}/addNodeAfter/{key}", AddNodeAfter)
-	router.HandleFunc("/{user}/addFirstNode/{key}", AddFirstNode)
+	router.HandleFunc("/{user}/multicompare/{urn}/", MultiPage)
+	router.HandleFunc("/{user}/edit/{urn}/", EditPage)
+	router.HandleFunc("/{user}/editcat/{urn}/", EditCatPage)
+	router.HandleFunc("/{user}/save/{key}/", SaveTranscription)
+	router.HandleFunc("/{user}/addNodeAfter/{key}/", AddNodeAfter)
+	router.HandleFunc("/{user}/addFirstNode/{key}/", AddFirstNode)
 	router.HandleFunc("/{user}/crud/", CrudPage)
-	router.HandleFunc("/{user}/deleteBucket/{urn}", deleteBucket)
-	router.HandleFunc("/{user}/deleteNode/{urn}", deleteNode)
-	router.HandleFunc("/{user}/export/{filename}", ExportCEX)
-	router.HandleFunc("/{user}/edit2/{urn}", Edit2Page)
-	router.HandleFunc("/{user}/compare/{urn}+{urn2}", comparePage)
-	router.HandleFunc("/{user}/consolidate/{urn}+{urn2}", consolidatePage)
-	router.HandleFunc("/{user}/saveImage/{key}", SaveImageRef)
-	router.HandleFunc("/{user}/newWork", newWork)
-	router.HandleFunc("/{user}/newCollection/{name}/{urns}", newCollection)
-	router.HandleFunc("/{user}/newCITECollection/{name}", newCITECollection)
-	router.HandleFunc("/{user}/getImageInfo/{name}/{imageurn}", getImageInfo)
-	router.HandleFunc("/{user}/addtoCITE", addCITE)
+	router.HandleFunc("/{user}/deleteBucket/{urn}/", deleteBucket)
+	router.HandleFunc("/{user}/deleteNode/{urn}/", deleteNode)
+	router.HandleFunc("/{user}/export/{filename}/", ExportCEX)
+	router.HandleFunc("/{user}/edit2/{urn}/", Edit2Page)
+	router.HandleFunc("/{user}/compare/{urn}+{urn2}/", comparePage)
+	router.HandleFunc("/{user}/consolidate/{urn}+{urn2}/", consolidatePage)
+	router.HandleFunc("/{user}/saveImage/{key}/", SaveImageRef)
+	router.HandleFunc("/{user}/newWork/", newWork)
+	router.HandleFunc("/{user}/newCollection/{name}/{urns}/", newCollection)
+	router.HandleFunc("/{user}/newCITECollection/{name}/", newCITECollection)
+	router.HandleFunc("/{user}/getImageInfo/{name}/{imageurn}/", getImageInfo)
+	router.HandleFunc("/{user}/addtoCITE/", addCITE)
 
 	router.HandleFunc("/{user}/requestImgID/{name}", requestImgID)
 	router.HandleFunc("/{user}/deleteCollection", deleteCollection)
@@ -212,26 +219,24 @@ func main() {
 }
 
 //setting cookiestore for login and authentification
-func SetCookieSore() {
+func GetCookieStore() sessions.Store {
 
 	key := securecookie.GenerateRandomKey(64)
 	if key == nil {
 		fmt.Println("Error generating random session key")
 	}
 
-	maxAge := 86400 * 10 //time of a day in seconds * days
-
-	//keySet = len(key) != 0
+	maxAge := 86400 * 1 //time of a day in seconds * days
 
 	cookieStore := sessions.NewCookieStore([]byte(key))
 	cookieStore.Options.HttpOnly = true
 	cookieStore.MaxAge(maxAge)
 
-	gothic.Store = cookieStore
+	return cookieStore
 }
 
 //experimaental login function using goth.
-func Login(res http.ResponseWriter, req *http.Request) {
+func LoginGET(res http.ResponseWriter, req *http.Request) {
 
 	//the user should be inserted int the textfield and be passed on to authentification
 	//the port is necessary for rendering
@@ -239,8 +244,21 @@ func Login(res http.ResponseWriter, req *http.Request) {
 	title := "Brucheion Login Page"
 	port := cookiestoreConfig.Port
 
-	username := req.FormValue("username")
-	fmt.Println("username: " + username)
+	//populates Loginpage with basic data and the form values
+	lp := &LoginPage{
+		Port:  port,
+		Title: title}
+	renderLoginTemplate(res, "login", lp)
+}
+
+//experimaental login function using goth.
+func LoginPOST(res http.ResponseWriter, req *http.Request) {
+
+	//the user should be inserted in the textfield and be passed on to authentification
+	//the port is necessary for rendering
+	//message in case no username was entered
+	title := "Brucheion Login Page"
+	port := cookiestoreConfig.Port
 
 	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
@@ -249,23 +267,35 @@ func Login(res http.ResponseWriter, req *http.Request) {
 		Port:     port,
 		Title:    title}
 
-	fmt.Println("lp.UserName: " + lp.UserName)
-	fmt.Println("lp.Provider: " + lp.Provider)
+	//Validation can later be extended to check if user is already in use etc
+	unameValidation := Validate(lp.UserName)
 
-	unameValidation := Validate(username)
-
-	//authPath := "/auth/" + username + "/" + strings.ToLower(lp.Provider) + "/"
 	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/"
 	fmt.Println("authPath: " + authPath)
 
 	if unameValidation.ErrorCode {
-		res.Header().Set("UserName", username)
+		session, err := BrucheionStore.Get(req, SessionName)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		session.Values["username"] = lp.UserName
+		session.Values["provider"] = lp.Provider
+
+		session.Save(req, res)
+		//saveHandler(res, req)
 		http.Redirect(res, req, authPath, http.StatusFound)
 	} else {
-		//lp.Message = unameValidation.Message
+		lp.Message = unameValidation.Message
 		renderLoginTemplate(res, "login", lp)
 	}
 }
+
+/*func saveHandler(w http.ResponseWriter, r *http.Request) {
+	// allow cross domain AJAX requests
+	w.Header().Add("UserName", "username")
+}*/
 
 func Auth(res http.ResponseWriter, req *http.Request) {
 	gothic.BeginAuthHandler(res, req)
@@ -1841,6 +1871,7 @@ func renderCompTemplate(w http.ResponseWriter, tmpl string, p *CompPage) {
 }
 
 func renderLoginTemplate(w http.ResponseWriter, tmpl string, p *LoginPage) {
+
 	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
