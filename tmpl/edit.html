@@ -14,7 +14,7 @@
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap-theme.min.css">
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/application.css">
 	<link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.min.css">
-	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bulma.css">
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/brulma.css">
 	<style>
         .tile-resizable {
             resize: both;
@@ -24,32 +24,76 @@
 		{{.ImageScript}}
 </head>
 <body>
-	<div class="container is-fluid">
-		<nav class="nav has-shadow">
-		  <div class="container">
-		    <div class="nav-left">
-		      <p class="nav-item">
-		        <img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
-		      </p>
-		      <p class="nav-item is-tab is-hidden-mobile is-active">Brucheion 1.0.0</p>
-		    </div>
-				<div>
-					<p class="button is-primary is-large is-inverted">TRANSCRIPTION EDITOR</p>
+		<nav class="navbar">
+				<div class="container">
+					<div class="navbar-brand">
+						<a class="navbar-item img">
+							<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo" height="95rem">
+						</a>
+						<span class="navbar-burger burger" data-target="navMenu">
+							<span></span>
+							<span></span>
+							<span></span>
+						</span>
+					</div>
+					<div id="navMenu" class="navbar-menu">
+						<div class="navbar-end">
+							<div class="navbar-item has-dropdown is-hoverable">
+								<p class="navbar-link">
+									{{.Title}}
+								</p>
+								<div class="navbar-dropdown">
+									<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
+									<a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.Title}}" class="navbar-item">Image Citation</a>
+									<a href="http://localhost{{.Port}}/{{.User}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
+									<a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
+									<a href="http://localhost{{.Port}}/{{.User}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
+								</div>
+							</div>
+							<div class="navbar-item has-dropdown is-hoverable">
+								<p class="navbar-link">
+									Work
+								</p>
+								<div class="navbar-dropdown">
+									<a href="http://localhost{{.Port}}/{{.User}}/editcat/{{.Title}}" class="navbar-item">Metadata</a>
+								</div>
+							</div>
+							<div class="navbar-item has-dropdown is-hoverable">
+								<p class="navbar-link">
+									{{.User}}
+								</p>
+								<div class="navbar-dropdown">
+									<a href="#" class="navbar-item">Account Settings</a>
+									<a href="#" class="navbar-item">Display Settings</a>
+									<a href="#" class="navbar-item">Logout</a>
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
-		    <div class="nav-right nav-menu">
-		      <p class="nav-item is-tab">
-		        User: {{printf "%s" .User}}
-		      </p>
-		    </div>
-		  </div>
-		</nav>
-		<section>
-			<div class="tile is-ancestor">
-				<div class="tile is-parent is-12">
+			</nav>
+			<script type="text/javascript">
+				(function() {
+					var burger = document.querySelector('.burger');
+					var nav = document.querySelector('#'+burger.dataset.target);
+					burger.addEventListener('click', function(){
+						burger.classList.toggle('is-active');
+						nav.classList.toggle('is-active');
+					});
+				})();
+			</script>
+	
+			<section class="hero is-link">
+					<div class="hero-body">
+						<div class="container">
+							<h1 class="title">
+								Transcription Desk
+							</h1>
+					</div>
+					</div>
+				</section>
 
-				</div>
-			</div>
-		</section>
+				<div class="container is-fluid">
 
 	<section>
 	  <div class="tile is-ancestor">
