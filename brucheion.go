@@ -40,6 +40,7 @@ type CookiestoreConfig struct {
 	GitLabKey    string `json:"gitLabKey"`
 	GitLabSecret string `json:"gitLabSecret"`
 	GitLabScope  string `json:"gitLabScope"`
+	MaxAge       string `json:"maxAge"`
 	//	GoogleKey	  string `json:"googleKey"`
 	//	GoogleSecret  string `json:"googleSecret"`
 }
@@ -142,6 +143,7 @@ type UnameValidation struct {
 	ErrorCode bool
 }
 
+//The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
 var cookiestoreConfig = LoadConfiguration("./config.json")
 
 var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html",
@@ -152,8 +154,9 @@ var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 var serverIP = cookiestoreConfig.Port
 
 //The sessionName of the Brucheion Session
-const SessionName = "_brucheion_session_"
+const SessionName = "_brucheion_session"
 
+//
 var BrucheionStore sessions.Store
 
 func main() {
@@ -218,6 +221,19 @@ func main() {
 	log.Fatal(http.ListenAndServe(serverIP, router))
 }
 
+//Helper function to load and parse JSON config file. Returns Config.
+func LoadConfiguration(file string) CookiestoreConfig {
+	var config CookiestoreConfig               //initialize config as Config
+	configFile, openFileError := os.Open(file) //attempt to open file
+	defer configFile.Close()                   //push closing on call list
+	if openFileError != nil {                  //error handling
+		fmt.Println("Open file error: " + openFileError.Error())
+	}
+	jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
+	jsonParser.Decode(&config)                //parse configFile to config
+	return config                             //return ServerConfig config
+}
+
 //setting cookiestore for login and authentification
 func GetCookieStore() sessions.Store {
 
@@ -226,13 +242,52 @@ func GetCookieStore() sessions.Store {
 		fmt.Println("Error generating random session key")
 	}
 
-	maxAge := 86400 * 1 //time of a day in seconds * days
+	//maxAge := 86400 * 1 //time of a day in seconds * days
+	maxAge, err := strconv.Atoi(cookiestoreConfig.MaxAge)
+	if err != nil {
+		fmt.Println("Stringconversion failed: ")
+		fmt.Println(err)
+	}
 
 	cookieStore := sessions.NewCookieStore([]byte(key))
 	cookieStore.Options.HttpOnly = true
 	cookieStore.MaxAge(maxAge)
 
 	return cookieStore
+}
+
+func GetSession(req *http.Request) (*sessions.Session, error) {
+	session, err := BrucheionStore.Get(req, SessionName)
+	if err != nil {
+		fmt.Println("Could not get session")
+		return nil, err
+	}
+	return session, nil
+}
+
+/*func InitSession (res http.ResponseWriter, req *http.Request, ) ({
+		session, err := GetSession(req)
+	if err != nil {
+		fmt.Errorf("No session, no login")
+		return err
+	}
+} */
+
+func Validate(username string) *UnameValidation {
+
+	unameValidation := &UnameValidation{
+		Message:   "",
+		ErrorCode: false,
+	}
+
+	fmt.Println("Validating: " + username)
+	if strings.TrimSpace(username) == "" {
+		unameValidation.Message = "Please choose a username."
+		return unameValidation
+	} else {
+		unameValidation.ErrorCode = true
+		return unameValidation
+	}
 }
 
 //experimaental login function using goth.
@@ -274,7 +329,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	fmt.Println("authPath: " + authPath)
 
 	if unameValidation.ErrorCode {
-		session, err := BrucheionStore.Get(req, SessionName)
+		session, err := GetSession(req)
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
@@ -282,6 +337,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 
 		session.Values["username"] = lp.UserName
 		session.Values["provider"] = lp.Provider
+		session.Values["loggedin"] = false
 
 		session.Save(req, res)
 		//saveHandler(res, req)
@@ -301,23 +357,6 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 	gothic.BeginAuthHandler(res, req)
 }
 
-func Validate(username string) *UnameValidation {
-
-	unameValidation := &UnameValidation{
-		Message:   "",
-		ErrorCode: false,
-	}
-
-	fmt.Println("Validating: " + username)
-	if strings.TrimSpace(username) == "" {
-		unameValidation.Message = "Please choose a username."
-		return unameValidation
-	} else {
-		unameValidation.ErrorCode = true
-		return unameValidation
-	}
-}
-
 func AuthCallback(res http.ResponseWriter, req *http.Request) {
 
 	gothUser, err := gothic.CompleteUserAuth(res, req) //gets the user authentification from the session that is already existing.
@@ -331,30 +370,34 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		return goth.User{}, err
 	}*/
 
-	user := ""
-	port := cookiestoreConfig.Port
+	session, err := GetSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
+	//s, ok := value.(string)
+	userInterface := session.Values["username"]
+	if userInterface == nil {
+		fmt.Errorf("Session value could not be retrieved.")
+	}
+
+	user, ok := userInterface.(string)
+	if !ok {
+		fmt.Println("Type assertion to String failed.")
+	}
+
+	port := cookiestoreConfig.Port
 	p := &AuthPage{
 		User:     user,
 		Port:     port,
 		GothUser: gothUser,
 		Provider: provider}
 
+	fmt.Println("p.User = " + p.User)
+
 	renderAuthTemplate(res, "callback", p)
 
-}
-
-//Helper function to load and parse JSON config file. Returns Config.
-func LoadConfiguration(file string) CookiestoreConfig {
-	var config CookiestoreConfig               //initialize config as Config
-	configFile, openFileError := os.Open(file) //attempt to open file
-	defer configFile.Close()                   //push closing on call list
-	if openFileError != nil {                  //error handling
-		fmt.Println("Open file error: " + openFileError.Error())
-	}
-	jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
-	jsonParser.Decode(&config)                //parse configFile to config
-	return config                             //return ServerConfig config
 }
 
 // Helper function to pull the href attribute from a Token
