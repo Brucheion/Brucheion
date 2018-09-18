@@ -42,6 +42,7 @@
   }
 
 </style>
+<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/brulma.css">
 <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 <script src="http://localhost{{.Port}}/js/FileSaver.js"></script>
@@ -585,7 +586,74 @@ treeJSON = d3.json("http://localhost:7000/thomas/urn:cts:sktlit:skt0001.nyaya002
 });
 </script>
 <body>
-        <button type="button" onclick="saveTree()">Click Me!</button>
+        <nav class="navbar">
+				<div class="container">
+					<div class="navbar-brand">
+						<a class="navbar-item img">
+							<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo" height="95rem">
+						</a>
+						<span class="navbar-burger burger" data-target="navMenu">
+							<span></span>
+							<span></span>
+							<span></span>
+						</span>
+					</div>
+					<div id="navMenu" class="navbar-menu">
+						<div class="navbar-end">
+							<div class="navbar-item has-dropdown is-hoverable">
+								<p class="navbar-link">
+									{{.Title}}
+								</p>
+								<div class="navbar-dropdown">
+									<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
+									<a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.Title}}" class="navbar-item">Image Citation</a>
+									<a href="http://localhost{{.Port}}/{{.User}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
+									<a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
+									<a href="http://localhost{{.Port}}/{{.User}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
+								</div>
+							</div>
+							<div class="navbar-item has-dropdown is-hoverable">
+								<p class="navbar-link">
+									Work
+								</p>
+								<div class="navbar-dropdown">
+									<a href="http://localhost{{.Port}}/{{.User}}/editcat/{{.Title}}" class="navbar-item">Metadata</a>
+								</div>
+							</div>
+							<div class="navbar-item has-dropdown is-hoverable">
+								<p class="navbar-link">
+									{{.User}}
+								</p>
+								<div class="navbar-dropdown">
+									<a href="#" class="navbar-item">Account Settings</a>
+									<a href="#" class="navbar-item">Display Settings</a>
+									<a href="#" class="navbar-item">Logout</a>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</nav>
+			<script type="text/javascript">
+				(function() {
+					var burger = document.querySelector('.burger');
+					var nav = document.querySelector('#'+burger.dataset.target);
+					burger.addEventListener('click', function(){
+						burger.classList.toggle('is-active');
+						nav.classList.toggle('is-active');
+					});
+				})();
+			</script>
+	<section class="hero is-link">
+			<div class="hero-body">
+				<div class="container">
+					<h1 class="title">
+						Morpho-syntactic Treebank
+					</h1>
+			</div>
+			</div>
+		</section>	
+        <button type="button" onclick="saveTree()">Save Tree</button>
     <div id="tree-container"></div>
 </body>
 <script>

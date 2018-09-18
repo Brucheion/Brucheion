@@ -15,7 +15,7 @@
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap-theme.min.css">
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/application.css">
 	<link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.min.css">
-	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bulma.css">
+	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/brulma.css">
 	<style>
 		.tile-resizable {
 			resize: both;
@@ -27,8 +27,41 @@ color: black; }
 </head>
 
 <body>
+		<nav class="navbar">
+				<div class="container">
+					<div class="navbar-brand">
+								<a class="navbar-item img">
+												<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo" height="95rem">
+										</a>
+						<span class="navbar-burger burger" data-target="navMenu">
+							<span></span>
+							<span></span>
+							<span></span>
+						</span>
+					</div>
+					<div id="navMenu" class="navbar-menu">
+						<div class="navbar-end">
+							<a href="#" class="navbar-item is-active">Passage Home</a>
+							<a href="#" class="navbar-item">Image Citation</a>
+							<a href="#" class="navbar-item">Multicompare</a>
+							<a href="#" class="navbar-item">Morpho-syntactic analysis</a>
+							<a href="#" class="navbar-item">Consolidate</a>
+						</div>
+					</div>
+				</div>
+			</nav>
+			<script type="text/javascript">
+				(function() {
+					var burger = document.querySelector('.burger');
+					var nav = document.querySelector('#'+burger.dataset.target);
+					burger.addEventListener('click', function(){
+						burger.classList.toggle('is-active');
+						nav.classList.toggle('is-active');
+					});
+				})();
+			</script>
 	<div class="container is-fluid">
-		<nav class="nav has-shadow">
+		<!-- <nav class="nav has-shadow">
 			<div class="container">
 				<div class="nav-left">
 					<p class="nav-item">
@@ -54,7 +87,7 @@ color: black; }
 
 			</div>
 		</nav>
-		<br/>
+		<br/> -->
 		<section>
 			<div class="tile is-ancestor">
 				<div class="tile is-parent is-vertical column is-6 ">

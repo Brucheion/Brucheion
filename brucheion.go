@@ -2313,6 +2313,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	tmpstr = tmpstr + `<div class="tile is-ancestor"><div class="tile is-parent"><div class="container">` + tmpstr2 + end + end + end
 
 	transcription := Transcription{
+		CTSURN:        urn,
 		Transcriber:   user,
 		Next:          next1,
 		Previous:      previous1,
@@ -2326,7 +2327,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 
 func loadMultiPage(transcription Transcription, port string) (*Page, error) {
 	user := transcription.Transcriber
-	return &Page{User: user, TextHTML: template.HTML(transcription.Transcription), Next: transcription.Next, Previous: transcription.Previous, First: transcription.First, Last: transcription.Last, Port: port}, nil
+	return &Page{User: user, Title: transcription.CTSURN, TextHTML: template.HTML(transcription.Transcription), Next: transcription.Next, Previous: transcription.Previous, First: transcription.First, Last: transcription.Last, Port: port}, nil
 }
 
 func fieldNWA2(alntext []string) [][]string {
