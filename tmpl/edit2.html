@@ -29,7 +29,7 @@
 		<div class="container">
 			<div class="navbar-brand">
 				<a class="navbar-item img">
-					<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo" height="95rem">
+					<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
 				</a>
 				<span class="navbar-burger burger" data-target="navMenu">
 					<span></span>
@@ -41,7 +41,7 @@
 				<div class="navbar-end">
 					<div class="navbar-item has-dropdown is-hoverable">
 						<p class="navbar-link">
-							{{.Title}}
+							Tools
 						</p>
 						<div class="navbar-dropdown">
 							<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
@@ -49,19 +49,12 @@
 							<a href="http://localhost{{.Port}}/{{.User}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
 							<a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
 							<a href="http://localhost{{.Port}}/{{.User}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
+							<a href="http://localhost{{.Port}}/{{.User}}/editcat/{{.Title}}" class="navbar-item">Edit Metadata</a>
 						</div>
 					</div>
 					<div class="navbar-item has-dropdown is-hoverable">
 						<p class="navbar-link">
-							Work
-						</p>
-						<div class="navbar-dropdown">
-							<a href="http://localhost{{.Port}}/{{.User}}/editcat/{{.Title}}" class="navbar-item">Metadata</a>
-						</div>
-					</div>
-					<div class="navbar-item has-dropdown is-hoverable">
-						<p class="navbar-link">
-							{{.User}}
+							<i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
 						</p>
 						<div class="navbar-dropdown">
 							<a href="#" class="navbar-item">Account Settings</a>
@@ -83,16 +76,38 @@
 			});
 		})();
 	</script>
-			<section class="hero is-link">
-					<div class="hero-body">
-					  <div class="container">
-						<h1 class="title">
-						  Image Citation Editor
-						</h1>
+	<section class="hero is-link">
+		<div class="hero-body">
+			<div class="container">
+				<h1 class="title">
+					Image Citation Editor
+				</h1>
+				<div class="columns">
+					<div class="coulumn">
+						<p class="subtitle"></p><a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.First}}"><i class="fa fa-chevron-left"></i><i
+							 class="fa fa-chevron-left"></i></a>
+						<a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
+						<strong>{{.Title}}</strong>
+						<a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.Next}}"><i class="fa fa-chevron-right"></i></a>
+						<a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.Last}}"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
+						</p>
 					</div>
+					<div class="column">
+						<form name="nav">
+							<div class="control">
+								<div class="select">
+									<select name="SelectURL" onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
+										{{.TextHTML}}
+									</select>
+								</div>
+							</div>
+						</form>
 					</div>
-				  </section>
-				  <div class="container is-fluid">
+				</div>
+			</div>
+		</div>
+	</section>
+	<div class="container is-fluid">
 		<section>
 			<div class="tile is-ancestor">
 				<div class="tile is-parent">

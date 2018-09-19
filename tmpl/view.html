@@ -1,7 +1,8 @@
 <html>
+
 <head>
 	<title>Brucheion</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<script type="text/javascript" src="http://localhost{{.Port}}/js/jquery-3.2.1.min.js"></script>
 	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon.js"></script>
 	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon-guides.js"></script>
@@ -13,178 +14,174 @@
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap.min.css">
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap-theme.min.css">
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/application.css">
-	<link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.min.css">
+	<link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.css">
 	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/brulma.css">
 	<style>
-        .tile-resizable {
-            resize: both;
-          overflow: hidden
-        }
-    </style>
-		{{.ImageScript}}
+		.tile-resizable {
+			resize: both;
+			overflow: hidden
+		}
+	</style>
+	{{.ImageScript}}
 </head>
+
 <body>
-		<nav class="navbar">
-				<div class="container">
-					<div class="navbar-brand">
-						<a class="navbar-item img">
-							<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo" height="95rem">
-						</a>
-						<span class="navbar-burger burger" data-target="navMenu">
-							<span></span>
-							<span></span>
-							<span></span>
-						</span>
+	<nav class="navbar">
+		<div class="container">
+			<div class="navbar-brand">
+				<a class="navbar-item img">
+					<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
+				</a>
+				<span class="navbar-burger burger" data-target="navMenu">
+					<span></span>
+					<span></span>
+					<span></span>
+				</span>
+			</div>
+			<div id="navMenu" class="navbar-menu">
+				<div class="navbar-end">
+					<div class="navbar-item has-dropdown is-hoverable">
+						<p class="navbar-link">
+							Tools
+						</p>
+						<div class="navbar-dropdown">
+							<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
+							<a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.Title}}" class="navbar-item">Image Citation</a>
+							<a href="http://localhost{{.Port}}/{{.User}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
+							<a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
+							<a href="http://localhost{{.Port}}/{{.User}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
+							<a href="http://localhost{{.Port}}/{{.User}}/editcat/{{.Title}}" class="navbar-item">Edit Metadata</a>
+						</div>
 					</div>
-					<div id="navMenu" class="navbar-menu">
-						<div class="navbar-end">
-							<div class="navbar-item has-dropdown is-hoverable">
-								<p class="navbar-link">
-									{{.Title}}
-								</p>
-								<div class="navbar-dropdown">
-									<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
-									<a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.Title}}" class="navbar-item">Image Citation</a>
-									<a href="http://localhost{{.Port}}/{{.User}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
-									<a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
-									<a href="http://localhost{{.Port}}/{{.User}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
-								</div>
-							</div>
-							<div class="navbar-item has-dropdown is-hoverable">
-								<p class="navbar-link">
-									Work
-								</p>
-								<div class="navbar-dropdown">
-									<a href="http://localhost{{.Port}}/{{.User}}/editcat/{{.Title}}" class="navbar-item">Metadata</a>
-								</div>
-							</div>
-							<div class="navbar-item has-dropdown is-hoverable">
-								<p class="navbar-link">
-									{{.User}}
-								</p>
-								<div class="navbar-dropdown">
-									<a href="#" class="navbar-item">Account Settings</a>
-									<a href="#" class="navbar-item">Display Settings</a>
-									<a href="#" class="navbar-item">Logout</a>
-								</div>
-							</div>
+					<div class="navbar-item has-dropdown is-hoverable">
+						<p class="navbar-link">
+								<i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
+						</p>
+						<div class="navbar-dropdown">
+							<a href="#" class="navbar-item">Account Settings</a>
+							<a href="#" class="navbar-item">Display Settings</a>
+							<a href="#" class="navbar-item">Logout</a>
 						</div>
 					</div>
 				</div>
-			</nav>
-			<script type="text/javascript">
-				(function() {
-					var burger = document.querySelector('.burger');
-					var nav = document.querySelector('#'+burger.dataset.target);
-					burger.addEventListener('click', function(){
-						burger.classList.toggle('is-active');
-						nav.classList.toggle('is-active');
-					});
-				})();
-			</script>
-			<section class="hero is-link">
-					<div class="hero-body">
-						<div class="container">
-							<h1 class="title">
-								Passage Overview
-							</h1>
+			</div>
+		</div>
+	</nav>
+	<script type="text/javascript">
+		(function () {
+			var burger = document.querySelector('.burger');
+			var nav = document.querySelector('#' + burger.dataset.target);
+			burger.addEventListener('click', function () {
+				burger.classList.toggle('is-active');
+				nav.classList.toggle('is-active');
+			});
+		})();
+	</script>
+	<section class="hero is-link">
+		<div class="hero-body">
+			<div class="container">
+				<h1 class="title">
+					Passage Overview
+				</h1>
+					<div class="columns">
+							<div class="coulumn"><p class="subtitle"></p><a href="http://localhost{{.Port}}/{{.User}}/view/{{.First}}"><i class="fa fa-chevron-left"></i><i
+									 class="fa fa-chevron-left"></i></a>
+								<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
+								<strong>{{.Title}}</strong>
+								<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Next}}"><i class="fa fa-chevron-right"></i></a>
+								<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Last}}"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
+							</p>
+							</div>
+							<div class="column">
+								<form name="nav">
+									<div class="control">
+										<div class="select">
+											<select name="SelectURL" onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
+												{{.TextHTML}}
+											</select>
+										</div>
+									</div>
+								</form>
+							</div>
 					</div>
-					</div>
-				</section>
-				<div class="container is-fluid">
-	<section>
-		<div class="tile is-ancestor">
-			<div class="tile is-parent is-12">
-				<div class="column is-6">
-			<p class="has-text-centered"><a href="http://localhost{{.Port}}/{{.User}}/view/{{.First}}"><i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
-				 <a href="http://localhost{{.Port}}/{{.User}}/view/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
-				 {{.Title}}
-				 <a href="http://localhost{{.Port}}/{{.User}}/view/{{.Next}}"><i class="fa fa-chevron-right"></i></a>
-				 <a href="http://localhost{{.Port}}/{{.User}}/view/{{.Last}}"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
-			</p>
-		</div>
-		<div class="column is-6">
-	<p class="has-text-centered">
-		<form name="nav">
-		<div class="control">
-  	<div class="select">
-			<select name="SelectURL" onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
-		{{.TextHTML}}
-	</select>
-	</div>
-	</div>
-</form>
-	</p>
-</div>
-
-		</div>
-		</div>
-	</section>
-
-	<section>
-
-	</section>
-	<div class="tile is-ancestor">
-			<div class="tile is-parent">
-					<div class="tile is-child box tile-resizable">
-					<p class="has-text-right"><a class="button is-small" href="/{{.User}}/edit2/{{.Title}}">EDIT IMAGE REFERENCES</a></p>
-					<br/>
-					<p>ImageRef: {{.ImageHTML}}</p>
-			</div></div>
-			<div class="tile is-parent">
-					<div class="tile is-child box tile-resizable">
-						<p class="has-text-right"><a class="button is-small" href="/{{.User}}/editcat/{{.Title}}">EDIT METADATA</a></p>
-					<br/>
-					<table>
-						<tr>
-							<td>WorkURN: {{.CatID}}</td><td>Scheme: {{.CatCit}}</td>
-						</tr>
-						<tr>
-							<td>Workgroup: {{.CatGroup}}</td><td>Title: {{.CatWork}}</td>
-						</tr>
-						<tr>
-							<td>Version: {{.CatVers}}</td><td>Exemplar: {{.CatExmpl}}</td>
-						</tr>
-						<tr>
-							<td>Online: {{.CatOn}}</td><td>Language: {{.CatLan}}</td>
-						</tr>
-					</table>
-			</div></div>
-		</div>
-	<section>
-		<div class="tile is-ancestor">
-			<div class="tile is-parent">
-				<div class="tile is-child box tile-resizable" style="height: 500px;">
-					<div id="image_imageContainer"></div>
-				</div>
-		</div>
-			<div class="tile is-parent">
-				<div class="tile is-child box tile-resizable">						
-							<br/>
-					<div class="tile is-child">
-						<p class="has-text-left">Previous: {{.PreviousLink}}</p>
-						<p class="has-text-left">Next: {{.NextLink}}</p>
-					</div>
-					<div class="tile is-child">
-					<p class="has-text-right"><a class="button is-small" href="/{{.User}}/edit/{{.Title}}">EDIT TRANSCRIPTION</a></p>
-				</div>
-				<br/>
-					{{.Text}}
-					
-				</div>
 			</div>
 		</div>
 	</section>
-	<footer>
-	<br/>
-	<p>Brucheion is ©2017–2018 Thomas Koentges. CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. Brucheion is available
-		for use, modification, and distribution under the terms of the
-		<a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion's image citation tool <a href="">BrIC</a> is ©2018 Thomas Koentges and based on Christopher Blackwell's and Mees Gelein's
-		<a href="https://github.com/cite-architecture/ict2">ICT2</a> and on
-		<a href="http://openseadragon.github.io">Openseadragon</a>.</p>
-	</footer>
-</div>
-<input type="hidden" id = "initialCITE" value = "{{.ImageJS}}" readonly>
-<script type="text/javascript" src="http://localhost{{.Port}}/js/BrIC.js"></script>
+
+	<div class="container is-fluid">
+
+
+		<section>
+
+		</section>
+		<div class="tile is-ancestor">
+			<div class="tile is-parent">
+				<div class="tile is-child box tile-resizable">
+					<p class="has-text-right"><a class="button is-small" href="/{{.User}}/edit2/{{.Title}}">EDIT IMAGE REFERENCES</a></p>
+					<br/>
+					<p>ImageRef: {{.ImageHTML}}</p>
+				</div>
+			</div>
+			<div class="tile is-parent">
+				<div class="tile is-child box tile-resizable">
+					<p class="has-text-right"><a class="button is-small" href="/{{.User}}/editcat/{{.Title}}">EDIT METADATA</a></p>
+					<br/>
+					<table>
+						<tr>
+							<td>WorkURN: {{.CatID}}</td>
+							<td>Scheme: {{.CatCit}}</td>
+						</tr>
+						<tr>
+							<td>Workgroup: {{.CatGroup}}</td>
+							<td>Title: {{.CatWork}}</td>
+						</tr>
+						<tr>
+							<td>Version: {{.CatVers}}</td>
+							<td>Exemplar: {{.CatExmpl}}</td>
+						</tr>
+						<tr>
+							<td>Online: {{.CatOn}}</td>
+							<td>Language: {{.CatLan}}</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		<section>
+			<div class="tile is-ancestor">
+				<div class="tile is-parent">
+					<div class="tile is-child box tile-resizable" style="height: 500px;">
+						<div id="image_imageContainer"></div>
+					</div>
+				</div>
+				<div class="tile is-parent">
+					<div class="tile is-child box tile-resizable">
+						<br/>
+						<div class="tile is-child">
+							<p class="has-text-left">Previous: {{.PreviousLink}}</p>
+							<p class="has-text-left">Next: {{.NextLink}}</p>
+						</div>
+						<div class="tile is-child">
+							<p class="has-text-right"><a class="button is-small" href="/{{.User}}/edit/{{.Title}}">EDIT TRANSCRIPTION</a></p>
+						</div>
+						<br/> {{.Text}}
+
+					</div>
+				</div>
+			</div>
+		</section>
+		<footer>
+			<br/>
+			<p>Brucheion is ©2017–2018 Thomas Koentges. CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. Brucheion is
+				available for use, modification, and distribution under the terms of the
+				<a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion's image citation tool <a href="">BrIC</a>
+				is ©2018 Thomas Koentges and based on Christopher Blackwell's and Mees Gelein's
+				<a href="https://github.com/cite-architecture/ict2">ICT2</a> and on
+				<a href="http://openseadragon.github.io">Openseadragon</a>.</p>
+		</footer>
+	</div>
+	<input type="hidden" id="initialCITE" value="{{.ImageJS}}" readonly>
+	<script type="text/javascript" src="http://localhost{{.Port}}/js/BrIC.js"></script>
 </body>
+
 </html>
