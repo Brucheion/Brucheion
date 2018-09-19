@@ -351,7 +351,6 @@ func BoltRetrieve(path, bucket, key string) BoltJSON {
 		log.Println(err)
 		return result
 	}
-
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
 		log.Println(err)

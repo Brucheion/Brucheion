@@ -82,6 +82,7 @@ type Page struct {
 	ImageScript  template.HTML
 	ImageHTML    template.HTML
 	TextHTML     template.HTML
+	InTextHTML   template.HTML
 	Text         template.HTML
 	Previous     string
 	Next         string
@@ -243,7 +244,6 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 			return errors.New("failed to get bucket")
 		}
 		val := b.Get(dbkey)
-		// fmt.Println("got", string(dbkey))
 		retImage, _ = gobDecodeImgCol(val)
 		for _, v := range retImage.Collection {
 			if v.URN == imageurn {
@@ -1221,7 +1221,7 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Success")
 }
 
-func loadPage(transcription Transcription, port string) (*Page, error) {
+func loadPage(transcription Transcription, kind, port string) (*Page, error) {
 	user := transcription.Transcriber
 	imagejs := transcription.ImageJS
 	title := transcription.CTSURN
@@ -1246,22 +1246,28 @@ func loadPage(transcription Transcription, port string) (*Page, error) {
 		previouslink = `<a href ="/` + user + `/new/">add previous</a>`
 		previous = title
 	default:
-		previouslink = `<a href ="/` + user + `/view/` + previous + `">` + previous + `</a>`
+		previouslink = `<a href ="/` + user + kind + previous + `">` + previous + `</a>`
 	}
 	switch {
 	case next == "":
 		nextlink = `<a href ="/` + user + `/new/">add next</a>`
 		next = title
 	default:
-		nextlink = `<a href ="/` + user + `/view/` + next + `">` + next + `</a>`
+		nextlink = `<a href ="/` + user + kind + next + `">` + next + `</a>`
 	}
 	var textrefrences []string
 	for i := range transcription.TextRef {
+		if transcription.TextRef[i] == "imgCollection" || transcription.TextRef[i] == "meta" {
+			continue
+		}
 		requestedbucket := transcription.TextRef[i]
 		texturn := requestedbucket + strings.Split(title, ":")[4]
 
 		// adding testing if requestedbucket exists...
 		retrieveddata := BoltRetrieve(dbname, requestedbucket, texturn)
+		if retrieveddata.JSON == "" {
+			continue
+		}
 		retrievedjson := BoltURN{}
 		json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
@@ -1269,12 +1275,12 @@ func loadPage(transcription Transcription, port string) (*Page, error) {
 		var htmllink string
 		switch {
 		case ctsurn == title:
-			htmllink = `<option value="/` + user + "/view/" + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="/` + user + kind + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
 		case ctsurn == "":
 			ctsurn = BoltRetrieveFirstKey(dbname, requestedbucket)
-			htmllink = `<option value="/` + user + "/view/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="/` + user + kind + ctsurn + `">` + transcription.TextRef[i] + `</option>`
 		default:
-			htmllink = `<option value="/` + user + "/view/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="/` + user + kind + ctsurn + `">` + transcription.TextRef[i] + `</option>`
 		}
 		textrefrences = append(textrefrences, htmllink)
 	}
@@ -1723,7 +1729,8 @@ func ViewPage(w http.ResponseWriter, r *http.Request) {
 		CatLan:        catlan}
 
 	port := ":7000"
-	p, _ := loadPage(transcription, port)
+	kind := "/view/"
+	p, _ := loadPage(transcription, kind, port)
 	renderTemplate(w, "view", p)
 }
 
@@ -1988,6 +1995,7 @@ func EditCatPage(w http.ResponseWriter, r *http.Request) {
 	urn := vars["urn"]
 	user := vars["user"]
 	dbname := user + ".db"
+	textref := Buckets(dbname)
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
@@ -1997,6 +2005,10 @@ func EditCatPage(w http.ResponseWriter, r *http.Request) {
 	retrievedjson := BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
+	previous := retrievedjson.Previous
+	next := retrievedjson.Next
+	first := retrievedjson.First
+	last := retrievedjson.Last
 
 	ctsurn := retrievedjson.URN
 	catid := retrievedcatjson.URN
@@ -2009,9 +2021,15 @@ func EditCatPage(w http.ResponseWriter, r *http.Request) {
 	catlan := retrievedcatjson.Language
 	transcription := Transcription{CTSURN: ctsurn,
 		Transcriber: user,
+		TextRef:     textref,
+		Previous:    previous,
+		Next:        next,
+		First:       first,
+		Last:        last,
 		CatID:       catid, CatCit: catcit, CatGroup: catgroup, CatWork: catwork, CatVers: catversion, CatExmpl: catexpl, CatOn: caton, CatLan: catlan}
 	port := ":7000"
-	p, _ := loadPage(transcription, port)
+	kind := "/editcat/"
+	p, _ := loadPage(transcription, kind, port)
 	renderTemplate(w, "editcat", p)
 }
 
@@ -2058,7 +2076,8 @@ func EditPage(w http.ResponseWriter, r *http.Request) {
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
 	port := ":7000"
-	p, _ := loadPage(transcription, port)
+	kind := "/edit/"
+	p, _ := loadPage(transcription, kind, port)
 	renderTemplate(w, "edit", p)
 }
 
@@ -2098,7 +2117,8 @@ func Edit2Page(w http.ResponseWriter, r *http.Request) {
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
 	port := ":7000"
-	p, _ := loadPage(transcription, port)
+	kind := "/edit2/"
+	p, _ := loadPage(transcription, kind, port)
 	renderTemplate(w, "edit2", p)
 }
 
@@ -2145,7 +2165,6 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 	for i := range buckets {
 		if buckets[i] == requestedbucket {
 			continue
@@ -2180,6 +2199,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 			return nil
 		})
 	}
+	db.Close()
 
 	alignments := nwa2(text1, id1, texts, ids)
 	slsl := [][]string{}
@@ -2234,7 +2254,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 
 	for j, v := range alignments.Alignment[0].Source {
 		var sc float32
-		tmpstr2 = tmpstr2 + `<div id="crit` + strconv.Itoa(j+1) + `" class="box" style="display:none;">`
+		tmpstr2 = tmpstr2 + `<div id="crit` + strconv.Itoa(j+1) + `" class="content" style="display:none;">`
 		appcrit := make(map[string]string)
 		for k := range alignments.Alignment {
 			sc = sc + alignments.Alignment[k].Score[j]
@@ -2251,12 +2271,15 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 				appcrit[item] = newvalue
 			}
 		}
+		appcount := 1
 		for key, value := range appcrit {
+			tmpstr2 = tmpstr2 + strconv.Itoa(appcount) + "."
 			valueSl := strings.Split(value, ",")
 			for _, valui := range valueSl {
 				tmpstr2 = tmpstr2 + `<a href="#` + valui + `" onclick="highlfunc(this);">` + valui + `</a> `
 			}
-			tmpstr2 = tmpstr2 + addSansHyphens(key)
+			tmpstr2 = tmpstr2 + addSansHyphens(key) + `<br/>`
+			appcount++
 		}
 		tmpstr2 = tmpstr2 + end
 		sc = sc / float32(len(alignments.Alignment))
@@ -2278,9 +2301,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 		tmpsl = append(tmpsl, tmpstr)
 	}
 
-	tmpstr = `<div class="tile is-ancestor"><div class="tile is-parent column is-6"><div class="container"><div class="card is-fullwidth"><header class="card-header"><p class="card-header-title">`
-	tmpstr = tmpstr + id1
-	tmpstr = tmpstr + `</p></header><div class="card-content"><div class="content">`
+	tmpstr = `<div class="tile is-ancestor"><div class="tile is-parent column is-6"><div class="container"><div class="card is-fullwidth"><header class="card-header"><p class="card-header-title">Text</p></header><div class="card-content"><div class="content">`
 	tmpstr = tmpstr + tmpsl[0]
 	tmpstr = tmpstr + end
 	tmpstr = tmpstr + end
@@ -2291,10 +2312,6 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	for _, v := range ids {
 		newid := strings.Split(v, ":")[3]
 		newid = strings.Split(newid, ".")[2]
-		// if i == 0 {
-		// 	tmpstr = tmpstr + `<a class="button is-primary" href="#` + newid + `">` + newid + `</a>`
-		// 	continue
-		// }
 		tmpstr = tmpstr + `<a class="button" id="button_` + newid + `" href="#` + newid + `" onclick="highlfunc(this);">` + newid + `</a>`
 	}
 	tmpstr = tmpstr + end
@@ -2310,11 +2327,11 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	tmpstr = tmpstr + end
 	tmpstr = tmpstr + end
 
-	tmpstr = tmpstr + `<div class="tile is-ancestor"><div class="tile is-parent"><div class="container">` + tmpstr2 + end + end + end
-
+	tmpstr = tmpstr + `<div class="tile is-ancestor"><div class="tile is-parent column is-6"><div class="container"><div class="card"><header class="card-header"><p class="card-header-title">Variants</p></header><div class="card-content">` + tmpstr2 + end + end + end + end + end
 	transcription := Transcription{
 		CTSURN:        urn,
 		Transcriber:   user,
+		TextRef:       buckets,
 		Next:          next1,
 		Previous:      previous1,
 		First:         first1,
@@ -2327,7 +2344,40 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 
 func loadMultiPage(transcription Transcription, port string) (*Page, error) {
 	user := transcription.Transcriber
-	return &Page{User: user, Title: transcription.CTSURN, TextHTML: template.HTML(transcription.Transcription), Next: transcription.Next, Previous: transcription.Previous, First: transcription.First, Last: transcription.Last, Port: port}, nil
+	dbname := user + ".db"
+	var textrefrences []string
+	for i := range transcription.TextRef {
+		if transcription.TextRef[i] == "imgCollection" || transcription.TextRef[i] == "meta" {
+			continue
+		}
+		requestedbucket := transcription.TextRef[i]
+		texturn := requestedbucket + strings.Split(transcription.CTSURN, ":")[4]
+
+		// adding testing if requestedbucket exists...
+		retrieveddata := BoltRetrieve(dbname, requestedbucket, texturn)
+		if retrieveddata.JSON == "" {
+			continue
+		}
+		retrievedjson := BoltURN{}
+		json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+
+		ctsurn := retrievedjson.URN
+
+		var htmllink string
+		switch {
+		case ctsurn == transcription.CTSURN:
+			htmllink = `<option value="/` + user + "/multicompare/" + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
+		case ctsurn == "":
+			ctsurn = BoltRetrieveFirstKey(dbname, requestedbucket)
+			htmllink = `<option value="/` + user + "/multicompare/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
+		default:
+			htmllink = `<option value="/` + user + "/multicompare/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
+		}
+		textrefrences = append(textrefrences, htmllink)
+	}
+	textref := strings.Join(textrefrences, " ")
+	texthtml := template.HTML(textref)
+	return &Page{User: user, Title: transcription.CTSURN, TextHTML: texthtml, InTextHTML: template.HTML(transcription.Transcription), Next: transcription.Next, Previous: transcription.Previous, First: transcription.First, Last: transcription.Last, Port: port}, nil
 }
 
 func fieldNWA2(alntext []string) [][]string {
