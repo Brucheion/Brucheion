@@ -123,19 +123,18 @@ type Page struct {
 }
 
 type LoginPage struct {
-	UserName string
-	Provider string
-	Message  string
-	Port     string
-	Title    string
+	BrucheionUser string
+	Provider      string
+	Message       string
+	Port          string
+	Title         string
 	//Providers *ProviderIndex
 }
 
 type AuthPage struct {
-	User     string
-	Port     string
-	GothUser goth.User
-	Provider string
+	BrucheionUser string
+	Port          string
+	Provider      string
 }
 
 type UnameValidation struct {
@@ -265,14 +264,6 @@ func GetSession(req *http.Request) (*sessions.Session, error) {
 	return session, nil
 }
 
-/*func InitSession (res http.ResponseWriter, req *http.Request, ) ({
-		session, err := GetSession(req)
-	if err != nil {
-		fmt.Errorf("No session, no login")
-		return err
-	}
-} */
-
 func Validate(username string) *UnameValidation {
 
 	unameValidation := &UnameValidation{
@@ -288,6 +279,23 @@ func Validate(username string) *UnameValidation {
 		unameValidation.ErrorCode = true
 		return unameValidation
 	}
+}
+
+func Logout(res http.ResponseWriter, req *http.Request) error {
+
+	session, err := GetSession(req)
+	if err != nil {
+		fmt.Errorf("No session, no logout")
+		return err
+	}
+
+	session.Options.MaxAge = -1
+	session.Values = make(map[interface{}]interface{})
+	err = session.Save(req, res)
+	if err != nil {
+		return errors.New("Could not delete user session ")
+	}
+	return nil
 }
 
 //experimaental login function using goth.
@@ -315,15 +323,17 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	title := "Brucheion Login Page"
 	port := cookiestoreConfig.Port
 
+	fmt.Println("req.FormValue(\"brucheionUserName\")" + req.FormValue("brucheionusername"))
+	fmt.Println("req.FormValue(\"provider\")" + req.FormValue("provider"))
 	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
-		UserName: req.FormValue("username"),
-		Provider: req.FormValue("provider"),
-		Port:     port,
-		Title:    title}
+		BrucheionUser: req.FormValue("brucheionusername"),
+		Provider:      req.FormValue("provider"),
+		Port:          port,
+		Title:         title}
 
 	//Validation can later be extended to check if user is already in use etc
-	unameValidation := Validate(lp.UserName)
+	unameValidation := Validate(lp.BrucheionUser)
 
 	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/"
 	fmt.Println("authPath: " + authPath)
@@ -335,9 +345,9 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		session.Values["username"] = lp.UserName
-		session.Values["provider"] = lp.Provider
-		session.Values["loggedin"] = false
+		session.Values["BrucheionUser"] = lp.BrucheionUser
+		session.Values["Provider"] = lp.Provider //the provider used for login
+		session.Values["Loggedin"] = false
 
 		session.Save(req, res)
 		//saveHandler(res, req)
@@ -347,11 +357,6 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 		renderLoginTemplate(res, "login", lp)
 	}
 }
-
-/*func saveHandler(w http.ResponseWriter, r *http.Request) {
-	// allow cross domain AJAX requests
-	w.Header().Add("UserName", "username")
-}*/
 
 func Auth(res http.ResponseWriter, req *http.Request) {
 	gothic.BeginAuthHandler(res, req)
@@ -365,10 +370,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	provider, _ := gothic.GetProviderName(req)
-	/*	if err != nil {
-		return goth.User{}, err
-	}*/
+	//provider, _ := gothic.GetProviderName(req)
 
 	session, err := GetSession(req)
 	if err != nil {
@@ -376,25 +378,48 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//s, ok := value.(string)
-	userInterface := session.Values["username"]
-	if userInterface == nil {
-		fmt.Errorf("Session value could not be retrieved.")
+	provider, ok := session.Values["Provider"].(string)
+	if !ok {
+		fmt.Println("Type assertion to string failed or session value could not be retrieved.")
 	}
 
-	user, ok := userInterface.(string)
+	brucheionUser, ok := session.Values["BrucheionUser"].(string)
 	if !ok {
-		fmt.Println("Type assertion to String failed.")
+		fmt.Println("Type assertion to string failed or session value could not be retrieved.")
 	}
+
+	session.Values["Loggedin"] = true
+	session.Values["ProviderNickName"] = gothUser.NickName //The nickname used for logging in with provider
+	session.Values["ProviderUserID"] = gothUser.UserID     //the userID returned by the login from provider
+	session.Save(req, res)
 
 	port := cookiestoreConfig.Port
 	p := &AuthPage{
-		User:     user,
-		Port:     port,
-		GothUser: gothUser,
-		Provider: provider}
+		BrucheionUser: brucheionUser,
+		Port:          port,
+		Provider:      provider}
 
-	fmt.Println("p.User = " + p.User)
+	fmt.Println("Debugging: Reading out session values ")
+
+	loggedin, ok := session.Values["Loggedin"].(bool)
+	if !ok {
+		fmt.Println("Type assertion to bool failed or session value could not be retrieved.")
+	}
+
+	providerNickName, ok := session.Values["ProviderNickName"].(string)
+	if !ok {
+		fmt.Println("Type assertion to String failed or session value could not be retrieved.")
+	}
+
+	providerUserID, ok := session.Values["ProviderUserID"].(string)
+	if !ok {
+		fmt.Println("Type assertion to String failed or session value could not be retrieved.")
+	}
+
+	fmt.Println("loggedin: " + strconv.FormatBool(loggedin))
+	fmt.Println("providerNickName: " + providerNickName)
+	fmt.Println("providerUserID: " + providerUserID)
+	fmt.Println("p.BrucheionUser = " + p.BrucheionUser)
 
 	renderAuthTemplate(res, "callback", p)
 
