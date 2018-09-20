@@ -55,9 +55,10 @@
 					</div>
 					<div class="navbar-item has-dropdown is-hoverable">
 						<p class="navbar-link">
-								<i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
+							<i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
 						</p>
 						<div class="navbar-dropdown">
+							<a href="http://localhost{{.Port}}/{{.User}}/export/exported" class="navbar-item">Download CEX</a>
 							<a href="#" class="navbar-item">Account Settings</a>
 							<a href="#" class="navbar-item">Display Settings</a>
 							<a href="#" class="navbar-item">Logout</a>
@@ -83,27 +84,27 @@
 				<h1 class="title">
 					Passage Overview
 				</h1>
-					<div class="columns">
-							<div class="coulumn"><p class="subtitle"></p><a href="http://localhost{{.Port}}/{{.User}}/view/{{.First}}"><i class="fa fa-chevron-left"></i><i
-									 class="fa fa-chevron-left"></i></a>
-								<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
-								<strong>{{.Title}}</strong>
-								<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Next}}"><i class="fa fa-chevron-right"></i></a>
-								<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Last}}"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
-							</p>
-							</div>
-							<div class="column">
-								<form name="nav">
-									<div class="control">
-										<div class="select">
-											<select name="SelectURL" onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
-												{{.TextHTML}}
-											</select>
-										</div>
-									</div>
-								</form>
-							</div>
+				<div class="columns">
+					<div class="coulumn">
+						<p class="subtitle"></p><a href="http://localhost{{.Port}}/{{.User}}/view/{{.First}}"><i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
+						<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
+						<strong>{{.Title}}</strong>
+						<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Next}}"><i class="fa fa-chevron-right"></i></a>
+						<a href="http://localhost{{.Port}}/{{.User}}/view/{{.Last}}"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
+						</p>
 					</div>
+					<div class="column">
+						<form name="nav">
+							<div class="control">
+								<div class="select">
+									<select name="SelectURL" onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
+										{{.TextHTML}}
+									</select>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
 			</div>
 		</div>
 	</section>
