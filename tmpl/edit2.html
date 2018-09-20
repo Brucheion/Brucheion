@@ -57,6 +57,7 @@
 							<i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
 						</p>
 						<div class="navbar-dropdown">
+							<a href="http://localhost{{.Port}}/{{.User}}/export/exported" class="navbar-item">Download CEX</a>
 							<a href="#" class="navbar-item">Account Settings</a>
 							<a href="#" class="navbar-item">Display Settings</a>
 							<a href="#" class="navbar-item">Logout</a>
@@ -124,12 +125,12 @@
 						<div class="tile is-child">
 							<button class="button is-small is-primary" id="image_changeUrn">Change Image</button>
 							<div class="form-group">
-								<label for="sel1">Select list:</label>
+								<label for="sel1">Select Collection:</label>
 								<select class="form-control" id="image_colSelect" onchange="refreshURL()">
 								</select>
 							</div>
 							<div class="form-group">
-								<label for="sel1">Select list:</label>
+								<label for="sel1">Select Image:</label>
 								<select class="form-control" id="image_urnSelect">
 								</select>
 							</div>
@@ -195,9 +196,7 @@
 		var imageurl = "http://localhost:7000/thomas/requestImgID/morgantina";
 
 		function refreshURL() {
-			console.log(imageurl);
 			imageurl = 'http://localhost:7000/thomas/requestImgID/' + $('#image_colSelect').val();
-			console.log(imageurl);
 			let dropdown = $('#image_urnSelect');
 
 			dropdown.empty();

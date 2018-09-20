@@ -58,6 +58,7 @@
 							<i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
 						</p>
 						<div class="navbar-dropdown">
+							<a href="http://localhost{{.Port}}/{{.User}}/export/exported" class="navbar-item">Download CEX</a>
 							<a href="#" class="navbar-item">Account Settings</a>
 							<a href="#" class="navbar-item">Display Settings</a>
 							<a href="#" class="navbar-item">Logout</a>
@@ -116,7 +117,8 @@
 				<div class="tile is-parent">
 					<div class="tile is-child box is-6">
 						<input id="image_urnBox" type="text" size="60" value="" /> <button class="button is-small is-primary" id="image_changeUrn">Change
-							Image</button>
+							Image
+						</button>
 					</div>
 					<div class="tile is-child box is-5">
 						<p>ImageRef: {{.ImageHTML}}</p>
