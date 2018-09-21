@@ -128,14 +128,12 @@ type LoginPage struct {
 	Message       string
 	Port          string
 	Title         string
-	//Providers *ProviderIndex
 }
 
-type AuthPage struct {
-	BrucheionUser string
-	Port          string
-	Provider      string
-}
+/*type LandingPage struct {
+	User string
+	Port string
+}*/
 
 type UnameValidation struct {
 	Message   string
@@ -147,13 +145,14 @@ var cookiestoreConfig = LoadConfiguration("./config.json")
 
 var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html",
 	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
-	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html"))
+	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html",
+	"tmpl/main.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
 var serverIP = cookiestoreConfig.Port
 
 //The sessionName of the Brucheion Session
-const SessionName = "_brucheion_session"
+const SessionName = "brucheion_session"
 
 //
 var BrucheionStore sessions.Store
@@ -187,6 +186,7 @@ func main() {
 	router.HandleFunc("/login/", LoginPOST).Methods("POST")
 	router.HandleFunc("/auth/{provider}/", Auth)                  //initializing the authentication, redirecting to authification provider
 	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //success message display
+	router.HandleFunc("/logout/", Logout)
 	router.HandleFunc("/{user}/{urn}/treenode.json/", Treenode)
 	router.HandleFunc("/{user}/main/", MainPage)
 	router.HandleFunc("/{user}/load/{cex}/", LoadDB)
@@ -258,7 +258,7 @@ func GetCookieStore() sessions.Store {
 func GetSession(req *http.Request) (*sessions.Session, error) {
 	session, err := BrucheionStore.Get(req, SessionName)
 	if err != nil {
-		fmt.Println("Could not get session")
+		fmt.Println("Could not get session.")
 		return nil, err
 	}
 	return session, nil
@@ -281,21 +281,23 @@ func Validate(username string) *UnameValidation {
 	}
 }
 
-func Logout(res http.ResponseWriter, req *http.Request) error {
+func Logout(res http.ResponseWriter, req *http.Request) {
 
 	session, err := GetSession(req)
 	if err != nil {
 		fmt.Errorf("No session, no logout")
-		return err
+		return
 	}
 
 	session.Options.MaxAge = -1
 	session.Values = make(map[interface{}]interface{})
 	err = session.Save(req, res)
 	if err != nil {
-		return errors.New("Could not delete user session ")
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	return nil
+	http.Redirect(res, req, "/login/", http.StatusFound)
+
 }
 
 //experimaental login function using goth.
@@ -341,6 +343,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	if unameValidation.ErrorCode {
 		session, err := GetSession(req)
 		if err != nil {
+			fmt.Println("Error at unameValidation.")
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -393,33 +396,32 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	session.Values["ProviderUserID"] = gothUser.UserID     //the userID returned by the login from provider
 	session.Save(req, res)
 
+	userDB := "./users.db"
+	db, err := bolt.Open(userDB, 0644, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("DB opened")
+	defer db.Close()
+
+	db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(brucheionUser))
+		if err != nil {
+			fmt.Errorf("Failed creating user bucket: %s", err)
+			return
+		}
+		err = b.Put([]byte("Provider"), []byte(provider))
+		err = b.Put([]byte("ProviderNickName"), []byte(gothUser.NickName))
+		err = b.Put([]byte("ProviderUserID"), []byte(gothUser.UserID))
+
+		return nil
+	})
+
 	port := cookiestoreConfig.Port
-	p := &AuthPage{
+	p := &LoginPage{
 		BrucheionUser: brucheionUser,
 		Port:          port,
 		Provider:      provider}
-
-	fmt.Println("Debugging: Reading out session values ")
-
-	loggedin, ok := session.Values["Loggedin"].(bool)
-	if !ok {
-		fmt.Println("Type assertion to bool failed or session value could not be retrieved.")
-	}
-
-	providerNickName, ok := session.Values["ProviderNickName"].(string)
-	if !ok {
-		fmt.Println("Type assertion to String failed or session value could not be retrieved.")
-	}
-
-	providerUserID, ok := session.Values["ProviderUserID"].(string)
-	if !ok {
-		fmt.Println("Type assertion to String failed or session value could not be retrieved.")
-	}
-
-	fmt.Println("loggedin: " + strconv.FormatBool(loggedin))
-	fmt.Println("providerNickName: " + providerNickName)
-	fmt.Println("providerUserID: " + providerUserID)
-	fmt.Println("p.BrucheionUser = " + p.BrucheionUser)
 
 	renderAuthTemplate(res, "callback", p)
 
@@ -689,15 +691,38 @@ func newWork(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func MainPage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
+func MainPage(res http.ResponseWriter, req *http.Request) {
+
+	session, err := GetSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user, ok := session.Values["BrucheionUser"].(string)
+	if !ok {
+		fmt.Println("Type assertion to string failed or session value could not be retrieved.")
+	}
+
 	dbname := user + ".db"
+	/*
+		db, err := bolt.Open(dbname, 0644, nil)
+		if err != nil {
+			fmt.Println("Error opening DB.")
+			log.Fatal(err)
+		}
+		defer db.Close()*/
+
 	buckets := Buckets(dbname)
 	fmt.Println()
 	fmt.Println("func MainPage. Printing buckets:")
 	fmt.Println()
 	fmt.Println(buckets)
+
+	page := &Page{
+		User: user,
+		Port: cookiestoreConfig.Port}
+	renderTemplate(res, "main", page)
 }
 
 func TreePage(w http.ResponseWriter, r *http.Request) {
@@ -1946,7 +1971,7 @@ func renderLoginTemplate(w http.ResponseWriter, tmpl string, p *LoginPage) {
 	}
 }
 
-func renderAuthTemplate(w http.ResponseWriter, tmpl string, p *AuthPage) {
+func renderAuthTemplate(w http.ResponseWriter, tmpl string, p *LoginPage) {
 	/*	user := p.GothUser
 		url := user[url]
 		fmt.Println(url) */
