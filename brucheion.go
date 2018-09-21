@@ -123,19 +123,21 @@ type Page struct {
 }
 
 type LoginPage struct {
-	BrucheionUser string
-	Provider      string
-	Message       string
-	Port          string
-	Title         string
+	BrucheionUserName string
+	Provider          string
+	Message           string
+	Port              string
+	Title             string
 }
 
-/*type LandingPage struct {
-	User string
-	Port string
-}*/
+type BrucheionUser struct {
+	BUserName        string
+	Provider         string
+	ProviderNickName string
+	ProviderUserID   string
+}
 
-type UnameValidation struct {
+type Validation struct {
 	Message   string
 	ErrorCode bool
 }
@@ -264,12 +266,10 @@ func GetSession(req *http.Request) (*sessions.Session, error) {
 	return session, nil
 }
 
-func Validate(username string) *UnameValidation {
+func ValidateUserName(username string) *Validation {
 
-	unameValidation := &UnameValidation{
-		Message:   "",
-		ErrorCode: false,
-	}
+	unameValidation := &Validation{
+		ErrorCode: false}
 
 	fmt.Println("Validating: " + username)
 	if strings.TrimSpace(username) == "" {
@@ -280,6 +280,58 @@ func Validate(username string) *UnameValidation {
 		return unameValidation
 	}
 }
+
+/*func ValidateUser(res http.ResponseWriter, req *http.Request, brucheionUser *BrucheionUser) *Validation {
+	bUserValidation := &Validation{
+		ErrorCode: false}
+
+	session, err := GetSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return bUserValidation
+	}
+
+	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
+	if !ok {
+		fmt.Println("Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved.")
+	}
+
+	provider, ok := session.Values["Provider"].(string)
+	if !ok {
+		fmt.Println("Type assertion of provider cookie value to string failed or session value could not be retrieved.")
+	}
+
+	providerNickName, ok := session.Values["ProviderNickName"].(string)
+	if !ok {
+		fmt.Println("Type assertion of ProviderNickName cookie value to string failed or session value could not be retrieved.")
+	}
+
+	providerUserID, ok := session.Values["ProviderUserID"].(string)
+	if !ok {
+		fmt.Println("Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved.")
+	}
+
+	userDB := "./users.db"
+	db, err := bolt.Open(userDB, 0644, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("DB opened")
+	defer db.Close()
+
+	db.View(func(tx *bolt.Tx) message, error {
+		string message := ""
+		b := tx.Bucket([]byte(brucheionUserName))
+		if b == nil {message = "Bucket does not exist yet"
+	}
+		v := b.Get([]byte("answer"))
+		fmt.Printf("The answer is: %s\n", v)
+		return message nil
+	})
+
+	return bUserValidation
+
+}*/
 
 func Logout(res http.ResponseWriter, req *http.Request) {
 
@@ -329,13 +381,13 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	fmt.Println("req.FormValue(\"provider\")" + req.FormValue("provider"))
 	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
-		BrucheionUser: req.FormValue("brucheionusername"),
-		Provider:      req.FormValue("provider"),
-		Port:          port,
-		Title:         title}
+		BrucheionUserName: req.FormValue("brucheionusername"),
+		Provider:          req.FormValue("provider"),
+		Port:              port,
+		Title:             title}
 
-	//Validation can later be extended to check if user is already in use etc
-	unameValidation := Validate(lp.BrucheionUser)
+	//Validation can later be extended to check if user is already in use. tbc
+	unameValidation := ValidateUserName(lp.BrucheionUserName)
 
 	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/"
 	fmt.Println("authPath: " + authPath)
@@ -343,12 +395,12 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	if unameValidation.ErrorCode {
 		session, err := GetSession(req)
 		if err != nil {
-			fmt.Println("Error at unameValidation.")
+			fmt.Println("Error at username validation.")
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		session.Values["BrucheionUser"] = lp.BrucheionUser
+		session.Values["BrucheionUserName"] = lp.BrucheionUserName
 		session.Values["Provider"] = lp.Provider //the provider used for login
 		session.Values["Loggedin"] = false
 
@@ -361,6 +413,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//redirects to provider for authentification using gothic
 func Auth(res http.ResponseWriter, req *http.Request) {
 	gothic.BeginAuthHandler(res, req)
 }
@@ -386,7 +439,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		fmt.Println("Type assertion to string failed or session value could not be retrieved.")
 	}
 
-	brucheionUser, ok := session.Values["BrucheionUser"].(string)
+	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
 		fmt.Println("Type assertion to string failed or session value could not be retrieved.")
 	}
@@ -395,6 +448,12 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	session.Values["ProviderNickName"] = gothUser.NickName //The nickname used for logging in with provider
 	session.Values["ProviderUserID"] = gothUser.UserID     //the userID returned by the login from provider
 	session.Save(req, res)
+
+	brucheionUser := &BrucheionUser{
+		BUserName:        brucheionUserName,
+		Provider:         provider,
+		ProviderNickName: gothUser.NickName,
+		ProviderUserID:   gothUser.UserID}
 
 	userDB := "./users.db"
 	db, err := bolt.Open(userDB, 0644, nil)
@@ -405,23 +464,31 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	defer db.Close()
 
 	db.Update(func(tx *bolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte(brucheionUser))
+		bucket, err := tx.CreateBucketIfNotExists([]byte(brucheionUserName))
 		if err != nil {
-			fmt.Errorf("Failed creating user bucket: %s", err)
-			return
+			fmt.Errorf("Failed creating or opening user bucket: %s", err)
+			return err
 		}
-		err = b.Put([]byte("Provider"), []byte(provider))
+
+		buf, err := json.Marshal(brucheionUser)
+		if err != nil {
+			return err
+		}
+
+		return bucket.Put([]byte(brucheionUser.BUserName), buf)
+
+		/*err = b.Put([]byte("Provider"), []byte(provider))
 		err = b.Put([]byte("ProviderNickName"), []byte(gothUser.NickName))
-		err = b.Put([]byte("ProviderUserID"), []byte(gothUser.UserID))
+		err = b.Put([]byte("ProviderUserID"), []byte(gothUser.UserID))*/
 
 		return nil
 	})
 
 	port := cookiestoreConfig.Port
 	p := &LoginPage{
-		BrucheionUser: brucheionUser,
-		Port:          port,
-		Provider:      provider}
+		BrucheionUserName: brucheionUserName,
+		Port:              port,
+		Provider:          provider}
 
 	renderAuthTemplate(res, "callback", p)
 
