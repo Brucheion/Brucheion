@@ -41,6 +41,7 @@ type CookiestoreConfig struct {
 	GitLabSecret string `json:"gitLabSecret"`
 	GitLabScope  string `json:"gitLabScope"`
 	MaxAge       string `json:"maxAge"`
+	UserDB       string `json:"userDB"`
 	//	GoogleKey	  string `json:"googleKey"`
 	//	GoogleSecret  string `json:"googleSecret"`
 }
@@ -131,16 +132,18 @@ type LoginPage struct {
 }
 
 type BrucheionUser struct {
-	BUserName        string
-	Provider         string
-	ProviderNickName string
-	ProviderUserID   string
+	BUserName        string //The username choosen during login
+	Provider         string //The provider that was used for authentification
+	ProviderNickName string //The Nickname that was used for login (probably discardable in future)
+	ProviderUserID   string //The UserID that came from the Provider
 }
 
 type Validation struct {
-	Message   string
-	NewUser   bool
-	ErrorCode bool
+	Message      string //Explanation of the outcome.
+	ErrorCode    bool   //Was an error encountered during validation (something did not match)?
+	BUserInUse   bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
+	SameProvider bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
+	PUserInUse   bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
 }
 
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
@@ -152,6 +155,7 @@ var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.h
 	"tmpl/main.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
+//for legacy reasons..
 var serverIP = cookiestoreConfig.Port
 
 //The sessionName of the Brucheion Session
@@ -170,7 +174,7 @@ func main() {
 	gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
 	gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
 
-	//tell goth to use the coosen providers:
+	//tell goth to use the supported providers:
 	goth.UseProviders(
 		github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
 		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope),
@@ -179,6 +183,7 @@ func main() {
 	//Create new Cookiestore for _gothic_session
 	gothic.Store = GetCookieStore()
 
+	//Create new Cookiestore for Brucheion
 	BrucheionStore = GetCookieStore()
 
 	router.PathPrefix("/static/").Handler(s)
@@ -215,7 +220,6 @@ func main() {
 	router.HandleFunc("/{user}/newCITECollection/{name}/", newCITECollection)
 	router.HandleFunc("/{user}/getImageInfo/{name}/{imageurn}/", getImageInfo)
 	router.HandleFunc("/{user}/addtoCITE/", addCITE)
-
 	router.HandleFunc("/{user}/requestImgID/{name}", requestImgID)
 	router.HandleFunc("/{user}/deleteCollection", deleteCollection)
 	router.HandleFunc("/{user}/requestImgCollection", requestImgCollection)
@@ -282,51 +286,38 @@ func ValidateUserName(username string) *Validation {
 	}
 }
 
-func ValidateUser(res http.ResponseWriter, req *http.Request, userDB *bolt.DB /*, brucheionUser *BrucheionUser*/) *Validation {
+func ValidateUser(res http.ResponseWriter, req *http.Request) *Validation {
 	bUserValidation := &Validation{
-		NewUser:   false,
-		ErrorCode: false,
-		Message:   ""}
+		Message:      "",
+		ErrorCode:    false,
+		BUserInUse:   false,
+		SameProvider: false,
+		PUserInUse:   false}
 
+	//get the session to retrieve session/cookie values
 	session, err := GetSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return bUserValidation
 	}
 
+	//get user data from session
 	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Errorf("Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved.")
+		fmt.Errorf("Func ValidateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved.")
 	}
-
 	provider, ok := session.Values["Provider"].(string)
 	if !ok {
-		fmt.Errorf("Type assertion of provider cookie value to string failed or session value could not be retrieved.")
+		fmt.Errorf("Func ValidateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved.")
 	}
-
 	providerNickName, ok := session.Values["ProviderNickName"].(string)
 	if !ok {
-		fmt.Errorf("Type assertion of ProviderNickName cookie value to string failed or session value could not be retrieved.")
+		fmt.Errorf("Func ValidateUser: Type assertion of ProviderNickName cookie value to string failed or session value could not be retrieved.")
 	}
-
 	providerUserID, ok := session.Values["ProviderUserID"].(string)
 	if !ok {
-		fmt.Errorf("Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved.")
+		fmt.Errorf("Func ValidateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved.")
 	}
-
-	/*userDB := "./users.db"                  //Give Bolt the DB location and name
-	db, err := bolt.Open(userDB, 0400, nil) //open DB
-	if err != nil {                         //return error in case of failure (This should never happen.)
-		fmt.Errorf("Error opening user database. (This should never happen.)") //Errormessage on terminal.
-		http.Error(res, err.Error(), http.StatusInternalServerError)           //Adds Error to http header (?)
-
-		bUserValidation.Message = "ValidateUser: Error opening user database. (This should never happen.)"
-
-		return bUserValidation
-		//log.Fatal(err)
-	}
-	fmt.Println("DB opened")
-	defer db.Close() //never forget to close the DB*/
 
 	fmt.Println("Debugging values from session:")
 	fmt.Println("brucheionUserName: " + brucheionUserName)
@@ -334,63 +325,99 @@ func ValidateUser(res http.ResponseWriter, req *http.Request, userDB *bolt.DB /*
 	fmt.Println("providerNickName: " + providerNickName)
 	fmt.Println("providerUserID: " + providerUserID)
 
+	//userDBlocation := CookiestoreConfig.UserDB                      //tell bolt where to find the DB
+	userDB, err := bolt.Open(cookiestoreConfig.UserDB, 0600, nil) //open DB with - wr- --- ---
+	if err != nil {
+		fmt.Println("Error opening userDB.")
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		bUserValidation.Message = "Error opening userDB."
+		return bUserValidation
+	}
+	fmt.Println("DB opened")
+	defer userDB.Close()
+
 	userDB.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(brucheionUserName)) //try to open the user bucket
-		fmt.Println("Bucket: ")
-		fmt.Println(bucket)
-		fmt.Println("BrucheionUser: ")
-		fmt.Println(bucket.Get([]byte(brucheionUserName)))
-		var brucheionUser BrucheionUser
-		err := json.Unmarshal(bucket.Get([]byte(brucheionUserName)), &brucheionUser)
-		if err != nil {
-			fmt.Println("error:", err)
-		}
-		//	err := json.Unmarshal(jsonBlob, &animals)
+		bucket := tx.Bucket([]byte("users")) //try to open the user bucket
 
-		fmt.Println(brucheionUser)
-
-		if bucket != nil {
-			var builder strings.Builder
-			fmt.Fprintf(&builder, "Debugging values from DB:\n")
-			fmt.Fprintf(&builder, "Bucket: %s\n", brucheionUserName)
-			fmt.Fprintf(&builder, "Provider: ")
-
-			builder.Write(bucket.Get([]byte("Provider")))
-			fmt.Fprintf(&builder, "\nProviderNickName: ")
-			builder.Write(bucket.Get([]byte("ProviderNickName")))
-			fmt.Fprintf(&builder, "\nProviderUserID: ")
-			builder.Write(bucket.Get([]byte("providerUserIDr")))
-			fmt.Println(builder.String())
-
-			/*
-				fmt.Printf("Debugging values from DB:")
-				fmt.Println("Bucket: " + brucheionUserName)
-				fmt.Println("Provider: " + string(bucket.Get([]byte("Provider"))))
-				fmt.Println("ProviderNickName: " + string(bucket.Get([]byte("ProviderNickName"))))
-				fmt.Println("ProviderUserID: " + string(bucket.Get([]byte("ProviderUserID"))))
-			*/
+		var brucheionUser BrucheionUser //create a pointer to a BrucheionUser variable
+		pointer := new(BrucheionUser)
+		cursor := bucket.Cursor()
+		pointer = nil
+		for BUserName, _ := cursor.First(); BUserName != nil; BUserName, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
+			//Login scenario (4)
+			if string(BUserName) == brucheionUserName { //if this userID was in the Bucket
+				buffer := bucket.Get([]byte(brucheionUserName)) //get the
+				err := json.Unmarshal(buffer, &brucheionUser)
+				if err != nil {
+					fmt.Println("Error unmarshalling brucheionUser:", err)
+				}
+				pointer = &brucheionUser
+				fmt.Println("brucheionuser")
+				fmt.Println(brucheionUser)
+				fmt.Println("&brucheionUser")
+				fmt.Println(&brucheionUser)
+				/*fmt.Println("*brucheionUser")
+				fmt.Println(*brucheionUser)*/
+			}
 		}
 
-		if bucket == nil { //if there was no user bucket write Message and set NewUser and ErrorCode true
-			bUserValidation.Message = "User not in DB yet. Created new entry for " + brucheionUserName + "."
-			bUserValidation.NewUser = true   //This is a new user.
-			bUserValidation.ErrorCode = true //No error encountered
-		} else if string(bucket.Get([]byte("Provider"))) == strings.ToLower(provider) /*&& b.Get([]byte("ProviderNickName") == providerNickName)*/ &&
-			string(bucket.Get([]byte("ProviderUserID"))) == providerUserID { //if there was a user bucket and the session values match the DB values
-			bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Values matching."
-			bUserValidation.NewUser = false  //The user was already in DB
-			bUserValidation.ErrorCode = true //No error encountered
-		} else if string(bucket.Get([]byte("Provider"))) != strings.ToLower(provider) {
-			bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Already logged in with different provider."
-			bUserValidation.NewUser = false   //The user was already in DB
-			bUserValidation.ErrorCode = false //Error encountered
-		} else if string(bucket.Get([]byte("ProviderUserID"))) != providerUserID {
-			bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Already logged in with " + provider + " using account " + providerNickName + "."
-			bUserValidation.NewUser = false   //The user was already in DB
-			bUserValidation.ErrorCode = false //Error encountered
+		//check if ProviderUser was used for other BUser
+		if pointer == nil { //Login scenarios (4), (5)
+			bUserValidation.BUserInUse = false   //This BUsername was not in use yet
+			bUserValidation.SameProvider = false //No BUser -> No provider chosen
+			bucket = tx.Bucket([]byte(provider)) //open the provider Bucket
+			cursor := bucket.Cursor()
+			//for userID, nickName := cursor.First(); userID != nil; userID, nickName = cursor.Next() { //go through the users bucket and check for BUserName already in use
+			for userID, _ := cursor.First(); userID != nil; userID, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
+
+				//Login scenario (4)
+				if string(userID) == providerUserID { //if this userID was in the Bucket
+					bUserValidation.Message = "This " + provider + " account is already in use for authentificating another login."
+					bUserValidation.ErrorCode = false //Error encoungtered (PUser in use, but not for this BUser)
+					bUserValidation.PUserInUse = true //ProviderUser from session already in use
+				}
+			}
+			cursor = nil
+			//Login scenario (5)
+			if bUserValidation.Message == "" { //If userID was not found in DB, message will be empty
+				bUserValidation.Message = "User not in DB yet. Created new entry for " + brucheionUserName + "."
+				bUserValidation.ErrorCode = true   //New BUser and new PUser -> Creating a new user is not an error
+				bUserValidation.PUserInUse = false //ProviderUser not in use yet
+			}
+		} else { //Login Scenarios (1), (2), (3)
+			bUserValidation.BUserInUse = true       //The BrucheionUser has a representation in users.DB
+			if provider == brucheionUser.Provider { //Login Scenarios (1), (2)
+				bUserValidation.SameProvider = true                 //Provider from session and BrucheionUser match
+				if providerUserID == brucheionUser.ProviderUserID { //if there was a user bucket and the session values match the DB values; Login Scenarios (1)
+					bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Logged in."
+					bUserValidation.ErrorCode = true  //No error encountered
+					bUserValidation.PUserInUse = true //ProviderUser from session and BrucheionUser match
+				} else { //brucheionUser.ProviderUserID != providerUserID; Login Scenarios (2)
+					bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Already logged in with " + brucheionUser.Provider + ", using another account."
+					bUserValidation.ErrorCode = false  //Error encountered
+					bUserValidation.PUserInUse = false //ProviderUser from session and BrucheionUser don't match
+				}
+			} else { //brucheionUser.Provider != provider; Login Scenario (3)
+				bUserValidation.Message = "User " + brucheionUserName + " already logged in with provider " + brucheionUser.Provider + ". You tried to login with " + provider + " instead."
+				bUserValidation.ErrorCode = false    //Error encountered
+				bUserValidation.SameProvider = false //The BUser is in Use with another Provider
+				bUserValidation.PUserInUse = false   //ProviderUser from session and BrucheionUser don't match
+			}
 		}
+		fmt.Println("Debugging bUser retrieved from DB:")
+		fmt.Println("BUserName: " + brucheionUser.BUserName)
+		fmt.Println("Provider: " + brucheionUser.Provider)
+		fmt.Println("providerNickName: " + brucheionUser.ProviderNickName)
+		fmt.Println("ProviderUserID: " + brucheionUser.ProviderUserID)
+
 		return nil //close DB view
 	})
+
+	fmt.Println("Print Debugging db.Update: ")
+	fmt.Println("validation.ErrorCode: " + strconv.FormatBool(bUserValidation.ErrorCode))
+	fmt.Println("validation.BUserInUse: " + strconv.FormatBool(bUserValidation.BUserInUse))
+	fmt.Println("validation.SameProvider: " + strconv.FormatBool(bUserValidation.SameProvider))
+	fmt.Println("validation.PUserInUse: " + strconv.FormatBool(bUserValidation.PUserInUse))
 
 	return bUserValidation
 }
@@ -403,6 +430,11 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	bUserName, ok := session.Values["BrucheionUserName"].(string)
+	if !ok {
+		fmt.Println("Func Logout: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
+	}
+
 	session.Options.MaxAge = -1
 	session.Values = make(map[interface{}]interface{})
 	err = session.Save(req, res)
@@ -410,6 +442,7 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	fmt.Printf("User %s has logged out", bUserName)
 	http.Redirect(res, req, "/login/", http.StatusFound)
 
 }
@@ -443,7 +476,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	fmt.Println("req.FormValue(\"provider\")" + req.FormValue("provider"))
 	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
-		BrucheionUserName: req.FormValue("brucheionusername"),
+		BrucheionUserName: strings.TrimSpace(req.FormValue("brucheionusername")),
 		Provider:          req.FormValue("provider"),
 		Port:              port,
 		Title:             title}
@@ -453,6 +486,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 
 	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/"
 	fmt.Println("authPath: " + authPath)
+	fmt.Println("userDB:" + cookiestoreConfig.UserDB)
 
 	if unameValidation.ErrorCode {
 		session, err := GetSession(req)
@@ -480,94 +514,159 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 	gothic.BeginAuthHandler(res, req)
 }
 
+//Completess user authentification, sets session variables and DB entries
 func AuthCallback(res http.ResponseWriter, req *http.Request) {
 
+	//open the DB and make sure the three necessary Buckets are there
+	//userDB := "./users.db"                  //tell bolt where to find the DB
+	db, err := bolt.Open(cookiestoreConfig.UserDB, 0600, nil) //open DB with - wr- --- ---
+	if err != nil {
+		fmt.Println("Error opening userDB.")
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("DB opened")
+
+	//create the three buckets needed: users, GitHub, GitLab
+	db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("users")) //create a new bucket to store new user
+		if err != nil {
+			fmt.Errorf("Failed creating bucket users: %s", err)
+			return err
+		}
+		bucket, err = tx.CreateBucketIfNotExists([]byte("GitHub"))
+		if err != nil {
+			fmt.Errorf("Failed creating bucket GitHub: %s", err)
+			return err
+		}
+		bucket, err = tx.CreateBucketIfNotExists([]byte("GitLab"))
+		if err != nil {
+			fmt.Errorf("Failed creating bucket GitLab: %s", err)
+			return err
+		}
+		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error)
+
+		return nil //when all went well, error can be returned with <nil>
+	})
+
+	db.Close() //always remember to close the db
+	fmt.Println("DB closed")
+
+	//authentificate user and get gothUser from gothic
 	gothUser, err := gothic.CompleteUserAuth(res, req) //gets the user authentification from the session that is already existing.
 	if err != nil {
 		fmt.Fprintln(res, err)
 		return
 	}
 
-	//provider, _ := gothic.GetProviderName(req)
-
+	//get session from http request
 	session, err := GetSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	//get provider name from session values
 	provider, ok := session.Values["Provider"].(string)
 	if !ok {
-		fmt.Println("Type assertion to string failed or session value could not be retrieved.")
+		fmt.Println("Func AuthCallback: Type assertion of value Provider to string failed or session value could not be retrieved.")
 	}
-
 	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Println("Type assertion to string failed or session value could not be retrieved.")
+		fmt.Println("Func AuthCallback: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
 	}
 
-	session.Values["Loggedin"] = true
+	//set session values from gothUser values
+	session.Values["Loggedin"] = false                     //assumed for later use, maybe going to be deprecated later
 	session.Values["ProviderNickName"] = gothUser.NickName //The nickname used for logging in with provider
 	session.Values["ProviderUserID"] = gothUser.UserID     //the userID returned by the login from provider
-	session.Save(req, res)
+	session.Save(req, res)                                 //always remember to save the session
 
+	//validate if SessionUser is Valid
+	validation := ValidateUser(res, req)
+
+	//create current Brucheionuser
 	brucheionUser := &BrucheionUser{
 		BUserName:        brucheionUserName,
 		Provider:         provider,
 		ProviderNickName: gothUser.NickName,
 		ProviderUserID:   gothUser.UserID}
 
-	userDB := "./users.db"                  //tell bolt where to find the DB
-	db, err := bolt.Open(userDB, 0600, nil) //open DB with wr- --- ---
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("DB opened")
-	defer db.Close() //never forget to close the db
+	//validate if user was already in use
 
-	validation := ValidateUser(res, req, db)
+	//may it be smarter to put the db.Update inside the if-clause?
 
-	/*if b == nil {                             //if there was no user bucket write Message and set NewUser and ErrorCode true
-	bUserValidation.Message = "User not in DB yet. Create new entry for " + brucheionUserName + "."
-	bUserValidation.NewUser = true   //This is a new user.
-	bUserValidation.ErrorCode = true //No error encountered*/
+	if validation.ErrorCode { //Login scenarios (1), (5)
+		if validation.BUserInUse && validation.SameProvider && validation.PUserInUse { //Login scenario (1)
 
-	db.Update(func(tx *bolt.Tx) error {
+			session.Values["Loggedin"] = true //assumed for later use, maybe going to be deprecated later
+			fmt.Println(validation.Message)   //Display validation.Message if all went well.
 
-		if validation.ErrorCode == true { //user has been validated without error
-			if validation.NewUser == true { //user has no representation in users.db
-				bucket, err := tx.CreateBucket([]byte(brucheionUserName)) //create a new bucket to store new user
-				if err != nil {
-					fmt.Errorf("Failed creating user bucket for user %s: %s", brucheionUserName, err)
-					return err
-				}
-				buf, err := json.Marshal(brucheionUser) //Marshal user data
-				if err != nil {
-					fmt.Errorf("Failed marshalling user data for user %s: %s", brucheionUserName, err)
-					return err
-				}
-				fmt.Println(validation.Message)
-				return bucket.Put([]byte(brucheionUserName), buf) //put user into bucket
-			} else { //user already has representation in users.db
-				fmt.Println(validation.Message)
+		} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
+			//create new enty for new BUser
+			//open the userDB
+			db, err := bolt.Open(cookiestoreConfig.UserDB, 0600, nil) //open DB with - wr- --- ---
+			if err != nil {
+				fmt.Println("Error opening userDB.")
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+				return
 			}
+			fmt.Println("DB opened")
+
+			db.Update(func(tx *bolt.Tx) error {
+				bucket := tx.Bucket([]byte("users"))
+				buffer, err := json.Marshal(brucheionUser) //Marshal user data
+				if err != nil {
+					fmt.Errorf("Failed marshalling user data for user %s: %s\n", brucheionUserName, err)
+					return err
+				}
+				err = bucket.Put([]byte(brucheionUserName), buffer) //put user into bucket
+				if err != nil {
+					fmt.Errorf("Failed saving user %s in users.db\n", brucheionUserName, err)
+					return err
+				}
+				fmt.Printf("Successfully saved new user %s in users.DB.\n", brucheionUserName)
+
+				bucket = tx.Bucket([]byte(provider))
+				err = bucket.Put([]byte(brucheionUser.ProviderUserID), []byte(brucheionUserName))
+				if err != nil {
+					fmt.Errorf("Failed saving user ProviderUserID for user %s in %s.db\n", brucheionUserName, provider, err)
+					return err
+				}
+				fmt.Printf("Successfully saved ProviderUserID of BUser %s in %s.db.\n", brucheionUserName, provider)
+
+				session.Values["Loggedin"] = true //assumed for later use, maybe going to be deprecated later
+				fmt.Println(validation.Message)   //Display validation.Message if all went well.
+				return nil
+			})
+			db.Close() //always remember to close the db
+			fmt.Println("DB closed")
+
+		} else { //unknown login behavior
+			fmt.Errorf("Unknown login behavior. This should never happen")
+			//return errors.New("Unknown login behavior. This should never happen")
+			return
+		}
+	} else { //Login scenarios (2), (3), (4)
+
+		if (validation.BUserInUse && !validation.SameProvider && validation.PUserInUse) ||
+			(!validation.BUserInUse && validation.SameProvider && validation.PUserInUse) ||
+			(!validation.BUserInUse && validation.SameProvider && !validation.PUserInUse) { //unknown login behavior
+			fmt.Errorf("Unknown login behavior. This should never happen")
+			//return errors.New("Unknown login behavior. This should never happen")
+			return
 		} else {
 			fmt.Println(validation.Message)
-			fmt.Println("Please always use the combination of username, provider, and provider account.")
+			fmt.Println("Please always use the same combination of username, provider, and provider account.")
 		}
-
-		/*err = b.Put([]byte("Provider"), []byte(provider))
-		err = b.Put([]byte("ProviderNickName"), []byte(gothUser.NickName))
-		err = b.Put([]byte("ProviderUserID"), []byte(gothUser.UserID))*/
-
-		return nil
-	})
+	}
 
 	port := cookiestoreConfig.Port
 	p := &LoginPage{
 		BrucheionUserName: brucheionUserName,
 		Port:              port,
-		Provider:          provider}
+		Provider:          provider,
+		Message:           validation.Message} //The message to be replied in regard to the login scenario
 
 	renderAuthTemplate(res, "callback", p)
 
@@ -839,18 +938,28 @@ func newWork(w http.ResponseWriter, r *http.Request) {
 
 func MainPage(res http.ResponseWriter, req *http.Request) {
 
+	/*//Get User from address line:
+		vars := mux.Vars(r)
+	user := vars["user"]
+	dbname := user + ".db"*/
+
 	session, err := GetSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	user, ok := session.Values["BrucheionUser"].(string)
+	user, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Println("Type assertion to string failed or session value could not be retrieved.")
+		fmt.Println("func MainPage: Type assertion of value BrucheionUser to string failed or session value could not be retrieved.")
 	}
 
-	dbname := user + ".db"
+	if session.Values["Loggedin"].(bool) {
+		fmt.Printf("User %s is logged in.", user)
+	}
+
+	//dbname := user + ".db"
+	dbname := "users.db"
 	/*
 		db, err := bolt.Open(dbname, 0644, nil)
 		if err != nil {
@@ -861,7 +970,7 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 
 	buckets := Buckets(dbname)
 	fmt.Println()
-	fmt.Println("func MainPage. Printing buckets:")
+	fmt.Println("func MainPage. Printing buckets of users.db:")
 	fmt.Println()
 	fmt.Println(buckets)
 
