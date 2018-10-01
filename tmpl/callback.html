@@ -21,14 +21,15 @@
             </h1>
             <div class="box">
               <form method="post" action="/login">
-              <label class="label">Login Successfull with {{.Provider}}</label>
+
+              <label class="label">{{ .Message }}</label>
 
               
               <hr>
               <label class="label">Go to Main Page</label>
               <p>
               <p class="control">
-                <a href="/{{.BrucheionUserName}}/main/" target="_self" type = "submit" class="button is-primary is-default is-large">
+                <a href="/{{.HrefUserName}}/main/" target="_self" type = "submit" class="button is-primary is-default is-large">
                   <span>Forward to Mainpage</span>
                 </a>
               </p>

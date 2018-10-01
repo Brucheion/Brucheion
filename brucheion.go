@@ -40,7 +40,7 @@ type CookiestoreConfig struct {
 	GitLabKey    string `json:"gitLabKey"`
 	GitLabSecret string `json:"gitLabSecret"`
 	GitLabScope  string `json:"gitLabScope"`
-	MaxAge       string `json:"maxAge"`
+	MaxAge       int    `json:"maxAge"`
 	UserDB       string `json:"userDB"`
 	//	GoogleKey	  string `json:"googleKey"`
 	//	GoogleSecret  string `json:"googleSecret"`
@@ -126,6 +126,7 @@ type Page struct {
 type LoginPage struct {
 	BrucheionUserName string
 	Provider          string
+	HrefUserName      string
 	Message           string
 	Port              string
 	Title             string
@@ -159,44 +160,41 @@ var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 var serverIP = cookiestoreConfig.Port
 
 //The sessionName of the Brucheion Session
-const SessionName = "brucheion_session"
+const SessionName = "brucheionSession"
 
 //
 var BrucheionStore sessions.Store
 
+//Main initializes the mux server
 func main() {
-	router := mux.NewRouter().StrictSlash(true)
-	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	js := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
-	cex := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
 
-	//building the authentification paths for the choosen providers
-	gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
-	gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
-
-	//tell goth to use the supported providers:
-	goth.UseProviders(
-		github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
-		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope),
-	)
-
-	//Create new Cookiestore for _gothic_session
-	gothic.Store = GetCookieStore()
+	//
+	SetUpGothic()
 
 	//Create new Cookiestore for Brucheion
-	BrucheionStore = GetCookieStore()
+	BrucheionStore = GetCookieStore(cookiestoreConfig.MaxAge)
 
-	router.PathPrefix("/static/").Handler(s)
-	router.PathPrefix("/js/").Handler(js)
-	router.PathPrefix("/cex/").Handler(cex)
+	//Set up the router
+	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/login/", LoginGET).Methods("GET") //the loginpage choice of authentification provider
-	router.HandleFunc("/login/", LoginPOST).Methods("POST")
-	router.HandleFunc("/auth/{provider}/", Auth)                  //initializing the authentication, redirecting to authification provider
-	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //success message display
-	router.HandleFunc("/logout/", Logout)
+	//Set up handlers for serving static files
+	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	jsHandler := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
+	cexHandler := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
+
+	//Set up PathPrefix routes for serving static files
+	router.PathPrefix("/static/").Handler(staticHandler)
+	router.PathPrefix("/js/").Handler(jsHandler)
+	router.PathPrefix("/cex/").Handler(cexHandler)
+
+	//Set up HandleFunc routes
+	router.HandleFunc("/login/", LoginGET).Methods("GET")         //The initial page. Idially the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.
+	router.HandleFunc("/login/", LoginPOST).Methods("POST")       //This is where users are redirected to when credentials habe been entered.
+	router.HandleFunc("/auth/{provider}/", Auth)                  //Initializes the authentication, redirects to callback.
+	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //Displays message when logged in successfully. Forwards to Main
+	router.HandleFunc("/logout/", Logout)                         //Logs out the User.
 	router.HandleFunc("/{user}/{urn}/treenode.json/", Treenode)
-	router.HandleFunc("/{user}/main/", MainPage)
+	router.HandleFunc("/{user}_{provider}/main/", MainPage) //So far this is just the page, a user is redirected to after login
 	router.HandleFunc("/{user}/load/{cex}/", LoadDB)
 	router.HandleFunc("/{user}/new/{key}/", newText)
 	router.HandleFunc("/{user}/view/{urn}/", ViewPage)
@@ -227,7 +225,22 @@ func main() {
 	log.Fatal(http.ListenAndServe(serverIP, router))
 }
 
-//Helper function to load and parse JSON config file. Returns Config.
+//SetUpGothic sets up Gothic for login procedure
+func SetUpGothic() {
+	//Build the authentification paths for the choosen providers
+	gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
+	gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
+	//Tell gothic which login providers to use
+	goth.UseProviders(
+		github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
+		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope))
+	//Create new Cookiestore for _gothic_session
+	//var int loginTimeout
+	loginTimeout := 60
+	gothic.Store = GetCookieStore(loginTimeout)
+}
+
+//LoadConfiguration loads and parses the JSON config file and returns CookiestoreConfig.
 func LoadConfiguration(file string) CookiestoreConfig {
 	var config CookiestoreConfig               //initialize config as Config
 	configFile, openFileError := os.Open(file) //attempt to open file
@@ -240,24 +253,17 @@ func LoadConfiguration(file string) CookiestoreConfig {
 	return config                             //return ServerConfig config
 }
 
-//setting cookiestore for login and authentification
-func GetCookieStore() sessions.Store {
-
-	key := securecookie.GenerateRandomKey(64)
+//GetCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
+func GetCookieStore(maxAge int) sessions.Store {
+	//Todo: research encryption key and if it can/should be used fot our use cases
+	key := securecookie.GenerateRandomKey(64) //Generate a random key for the session
 	if key == nil {
 		fmt.Println("Error generating random session key")
 	}
 
-	//maxAge := 86400 * 1 //time of a day in seconds * days
-	maxAge, err := strconv.Atoi(cookiestoreConfig.MaxAge)
-	if err != nil {
-		fmt.Println("Stringconversion failed: ")
-		fmt.Println(err)
-	}
-
-	cookieStore := sessions.NewCookieStore([]byte(key))
-	cookieStore.Options.HttpOnly = true
-	cookieStore.MaxAge(maxAge)
+	cookieStore := sessions.NewCookieStore([]byte(key)) //Get CookieStore from sessions package
+	cookieStore.Options.HttpOnly = true                 //Ensures that Cookie can not be accessed by scripts
+	cookieStore.MaxAge(maxAge)                          //Sets the maxAge of the session/cookie
 
 	return cookieStore
 }
@@ -265,7 +271,7 @@ func GetCookieStore() sessions.Store {
 func GetSession(req *http.Request) (*sessions.Session, error) {
 	session, err := BrucheionStore.Get(req, SessionName)
 	if err != nil {
-		fmt.Println("Could not get session.")
+		fmt.Printf("GetSession: Error getting the session: %s\n", err)
 		return nil, err
 	}
 	return session, nil
@@ -276,9 +282,17 @@ func ValidateUserName(username string) *Validation {
 	unameValidation := &Validation{
 		ErrorCode: false}
 
+	matched, err := regexp.MatchString("^[0-9a-zA-Z]*$", username)
+	if err != nil {
+		fmt.Println("Wrong regex pattern.")
+	}
+
 	fmt.Println("Validating: " + username)
 	if strings.TrimSpace(username) == "" {
-		unameValidation.Message = "Please choose a username."
+		unameValidation.Message = "Please enter a username."
+		return unameValidation
+	} else if !matched {
+		unameValidation.Message = "Please only use letters and numbers."
 		return unameValidation
 	} else {
 		unameValidation.ErrorCode = true
@@ -288,7 +302,7 @@ func ValidateUserName(username string) *Validation {
 
 func ValidateUser(res http.ResponseWriter, req *http.Request) *Validation {
 	bUserValidation := &Validation{
-		Message:      "",
+		Message:      "An internal error occured. (This should never happen.)",
 		ErrorCode:    false,
 		BUserInUse:   false,
 		SameProvider: false,
@@ -380,7 +394,7 @@ func ValidateUser(res http.ResponseWriter, req *http.Request) *Validation {
 			cursor = nil
 			//Login scenario (5)
 			if bUserValidation.Message == "" { //If userID was not found in DB, message will be empty
-				bUserValidation.Message = "User not in DB yet. Created new entry for " + brucheionUserName + "."
+				bUserValidation.Message = "User not in DB yet. Created new entry for " + brucheionUserName + ". Logged in successfully"
 				bUserValidation.ErrorCode = true   //New BUser and new PUser -> Creating a new user is not an error
 				bUserValidation.PUserInUse = false //ProviderUser not in use yet
 			}
@@ -389,7 +403,7 @@ func ValidateUser(res http.ResponseWriter, req *http.Request) *Validation {
 			if provider == brucheionUser.Provider { //Login Scenarios (1), (2)
 				bUserValidation.SameProvider = true                 //Provider from session and BrucheionUser match
 				if providerUserID == brucheionUser.ProviderUserID { //if there was a user bucket and the session values match the DB values; Login Scenarios (1)
-					bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Logged in."
+					bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Logged in successfully."
 					bUserValidation.ErrorCode = true  //No error encountered
 					bUserValidation.PUserInUse = true //ProviderUser from session and BrucheionUser match
 				} else { //brucheionUser.ProviderUserID != providerUserID; Login Scenarios (2)
@@ -491,7 +505,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	if unameValidation.ErrorCode {
 		session, err := GetSession(req)
 		if err != nil {
-			fmt.Println("Error at username validation.")
+			fmt.Println("LoginPOST: Error getting the session.")
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -599,8 +613,9 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	if validation.ErrorCode { //Login scenarios (1), (5)
 		if validation.BUserInUse && validation.SameProvider && validation.PUserInUse { //Login scenario (1)
 
-			session.Values["Loggedin"] = true //assumed for later use, maybe going to be deprecated later
-			fmt.Println(validation.Message)   //Display validation.Message if all went well.
+			session.Values["Loggedin"] = true
+			session.Save(req, res)
+			fmt.Println(validation.Message) //Display validation.Message if all went well.
 
 		} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
 			//create new enty for new BUser
@@ -641,6 +656,8 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			})
 			db.Close() //always remember to close the db
 			fmt.Println("DB closed")
+			session.Values["Loggedin"] = true //To keep the user logged in
+			session.Save(req, res)
 
 		} else { //unknown login behavior
 			fmt.Errorf("Unknown login behavior. This should never happen")
@@ -657,18 +674,25 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			return
 		} else {
 			fmt.Println(validation.Message)
+			validation.Message = validation.Message + "\nPlease always use the same combination of username, provider, and provider account."
 			fmt.Println("Please always use the same combination of username, provider, and provider account.")
+			lp := &LoginPage{
+				Message: validation.Message}
+
+			renderLoginTemplate(res, "login", lp)
+			return
 		}
 	}
 
 	port := cookiestoreConfig.Port
-	p := &LoginPage{
-		BrucheionUserName: brucheionUserName,
+	lp := &LoginPage{
 		Port:              port,
+		BrucheionUserName: brucheionUserName,
 		Provider:          provider,
+		HrefUserName:      brucheionUserName + "_" + provider,
 		Message:           validation.Message} //The message to be replied in regard to the login scenario
 
-	renderAuthTemplate(res, "callback", p)
+	renderAuthTemplate(res, "callback", lp)
 
 }
 
@@ -949,13 +973,22 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user, ok := session.Values["BrucheionUserName"].(string)
-	if !ok {
-		fmt.Println("func MainPage: Type assertion of value BrucheionUser to string failed or session value could not be retrieved.")
-	}
+	user := ""
 
-	if session.Values["Loggedin"].(bool) {
-		fmt.Printf("User %s is logged in.", user)
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion of value BrucheionUser to string failed or session value could not be retrieved.")
+			}
+			fmt.Printf("User %s is logged in.", user)
+		}
+	} else {
+		lp := &LoginPage{
+			Message: "You need to be logged in to use Brucheion."}
+
+		renderLoginTemplate(res, "login", lp)
+		return
 	}
 
 	//dbname := user + ".db"
