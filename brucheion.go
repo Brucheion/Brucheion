@@ -21,17 +21,17 @@ import (
 	"github.com/ThomasK81/gonwr"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
-	"golang.org/x/net/html"
 
-	"github.com/gorilla/securecookie" //for generating the cookieStore key
-	"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
+	"github.com/gorilla/sessions" //for Cookiestore and other session functionality
 
-	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	"github.com/markbates/goth/providers/github"
-	"github.com/markbates/goth/providers/gitlab"
 )
 
+//CookiestoreConfig stores necessary information to setup the cookiestores
+//
+//Host and Port are used throughout brucheion for parsing and delivering the pages
+//
+//The Key/Secret pairs are obtained from the provider when registering the application.
 type CookiestoreConfig struct {
 	Host         string `json:"host"`
 	Port         string `json:"port"`
@@ -39,8 +39,8 @@ type CookiestoreConfig struct {
 	GitHubSecret string `json:"githHubSecret"`
 	GitLabKey    string `json:"gitLabKey"`
 	GitLabSecret string `json:"gitLabSecret"`
-	GitLabScope  string `json:"gitLabScope"`
-	MaxAge       int    `json:"maxAge"`
+	GitLabScope  string `json:"gitLabScope"` //for accessing GitLab user information this has to be "read_user"
+	MaxAge       int    `json:"maxAge"`      //defines the lifetime of the brucheion session
 	UserDB       string `json:"userDB"`
 	//	GoogleKey	  string `json:"googleKey"`
 	//	GoogleSecret  string `json:"googleSecret"`
@@ -123,24 +123,27 @@ type Page struct {
 	CatLan       string
 }
 
+//LoginPage stores Information necessary to parse and display /login/ and /auth/{provider}/callback pages
 type LoginPage struct {
-	BrucheionUserName string
-	Provider          string
-	HrefUserName      string
-	Message           string
-	Port              string
-	Title             string
+	BUserName    string //The username that the user chooses to work with within Brucheion
+	Provider     string //The login provider
+	HrefUserName string //Combination {user}_{provider} as displayed in link
+	Message      string //Message to be displayed according to login scenario
+	Port         string //Port of the Link
+	Title        string //Title of the website
 }
 
+//BrucheionUser stores Information about the logged in Brucheion-user
 type BrucheionUser struct {
-	BUserName        string //The username choosen during login
-	Provider         string //The provider that was used for authentification
-	ProviderNickName string //The Nickname that was used for login (probably discardable in future)
-	ProviderUserID   string //The UserID that came from the Provider
+	BUserName      string //The username choosen by user to use Brucheion with
+	Provider       string //The provider used for authentification
+	PUserName      string //The username used for login with the provider
+	ProviderUserID string //The UserID issued by Provider
 }
 
+//Validation stores the result of the validation
 type Validation struct {
-	Message      string //Explanation of the outcome.
+	Message      string //Message according to outcome of validation
 	ErrorCode    bool   //Was an error encountered during validation (something did not match)?
 	BUserInUse   bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
 	SameProvider bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
@@ -156,8 +159,8 @@ var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.h
 	"tmpl/main.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
-//for legacy reasons..
-var serverIP = cookiestoreConfig.Port
+/*//serverIP
+var serverIP = cookiestoreConfig.Port*/
 
 //The sessionName of the Brucheion Session
 const SessionName = "brucheionSession"
@@ -193,287 +196,79 @@ func main() {
 	router.HandleFunc("/auth/{provider}/", Auth)                  //Initializes the authentication, redirects to callback.
 	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //Displays message when logged in successfully. Forwards to Main
 	router.HandleFunc("/logout/", Logout)                         //Logs out the User.
-	router.HandleFunc("/{user}/{urn}/treenode.json/", Treenode)
-	router.HandleFunc("/{user}_{provider}/main/", MainPage) //So far this is just the page, a user is redirected to after login
-	router.HandleFunc("/{user}/load/{cex}/", LoadDB)
-	router.HandleFunc("/{user}/new/{key}/", newText)
-	router.HandleFunc("/{user}/view/{urn}/", ViewPage)
-	router.HandleFunc("/{user}/tree/", TreePage)
-	router.HandleFunc("/{user}/multicompare/{urn}/", MultiPage)
-	router.HandleFunc("/{user}/edit/{urn}/", EditPage)
-	router.HandleFunc("/{user}/editcat/{urn}/", EditCatPage)
-	router.HandleFunc("/{user}/save/{key}/", SaveTranscription)
-	router.HandleFunc("/{user}/addNodeAfter/{key}/", AddNodeAfter)
-	router.HandleFunc("/{user}/addFirstNode/{key}/", AddFirstNode)
-	router.HandleFunc("/{user}/crud/", CrudPage)
-	router.HandleFunc("/{user}/deleteBucket/{urn}/", deleteBucket)
-	router.HandleFunc("/{user}/deleteNode/{urn}/", deleteNode)
-	router.HandleFunc("/{user}/export/{filename}/", ExportCEX)
-	router.HandleFunc("/{user}/edit2/{urn}/", Edit2Page)
-	router.HandleFunc("/{user}/compare/{urn}+{urn2}/", comparePage)
-	router.HandleFunc("/{user}/consolidate/{urn}+{urn2}/", consolidatePage)
-	router.HandleFunc("/{user}/saveImage/{key}/", SaveImageRef)
-	router.HandleFunc("/{user}/newWork/", newWork)
-	router.HandleFunc("/{user}/newCollection/{name}/{urns}/", newCollection)
-	router.HandleFunc("/{user}/newCITECollection/{name}/", newCITECollection)
-	router.HandleFunc("/{user}/getImageInfo/{name}/{imageurn}/", getImageInfo)
-	router.HandleFunc("/{user}/addtoCITE/", addCITE)
-	router.HandleFunc("/{user}/requestImgID/{name}", requestImgID)
-	router.HandleFunc("/{user}/deleteCollection", deleteCollection)
-	router.HandleFunc("/{user}/requestImgCollection", requestImgCollection)
-	log.Println("Listening at" + serverIP + "...")
-	log.Fatal(http.ListenAndServe(serverIP, router))
+	router.HandleFunc("/{urn}/treenode.json/", Treenode)
+	router.HandleFunc("/main/", MainPage) //So far this is just the page, a user is redirected to after login
+	router.HandleFunc("/load/{cex}/", LoadDB)
+	router.HandleFunc("/new/{key}/", newText)
+	router.HandleFunc("/view/{urn}/", ViewPage)
+	router.HandleFunc("/tree/", TreePage)
+	router.HandleFunc("/multicompare/{urn}/", MultiPage)
+	router.HandleFunc("/edit/{urn}/", EditPage)
+	router.HandleFunc("/editcat/{urn}/", EditCatPage)
+	router.HandleFunc("/save/{key}/", SaveTranscription)
+	router.HandleFunc("/addNodeAfter/{key}/", AddNodeAfter)
+	router.HandleFunc("/addFirstNode/{key}/", AddFirstNode)
+	router.HandleFunc("/crud/", CrudPage)
+	router.HandleFunc("/deleteBucket/{urn}/", deleteBucket)
+	router.HandleFunc("/deleteNode/{urn}/", deleteNode)
+	router.HandleFunc("/export/{filename}/", ExportCEX)
+	router.HandleFunc("/edit2/{urn}/", Edit2Page)
+	router.HandleFunc("/compare/{urn}+{urn2}/", comparePage)
+	router.HandleFunc("/consolidate/{urn}+{urn2}/", consolidatePage)
+	router.HandleFunc("/saveImage/{key}/", SaveImageRef)
+	router.HandleFunc("/newWork/", newWork)
+	router.HandleFunc("/newCollection/{name}/{urns}/", newCollection)
+	router.HandleFunc("/newCITECollection/{name}/", newCITECollection)
+	router.HandleFunc("/getImageInfo/{name}/{imageurn}/", getImageInfo)
+	router.HandleFunc("/addtoCITE/", addCITE)
+	router.HandleFunc("/requestImgID/{name}", requestImgID)
+	router.HandleFunc("/deleteCollection", deleteCollection)
+	router.HandleFunc("/requestImgCollection", requestImgCollection)
+	log.Println("Listening at" + cookiestoreConfig.Port + "...")
+	log.Fatal(http.ListenAndServe(cookiestoreConfig.Port, router))
 }
 
-//SetUpGothic sets up Gothic for login procedure
-func SetUpGothic() {
-	//Build the authentification paths for the choosen providers
-	gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
-	gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
-	//Tell gothic which login providers to use
-	goth.UseProviders(
-		github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
-		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope))
-	//Create new Cookiestore for _gothic_session
-	//var int loginTimeout
-	loginTimeout := 60
-	gothic.Store = GetCookieStore(loginTimeout)
-}
-
-//LoadConfiguration loads and parses the JSON config file and returns CookiestoreConfig.
-func LoadConfiguration(file string) CookiestoreConfig {
-	var config CookiestoreConfig               //initialize config as Config
-	configFile, openFileError := os.Open(file) //attempt to open file
-	defer configFile.Close()                   //push closing on call list
-	if openFileError != nil {                  //error handling
-		fmt.Println("Open file error: " + openFileError.Error())
-	}
-	jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
-	jsonParser.Decode(&config)                //parse configFile to config
-	return config                             //return ServerConfig config
-}
-
-//GetCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
-func GetCookieStore(maxAge int) sessions.Store {
-	//Todo: research encryption key and if it can/should be used fot our use cases
-	key := securecookie.GenerateRandomKey(64) //Generate a random key for the session
-	if key == nil {
-		fmt.Println("Error generating random session key")
-	}
-
-	cookieStore := sessions.NewCookieStore([]byte(key)) //Get CookieStore from sessions package
-	cookieStore.Options.HttpOnly = true                 //Ensures that Cookie can not be accessed by scripts
-	cookieStore.MaxAge(maxAge)                          //Sets the maxAge of the session/cookie
-
-	return cookieStore
-}
-
-func GetSession(req *http.Request) (*sessions.Session, error) {
-	session, err := BrucheionStore.Get(req, SessionName)
-	if err != nil {
-		fmt.Printf("GetSession: Error getting the session: %s\n", err)
-		return nil, err
-	}
-	return session, nil
-}
-
-func ValidateUserName(username string) *Validation {
-
-	unameValidation := &Validation{
-		ErrorCode: false}
-
-	matched, err := regexp.MatchString("^[0-9a-zA-Z]*$", username)
-	if err != nil {
-		fmt.Println("Wrong regex pattern.")
-	}
-
-	fmt.Println("Validating: " + username)
-	if strings.TrimSpace(username) == "" {
-		unameValidation.Message = "Please enter a username."
-		return unameValidation
-	} else if !matched {
-		unameValidation.Message = "Please only use letters and numbers."
-		return unameValidation
-	} else {
-		unameValidation.ErrorCode = true
-		return unameValidation
-	}
-}
-
-func ValidateUser(res http.ResponseWriter, req *http.Request) *Validation {
-	bUserValidation := &Validation{
-		Message:      "An internal error occured. (This should never happen.)",
-		ErrorCode:    false,
-		BUserInUse:   false,
-		SameProvider: false,
-		PUserInUse:   false}
-
-	//get the session to retrieve session/cookie values
-	session, err := GetSession(req)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return bUserValidation
-	}
-
-	//get user data from session
-	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
-	if !ok {
-		fmt.Errorf("Func ValidateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved.")
-	}
-	provider, ok := session.Values["Provider"].(string)
-	if !ok {
-		fmt.Errorf("Func ValidateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved.")
-	}
-	providerNickName, ok := session.Values["ProviderNickName"].(string)
-	if !ok {
-		fmt.Errorf("Func ValidateUser: Type assertion of ProviderNickName cookie value to string failed or session value could not be retrieved.")
-	}
-	providerUserID, ok := session.Values["ProviderUserID"].(string)
-	if !ok {
-		fmt.Errorf("Func ValidateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved.")
-	}
-
-	fmt.Println("Debugging values from session:")
-	fmt.Println("brucheionUserName: " + brucheionUserName)
-	fmt.Println("provider: " + provider)
-	fmt.Println("providerNickName: " + providerNickName)
-	fmt.Println("providerUserID: " + providerUserID)
-
-	//userDBlocation := CookiestoreConfig.UserDB                      //tell bolt where to find the DB
-	userDB, err := bolt.Open(cookiestoreConfig.UserDB, 0600, nil) //open DB with - wr- --- ---
-	if err != nil {
-		fmt.Println("Error opening userDB.")
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		bUserValidation.Message = "Error opening userDB."
-		return bUserValidation
-	}
-	fmt.Println("DB opened")
-	defer userDB.Close()
-
-	userDB.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("users")) //try to open the user bucket
-
-		var brucheionUser BrucheionUser //create a pointer to a BrucheionUser variable
-		pointer := new(BrucheionUser)
-		cursor := bucket.Cursor()
-		pointer = nil
-		for BUserName, _ := cursor.First(); BUserName != nil; BUserName, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
-			//Login scenario (4)
-			if string(BUserName) == brucheionUserName { //if this userID was in the Bucket
-				buffer := bucket.Get([]byte(brucheionUserName)) //get the
-				err := json.Unmarshal(buffer, &brucheionUser)
-				if err != nil {
-					fmt.Println("Error unmarshalling brucheionUser:", err)
-				}
-				pointer = &brucheionUser
-				fmt.Println("brucheionuser")
-				fmt.Println(brucheionUser)
-				fmt.Println("&brucheionUser")
-				fmt.Println(&brucheionUser)
-				/*fmt.Println("*brucheionUser")
-				fmt.Println(*brucheionUser)*/
-			}
-		}
-
-		//check if ProviderUser was used for other BUser
-		if pointer == nil { //Login scenarios (4), (5)
-			bUserValidation.BUserInUse = false   //This BUsername was not in use yet
-			bUserValidation.SameProvider = false //No BUser -> No provider chosen
-			bucket = tx.Bucket([]byte(provider)) //open the provider Bucket
-			cursor := bucket.Cursor()
-			//for userID, nickName := cursor.First(); userID != nil; userID, nickName = cursor.Next() { //go through the users bucket and check for BUserName already in use
-			for userID, _ := cursor.First(); userID != nil; userID, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
-
-				//Login scenario (4)
-				if string(userID) == providerUserID { //if this userID was in the Bucket
-					bUserValidation.Message = "This " + provider + " account is already in use for authentificating another login."
-					bUserValidation.ErrorCode = false //Error encoungtered (PUser in use, but not for this BUser)
-					bUserValidation.PUserInUse = true //ProviderUser from session already in use
-				}
-			}
-			cursor = nil
-			//Login scenario (5)
-			if bUserValidation.Message == "" { //If userID was not found in DB, message will be empty
-				bUserValidation.Message = "User not in DB yet. Created new entry for " + brucheionUserName + ". Logged in successfully"
-				bUserValidation.ErrorCode = true   //New BUser and new PUser -> Creating a new user is not an error
-				bUserValidation.PUserInUse = false //ProviderUser not in use yet
-			}
-		} else { //Login Scenarios (1), (2), (3)
-			bUserValidation.BUserInUse = true       //The BrucheionUser has a representation in users.DB
-			if provider == brucheionUser.Provider { //Login Scenarios (1), (2)
-				bUserValidation.SameProvider = true                 //Provider from session and BrucheionUser match
-				if providerUserID == brucheionUser.ProviderUserID { //if there was a user bucket and the session values match the DB values; Login Scenarios (1)
-					bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Logged in successfully."
-					bUserValidation.ErrorCode = true  //No error encountered
-					bUserValidation.PUserInUse = true //ProviderUser from session and BrucheionUser match
-				} else { //brucheionUser.ProviderUserID != providerUserID; Login Scenarios (2)
-					bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Already logged in with " + brucheionUser.Provider + ", using another account."
-					bUserValidation.ErrorCode = false  //Error encountered
-					bUserValidation.PUserInUse = false //ProviderUser from session and BrucheionUser don't match
-				}
-			} else { //brucheionUser.Provider != provider; Login Scenario (3)
-				bUserValidation.Message = "User " + brucheionUserName + " already logged in with provider " + brucheionUser.Provider + ". You tried to login with " + provider + " instead."
-				bUserValidation.ErrorCode = false    //Error encountered
-				bUserValidation.SameProvider = false //The BUser is in Use with another Provider
-				bUserValidation.PUserInUse = false   //ProviderUser from session and BrucheionUser don't match
-			}
-		}
-		fmt.Println("Debugging bUser retrieved from DB:")
-		fmt.Println("BUserName: " + brucheionUser.BUserName)
-		fmt.Println("Provider: " + brucheionUser.Provider)
-		fmt.Println("providerNickName: " + brucheionUser.ProviderNickName)
-		fmt.Println("ProviderUserID: " + brucheionUser.ProviderUserID)
-
-		return nil //close DB view
-	})
-
-	fmt.Println("Print Debugging db.Update: ")
-	fmt.Println("validation.ErrorCode: " + strconv.FormatBool(bUserValidation.ErrorCode))
-	fmt.Println("validation.BUserInUse: " + strconv.FormatBool(bUserValidation.BUserInUse))
-	fmt.Println("validation.SameProvider: " + strconv.FormatBool(bUserValidation.SameProvider))
-	fmt.Println("validation.PUserInUse: " + strconv.FormatBool(bUserValidation.PUserInUse))
-
-	return bUserValidation
-}
-
-func Logout(res http.ResponseWriter, req *http.Request) {
-
-	session, err := GetSession(req)
-	if err != nil {
-		fmt.Errorf("No session, no logout")
-		return
-	}
-
-	bUserName, ok := session.Values["BrucheionUserName"].(string)
-	if !ok {
-		fmt.Println("Func Logout: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
-	}
-
-	session.Options.MaxAge = -1
-	session.Values = make(map[interface{}]interface{})
-	err = session.Save(req, res)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	fmt.Printf("User %s has logged out", bUserName)
-	http.Redirect(res, req, "/login/", http.StatusFound)
-
-}
-
-//experimaental login function using goth.
+//LoginGET is the first login page the user should see.
+//Here the credentials can be set
+//If already logged in, user will be redirected to main page
 func LoginGET(res http.ResponseWriter, req *http.Request) {
 
-	//the user should be inserted int the textfield and be passed on to authentification
-	//the port is necessary for rendering
-	//message in case no username was entered
-	title := "Brucheion Login Page"
-	port := cookiestoreConfig.Port
+	session, err := GetSession(req)
+	if err != nil {
+		fmt.Errorf("LoginGET: Error getting session: %s", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	//populates Loginpage with basic data and the form values
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func LoginGET: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("User %s is already logged in. Redirecting to main", user)
+			provider, ok := session.Values["Provider"].(string)
+			if !ok {
+				fmt.Println("func LoginGET: Type assertion to string failed for session value Provider or session value could not be retrieved.")
+			}
+			mainPath := "/" + user + "_" + provider + "/main/"
+			fmt.Printf("LoginGET mainPath: %s\n", mainPath)
+			http.Redirect(res, req, mainPath, http.StatusFound)
+		}
+	} else {
+		session.Options.MaxAge = -1
+		session.Values = make(map[interface{}]interface{})
+		err = session.Save(req, res)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	//the port is necessary for rendering the page
 	lp := &LoginPage{
-		Port:  port,
-		Title: title}
+		Port:  cookiestoreConfig.Port,
+		Title: "Brucheion Login Page"}
 	renderLoginTemplate(res, "login", lp)
 }
 
@@ -490,13 +285,13 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	fmt.Println("req.FormValue(\"provider\")" + req.FormValue("provider"))
 	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
-		BrucheionUserName: strings.TrimSpace(req.FormValue("brucheionusername")),
-		Provider:          req.FormValue("provider"),
-		Port:              port,
-		Title:             title}
+		BUserName: strings.TrimSpace(req.FormValue("brucheionusername")),
+		Provider:  req.FormValue("provider"),
+		Port:      port,
+		Title:     title}
 
 	//Validation can later be extended to check if user is already in use. tbc
-	unameValidation := ValidateUserName(lp.BrucheionUserName)
+	unameValidation := ValidateUserName(lp.BUserName)
 
 	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/"
 	fmt.Println("authPath: " + authPath)
@@ -510,7 +305,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		session.Values["BrucheionUserName"] = lp.BrucheionUserName
+		session.Values["BrucheionUserName"] = lp.BUserName
 		session.Values["Provider"] = lp.Provider //the provider used for login
 		session.Values["Loggedin"] = false
 
@@ -531,40 +326,11 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 //Completess user authentification, sets session variables and DB entries
 func AuthCallback(res http.ResponseWriter, req *http.Request) {
 
-	//open the DB and make sure the three necessary Buckets are there
-	//userDB := "./users.db"                  //tell bolt where to find the DB
-	db, err := bolt.Open(cookiestoreConfig.UserDB, 0600, nil) //open DB with - wr- --- ---
+	err := initializeUserDB()
 	if err != nil {
-		fmt.Println("Error opening userDB.")
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("DB opened")
-
-	//create the three buckets needed: users, GitHub, GitLab
-	db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("users")) //create a new bucket to store new user
-		if err != nil {
-			fmt.Errorf("Failed creating bucket users: %s", err)
-			return err
-		}
-		bucket, err = tx.CreateBucketIfNotExists([]byte("GitHub"))
-		if err != nil {
-			fmt.Errorf("Failed creating bucket GitHub: %s", err)
-			return err
-		}
-		bucket, err = tx.CreateBucketIfNotExists([]byte("GitLab"))
-		if err != nil {
-			fmt.Errorf("Failed creating bucket GitLab: %s", err)
-			return err
-		}
-		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error)
-
-		return nil //when all went well, error can be returned with <nil>
-	})
-
-	db.Close() //always remember to close the db
-	fmt.Println("DB closed")
 
 	//authentificate user and get gothUser from gothic
 	gothUser, err := gothic.CompleteUserAuth(res, req) //gets the user authentification from the session that is already existing.
@@ -597,14 +363,19 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	session.Save(req, res)                                 //always remember to save the session
 
 	//validate if SessionUser is Valid
-	validation := ValidateUser(res, req)
+	validation, err := ValidateUser(res, req)
+	if err != nil {
+		fmt.Printf("\nAuthCallback error validating user: %s", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+
+	}
 
 	//create current Brucheionuser
 	brucheionUser := &BrucheionUser{
-		BUserName:        brucheionUserName,
-		Provider:         provider,
-		ProviderNickName: gothUser.NickName,
-		ProviderUserID:   gothUser.UserID}
+		BUserName:      brucheionUserName,
+		Provider:       provider,
+		PUserName:      gothUser.NickName,
+		ProviderUserID: gothUser.UserID}
 
 	//validate if user was already in use
 
@@ -620,13 +391,12 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
 			//create new enty for new BUser
 			//open the userDB
-			db, err := bolt.Open(cookiestoreConfig.UserDB, 0600, nil) //open DB with - wr- --- ---
+			db, err := openBoltDB(cookiestoreConfig.UserDB)
 			if err != nil {
-				fmt.Println("Error opening userDB.")
+				fmt.Printf("Error opening userDB: %s", err)
 				http.Error(res, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			fmt.Println("DB opened")
 
 			db.Update(func(tx *bolt.Tx) error {
 				bucket := tx.Bucket([]byte("users"))
@@ -678,7 +448,6 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			fmt.Println("Please always use the same combination of username, provider, and provider account.")
 			lp := &LoginPage{
 				Message: validation.Message}
-
 			renderLoginTemplate(res, "login", lp)
 			return
 		}
@@ -686,70 +455,41 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 
 	port := cookiestoreConfig.Port
 	lp := &LoginPage{
-		Port:              port,
-		BrucheionUserName: brucheionUserName,
-		Provider:          provider,
-		HrefUserName:      brucheionUserName + "_" + provider,
-		Message:           validation.Message} //The message to be replied in regard to the login scenario
+		Port:         port,
+		BUserName:    brucheionUserName,
+		Provider:     provider,
+		HrefUserName: brucheionUserName + "_" + provider,
+		Message:      validation.Message} //The message to be replied in regard to the login scenario
 
 	renderAuthTemplate(res, "callback", lp)
 
 }
 
-// Helper function to pull the href attribute from a Token
-func getHref(t html.Token) (ok bool, href string) {
-	for _, a := range t.Attr {
-		if a.Key == "href" {
-			href = a.Val
-			ok = true
-		}
-	}
-	return
-}
-
-func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
-	urnLink := urn.Namespace + "/" + strings.Replace(urn.Collection, ".", "/", -1) + "/"
-	url := "http://localhost" + serverIP + "/static/image_archive/" + urnLink
-	response, err := http.Get(url)
-	if err != nil {
-		return links, err
-	}
-	z := html.NewTokenizer(response.Body)
-	for {
-		tt := z.Next()
-
-		switch {
-		case tt == html.ErrorToken:
-			// End of the document, we're done
-			return
-		case tt == html.StartTagToken:
-			t := z.Token()
-
-			isAnchor := t.Data == "a"
-			if !isAnchor {
-				continue
-			}
-			ok, url := getHref(t)
-			if strings.Contains(url, ".dzi") {
-				urnStr := urn.Base + ":" + urn.Protocol + ":" + urn.Namespace + ":" + urn.Collection + ":" + strings.Replace(url, ".dzi", "", -1)
-				links = append(links, urnStr)
-			}
-			if !ok {
-				continue
-			}
-		}
-	}
-	return links, nil
-}
-
 func requestImgCollection(w http.ResponseWriter, r *http.Request) {
-	response := JSONlist{}
-	vars := mux.Vars(r)
-	user := vars["user"]
-	dbname := user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	session, err := GetSession(r)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
+	response := JSONlist{}
+	dbname := user + ".db"
+	db, err := openBoltDB(dbname)
+	if err != nil {
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	err = db.View(func(tx *bolt.Tx) error {
@@ -774,17 +514,35 @@ func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func getImageInfo(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	retImage := imageCollection{}
 	newImage := image{}
 	vars := mux.Vars(r)
-	user := vars["user"]
 	collectionName := vars["name"]
 	imageurn := vars["imageurn"]
 	dbkey := []byte(collectionName)
 	dbname := user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	err = db.View(func(tx *bolt.Tx) error {
@@ -813,16 +571,34 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func requestImgID(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	response := JSONlist{}
 	collection := imageCollection{}
 	vars := mux.Vars(r)
-	user := vars["user"]
 	name := vars["name"]
 	dbname := user + ".db"
 	dbkey := []byte(name)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	err = db.View(func(tx *bolt.Tx) error {
@@ -854,17 +630,48 @@ func requestImgID(w http.ResponseWriter, r *http.Request) {
 }
 
 func newCITECollection(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
-	user := vars["user"]
-	name := vars["name"]
+	name := vars["name"] //the name of the new CITE collection
 	newCITECollectionDB(user, name)
 	io.WriteString(w, "success")
 }
 
 func addCITE(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
-	vars := mux.Vars(r)
-	user := vars["user"]
 	name := r.URL.Query().Get("name")
 	name = strings.Replace(name, "\"", "", -1)
 	imageurn := r.URL.Query().Get("urn")
@@ -887,8 +694,24 @@ func addCITE(w http.ResponseWriter, r *http.Request) {
 }
 
 func newCollection(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
-	user := vars["user"]
 	name := vars["name"]
 	imageIDs := strings.Split(vars["urns"], ",")
 	var collection imageCollection
@@ -929,12 +752,27 @@ func newCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func newWork(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	if r.Method == "GET" {
 		varmap := map[string]interface{}{
 			"user": user,
-			"port": serverIP,
+			"port": cookiestoreConfig.Port,
 		}
 		t, _ := template.ParseFiles("tmpl/newWork.html")
 		t.Execute(w, varmap)
@@ -979,20 +817,20 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion of value BrucheionUser to string failed or session value could not be retrieved.")
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("User %s is logged in.", user)
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
 		}
 	} else {
-		lp := &LoginPage{
+		/*lp := &LoginPage{
 			Message: "You need to be logged in to use Brucheion."}
 
-		renderLoginTemplate(res, "login", lp)
-		return
+		renderLoginTemplate(res, "login", lp)*/
+		Logout(res, req)
 	}
 
 	//dbname := user + ".db"
-	dbname := "users.db"
+	dbname := cookiestoreConfig.UserDB
 	/*
 		db, err := bolt.Open(dbname, 0644, nil)
 		if err != nil {
@@ -1013,9 +851,27 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "main", page)
 }
 
-func TreePage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
+func TreePage(res http.ResponseWriter, req *http.Request) {
+	session, err := GetSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user := ""
+
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(res, req)
+	}
+
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -1023,14 +879,28 @@ func TreePage(w http.ResponseWriter, r *http.Request) {
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
-	port := ":7000"
-	p, _ := loadCrudPage(transcription, port)
-	renderTemplate(w, "tree", p)
+	p, _ := loadCrudPage(transcription, cookiestoreConfig.Port)
+	renderTemplate(res, "tree", p)
 }
 
 func CrudPage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -1038,8 +908,7 @@ func CrudPage(w http.ResponseWriter, r *http.Request) {
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
-	port := ":7000"
-	p, _ := loadCrudPage(transcription, port)
+	p, _ := loadCrudPage(transcription, cookiestoreConfig.Port)
 	renderTemplate(w, "crud", p)
 }
 
@@ -1054,16 +923,34 @@ func loadCrudPage(transcription Transcription, port string) (*Page, error) {
 }
 
 func ExportCEX(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	var texturns, texts, areas, imageurns []string
 	var indexs []int
 	vars := mux.Vars(r)
 	filename := vars["filename"]
-	user := vars["user"]
 	dbname := user + ".db"
 	buckets := Buckets(dbname)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	for i := range buckets {
@@ -1124,10 +1011,26 @@ func ExportCEX(w http.ResponseWriter, r *http.Request) {
 }
 
 func SaveImageRef(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
 	imagerefstr := r.FormValue("text")
 	imageref := strings.Split(imagerefstr, "#")
 	dbname := user + ".db"
@@ -1136,9 +1039,11 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	retrievedjson.ImageRef = imageref
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	key := []byte(newkey)    //
@@ -1164,14 +1069,29 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddFirstNode(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	var texturns, texts, previouss, nexts, firsts, lasts []string
 	var imagerefs, linetexts [][]string
 	var indexs []int
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
-
 	dbname := user + ".db"
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
 	retrievednodejson := BoltURN{}
@@ -1185,9 +1105,11 @@ func AddFirstNode(w http.ResponseWriter, r *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 
@@ -1336,13 +1258,29 @@ func AddFirstNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	var texturns, texts, previouss, nexts, firsts, lasts []string
 	var imagerefs, linetexts [][]string
 	var indexs []int
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
 
 	dbname := user + ".db"
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
@@ -1353,9 +1291,11 @@ func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 
@@ -1504,17 +1444,35 @@ func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
 }
 
 func newText(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
 	dbname := user + ".db"
 	retrievedjson := BoltURN{}
 	retrievedjson.URN = newkey
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	key := []byte(newkey)    //
@@ -1540,10 +1498,26 @@ func newText(w http.ResponseWriter, r *http.Request) {
 }
 
 func SaveTranscription(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
 	text := r.FormValue("text")
 	linetext := strings.Split(text, "\r\n")
 	text = strings.Replace(text, "\r\n", "", -1)
@@ -1554,9 +1528,11 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 	retrievedjson.Text = text
 	retrievedjson.LineText = linetext
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	key := []byte(newkey)    //
@@ -1582,9 +1558,25 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 }
 
 func LoadDB(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	cex := vars["cex"]
-	user := vars["user"]
 	http_req := "http://localhost:7000/cex/" + cex + ".cex"
 	data, _ := getContent(http_req)
 	str := string(data)
@@ -1759,9 +1751,11 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	// write to database
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	for i := range boltdata.Bucket {
@@ -2251,29 +2245,41 @@ func renderCompTemplate(w http.ResponseWriter, tmpl string, p *CompPage) {
 	}
 }
 
-func renderLoginTemplate(w http.ResponseWriter, tmpl string, p *LoginPage) {
-
-	err := templates.ExecuteTemplate(w, tmpl+".html", p)
+func renderLoginTemplate(res http.ResponseWriter, tmpl string, p *LoginPage) {
+	err := templates.ExecuteTemplate(res, tmpl+".html", p)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func renderAuthTemplate(w http.ResponseWriter, tmpl string, p *LoginPage) {
-	/*	user := p.GothUser
-		url := user[url]
-		fmt.Println(url) */
-	err := templates.ExecuteTemplate(w, tmpl+".html", p)
+func renderAuthTemplate(res http.ResponseWriter, tmpl string, p *LoginPage) {
+	err := templates.ExecuteTemplate(res, tmpl+".html", p)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 // ViewPage generates the webpage based on the sent request # possibly old comment?
 func ViewPage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
-	user := vars["user"]
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -2335,16 +2341,32 @@ func ViewPage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := ":7000"
+	port := cookiestoreConfig.Port
 	p, _ := loadPage(transcription, port)
 	renderTemplate(w, "view", p)
 }
 
 func comparePage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	urn2 := vars["urn2"]
-	user := vars["user"]
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -2462,17 +2484,33 @@ func comparePage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := ":7000"
+	port := cookiestoreConfig.Port
 
 	p, _ := loadCompPage(transcription, transcription2, port)
 	renderCompTemplate(w, "compare", p)
 }
 
 func consolidatePage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	urn2 := vars["urn2"]
-	user := vars["user"]
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -2590,16 +2628,32 @@ func consolidatePage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := ":7000"
+	port := cookiestoreConfig.Port
 
 	p, _ := loadCompPage(transcription, transcription2, port)
 	renderCompTemplate(w, "consolidate", p)
 }
 
 func EditCatPage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
-	user := vars["user"]
 	dbname := user + ".db"
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
@@ -2623,15 +2677,31 @@ func EditCatPage(w http.ResponseWriter, r *http.Request) {
 	transcription := Transcription{CTSURN: ctsurn,
 		Transcriber: user,
 		CatID:       catid, CatCit: catcit, CatGroup: catgroup, CatWork: catwork, CatVers: catversion, CatExmpl: catexpl, CatOn: caton, CatLan: catlan}
-	port := ":7000"
+	port := cookiestoreConfig.Port
 	p, _ := loadPage(transcription, port)
 	renderTemplate(w, "editcat", p)
 }
 
 func EditPage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
-	user := vars["user"]
 	dbname := user + ".db"
 	textref := Buckets(dbname)
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
@@ -2670,15 +2740,31 @@ func EditPage(w http.ResponseWriter, r *http.Request) {
 		TextRef:       textref,
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
-	port := ":7000"
+	port := cookiestoreConfig.Port
 	p, _ := loadPage(transcription, port)
 	renderTemplate(w, "edit", p)
 }
 
 func Edit2Page(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
-	user := vars["user"]
 	dbname := user + ".db"
 	textref := Buckets(dbname)
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
@@ -2710,7 +2796,7 @@ func Edit2Page(w http.ResponseWriter, r *http.Request) {
 		TextRef:       textref,
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
-	port := ":7000"
+	port := cookiestoreConfig.Port
 	p, _ := loadPage(transcription, port)
 	renderTemplate(w, "edit2", p)
 }
@@ -2729,8 +2815,24 @@ type Alignment struct {
 }
 
 func MultiPage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPAge: User %s is logged in.", user)
+		}
+	} else {
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
-	user := vars["user"]
 	urn := vars["urn"]
 
 	dbname := user + ".db"
@@ -2754,9 +2856,11 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	passageId := strings.Split(urn, ":")[4]
 
 	buckets := Buckets(dbname)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := openBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	for i := range buckets {
@@ -2932,7 +3036,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 		First:         first1,
 		Last:          last1,
 		Transcription: tmpstr}
-	port := ":7000"
+	port := cookiestoreConfig.Port
 	p, _ := loadMultiPage(transcription, port)
 	renderTemplate(w, "multicompare", p)
 }
