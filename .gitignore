@@ -9,3 +9,4 @@ cex/*
 # exception to the rule
 !cex/.gitkeep
 !static/image_archive/test/
+

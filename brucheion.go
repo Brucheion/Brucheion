@@ -195,9 +195,9 @@ func main() {
 	router.HandleFunc("/login/", LoginPOST).Methods("POST")       //This is where users are redirected to when credentials habe been entered.
 	router.HandleFunc("/auth/{provider}/", Auth)                  //Initializes the authentication, redirects to callback.
 	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //Displays message when logged in successfully. Forwards to Main
-	router.HandleFunc("/logout/", Logout)                         //Logs out the User.
-	router.HandleFunc("/{urn}/treenode.json/", Treenode)
-	router.HandleFunc("/main/", MainPage) //So far this is just the page, a user is redirected to after login
+	router.HandleFunc("/logout/", Logout)                         //Logs out the User. Moved to helper.go
+	router.HandleFunc("/{urn}/treenode.json/", Treenode)          //Function at treeBank.go
+	router.HandleFunc("/main/", MainPage)                         //So far this is just the page, a user is redirected to after login
 	router.HandleFunc("/load/{cex}/", LoadDB)
 	router.HandleFunc("/new/{key}/", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
@@ -233,27 +233,21 @@ func main() {
 //If already logged in, user will be redirected to main page
 func LoginGET(res http.ResponseWriter, req *http.Request) {
 
-	session, err := GetSession(req)
+	//check if there is an open session already
+	session, err := GetSession(req) //get a session
 	if err != nil {
 		fmt.Errorf("LoginGET: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
+	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has been set already
+		if session.Values["Loggedin"].(bool) { //Loggedin will be true if login was successfull
+			user, ok := session.Values["BrucheionUserName"].(string) //if session was valid we can get a username
 			if !ok {
 				fmt.Println("func LoginGET: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("User %s is already logged in. Redirecting to main", user)
-			provider, ok := session.Values["Provider"].(string)
-			if !ok {
-				fmt.Println("func LoginGET: Type assertion to string failed for session value Provider or session value could not be retrieved.")
-			}
-			mainPath := "/" + user + "_" + provider + "/main/"
-			fmt.Printf("LoginGET mainPath: %s\n", mainPath)
-			http.Redirect(res, req, mainPath, http.StatusFound)
+			fmt.Printf("User %s is already logged in. Redirecting to main", user) //we can use the username for debugging
+			http.Redirect(res, req, "/main/", http.StatusFound)
 		}
 	} else {
 		session.Options.MaxAge = -1
@@ -415,10 +409,10 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 				bucket = tx.Bucket([]byte(provider))
 				err = bucket.Put([]byte(brucheionUser.ProviderUserID), []byte(brucheionUserName))
 				if err != nil {
-					fmt.Errorf("Failed saving user ProviderUserID for user %s in %s.db\n", brucheionUserName, provider, err)
+					fmt.Errorf("Failed saving user ProviderUserID for user %s in Bucket %s.\n", brucheionUserName, provider, err)
 					return err
 				}
-				fmt.Printf("Successfully saved ProviderUserID of BUser %s in %s.db.\n", brucheionUserName, provider)
+				fmt.Printf("Successfully saved ProviderUserID of BUser %s in Bucket %s.\n", brucheionUserName, provider)
 
 				session.Values["Loggedin"] = true //assumed for later use, maybe going to be deprecated later
 				fmt.Println(validation.Message)   //Display validation.Message if all went well.
@@ -465,6 +459,51 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 
 }
 
+func MainPage(res http.ResponseWriter, req *http.Request) {
+
+	session, err := GetSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			ok := false
+			user, ok = session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPage: User %s is logged in.\n", user)
+		}
+	} else {
+		Logout(res, req)
+	}
+
+	fmt.Printf("User still known? Should be: %s\n", user)
+	//dbname := user + ".db"
+	dbname := cookiestoreConfig.UserDB
+	/*
+		db, err := bolt.Open(dbname, 0644, nil)
+		if err != nil {
+			fmt.Println("Error opening DB.")
+			log.Fatal(err)
+		}
+		defer db.Close()*/
+
+	buckets := Buckets(dbname)
+	fmt.Println()
+	fmt.Println("func MainPage. Printing buckets of users.db:")
+	fmt.Println()
+	fmt.Println(buckets)
+
+	page := &Page{
+		User: user,
+		Port: cookiestoreConfig.Port}
+	renderTemplate(res, "main", page)
+}
+
 func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r)
 	if err != nil {
@@ -476,9 +515,9 @@ func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func requestImgCollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func requestImgCollection: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -524,9 +563,9 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func getImageInfo: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func getImageInfo: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -581,9 +620,9 @@ func requestImgID(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func requestImgID: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func requestImgID: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -640,9 +679,9 @@ func newCITECollection(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func newCITECollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func newCITECollection: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -664,9 +703,9 @@ func addCITE(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func addCITE: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func addCITE: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -704,9 +743,9 @@ func newCollection(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func newCollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func newCollection: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -762,9 +801,9 @@ func newWork(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func newWork: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func newWork: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -796,59 +835,6 @@ func newWork(w http.ResponseWriter, r *http.Request) {
 			io.WriteString(w, "Success")
 		}
 	}
-}
-
-func MainPage(res http.ResponseWriter, req *http.Request) {
-
-	/*//Get User from address line:
-		vars := mux.Vars(r)
-	user := vars["user"]
-	dbname := user + ".db"*/
-
-	session, err := GetSession(req)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	user := ""
-
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
-		}
-	} else {
-		/*lp := &LoginPage{
-			Message: "You need to be logged in to use Brucheion."}
-
-		renderLoginTemplate(res, "login", lp)*/
-		Logout(res, req)
-	}
-
-	//dbname := user + ".db"
-	dbname := cookiestoreConfig.UserDB
-	/*
-		db, err := bolt.Open(dbname, 0644, nil)
-		if err != nil {
-			fmt.Println("Error opening DB.")
-			log.Fatal(err)
-		}
-		defer db.Close()*/
-
-	buckets := Buckets(dbname)
-	fmt.Println()
-	fmt.Println("func MainPage. Printing buckets of users.db:")
-	fmt.Println()
-	fmt.Println(buckets)
-
-	page := &Page{
-		User: user,
-		Port: cookiestoreConfig.Port}
-	renderTemplate(res, "main", page)
 }
 
 func TreePage(res http.ResponseWriter, req *http.Request) {
@@ -894,9 +880,9 @@ func CrudPage(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func CrudPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func CrudPage: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -933,9 +919,9 @@ func ExportCEX(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func ExportCEX: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func ExportCEX: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -1021,9 +1007,9 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func SaveImageRef: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func SaveImageRef: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -1079,9 +1065,9 @@ func AddFirstNode(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func AddFirstNode: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func AddFirstNode: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -1268,9 +1254,9 @@ func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func AddNodeAfter: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func AddNodeAfter: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -1454,9 +1440,9 @@ func newText(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func newText: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func newText: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -1508,9 +1494,9 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func SaveTranscription: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func SaveTranscription: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -1568,9 +1554,9 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func LoadDB: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func LoadDB: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -2271,9 +2257,9 @@ func ViewPage(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func ViewPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func ViewPage: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -2357,9 +2343,9 @@ func comparePage(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func comparePage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func comparePage: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -2501,9 +2487,9 @@ func consolidatePage(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func consolidatePage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func consolidatePage: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -2645,9 +2631,9 @@ func EditCatPage(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func EditCatPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func EditCatPage: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -2693,9 +2679,9 @@ func EditPage(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func EditPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func EditPage: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -2756,9 +2742,9 @@ func Edit2Page(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func Edit2Page: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func Edit2Page: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)
@@ -2825,9 +2811,9 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 		if session.Values["Loggedin"].(bool) {
 			user, ok := session.Values["BrucheionUserName"].(string)
 			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				fmt.Println("func MultiPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("func MainPAge: User %s is logged in.", user)
+			fmt.Printf("func MultiPage: User %s is logged in.", user)
 		}
 	} else {
 		Logout(w, r)

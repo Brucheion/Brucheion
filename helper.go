@@ -182,6 +182,10 @@ func GetSession(req *http.Request) (*sessions.Session, error) {
 		fmt.Printf("GetSession: Error getting the session: %s\n", err)
 		return nil, err
 	}
+	session.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   cookiestoreConfig.MaxAge,
+		HttpOnly: true}
 	return session, nil
 }
 
@@ -342,7 +346,7 @@ func ValidateUser(res http.ResponseWriter, req *http.Request) (*Validation, erro
 			}
 			cursor = nil
 			//Login scenario (5)
-			if bUserValidation.Message == "" { //If userID was not found in DB, message will be empty
+			if bUserValidation.Message == "An internal error occured. (This should never happen.)" { //If userID was not found in DB, message will be unaltered.
 				bUserValidation.Message = "User not in DB yet. Created new entry for " + brucheionUserName + ". Logged in successfully"
 				bUserValidation.ErrorCode = true   //New BUser and new PUser -> Creating a new user is not an error
 				bUserValidation.PUserInUse = false //ProviderUser not in use yet
