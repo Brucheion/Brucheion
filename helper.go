@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strconv"
+	//"strconv"
 	"strings"
 	"time"
 
@@ -33,6 +33,8 @@ type dataframe struct {
 	Values1 []string
 	Values2 []string
 }
+
+//var config Config
 
 func (m dataframe) Len() int           { return len(m.Indices) }
 func (m dataframe) Less(i, j int) bool { return m.Indices[i] < m.Indices[j] }
@@ -99,7 +101,7 @@ func getHref(t html.Token) (ok bool, href string) {
 
 func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 	urnLink := urn.Namespace + "/" + strings.Replace(urn.Collection, ".", "/", -1) + "/"
-	url := "http://localhost" + cookiestoreConfig.Port + "/static/image_archive/" + urnLink
+	url := "http://localhost" + config.Port + "/static/image_archive/" + urnLink
 	response, err := http.Get(url)
 	if err != nil {
 		return links, err
@@ -135,28 +137,28 @@ func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 //SetUpGothic sets up Gothic for login procedure
 func SetUpGothic() {
 	//Build the authentification paths for the choosen providers
-	gitHubPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/github/callback")
-	gitLabPath := ("http://" + cookiestoreConfig.Host + cookiestoreConfig.Port + "/auth/gitlab/callback")
+	gitHubPath := ("http://" + config.Host + config.Port + "/auth/github/callback")
+	gitLabPath := ("http://" + config.Host + config.Port + "/auth/gitlab/callback")
 	//Tell gothic which login providers to use
 	goth.UseProviders(
-		github.New(cookiestoreConfig.GitHubKey, cookiestoreConfig.GitHubSecret, gitHubPath),
-		gitlab.New(cookiestoreConfig.GitLabKey, cookiestoreConfig.GitLabSecret, gitLabPath, cookiestoreConfig.GitLabScope))
+		github.New(config.GitHubKey, config.GitHubSecret, gitHubPath),
+		gitlab.New(config.GitLabKey, config.GitLabSecret, gitLabPath, config.GitLabScope))
 	//Create new Cookiestore for _gothic_session
 	loginTimeout := 60 //Time the _BrucheionSession cookie will be alive in seconds
 	gothic.Store = GetCookieStore(loginTimeout)
 }
 
-//LoadConfiguration loads and parses the JSON config file and returns CookiestoreConfig.
-func LoadConfiguration(file string) CookiestoreConfig {
-	var config CookiestoreConfig               //initialize config as Config
+//LoadConfiguration loads and parses the JSON config file and returns Config.
+func LoadConfiguration(file string) Config {
+	var newConfig Config                       //initialize config as Config
 	configFile, openFileError := os.Open(file) //attempt to open file
 	defer configFile.Close()                   //push closing on call list
 	if openFileError != nil {                  //error handling
 		fmt.Println("Open file error: " + openFileError.Error())
 	}
 	jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
-	jsonParser.Decode(&config)                //parse configFile to config
-	return config                             //return ServerConfig config
+	jsonParser.Decode(&newConfig)             //parse configFile to config
+	return newConfig                          //return ServerConfig config
 }
 
 //GetCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
@@ -174,6 +176,21 @@ func GetCookieStore(maxAge int) sessions.Store {
 	return cookieStore
 }
 
+//InitializeSession will create and return the session and set the session options
+func InitializeSession(req *http.Request) (*sessions.Session, error) {
+	fmt.Println("Initializing session for " + SessionName)
+	session, err := BrucheionStore.Get(req, SessionName)
+	if err != nil {
+		fmt.Printf("GetSession: Error getting the session: %s\n", err)
+		return nil, err
+	}
+	session.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   config.MaxAge,
+		HttpOnly: true}
+	return session, nil
+}
+
 //GetSession will return an open session when there is a matching session by that name, and valid for the request.
 //Note that it will also return a new session, if none was open by that name. -> Close the session after testing.
 func GetSession(req *http.Request) (*sessions.Session, error) {
@@ -182,29 +199,24 @@ func GetSession(req *http.Request) (*sessions.Session, error) {
 		fmt.Printf("GetSession: Error getting the session: %s\n", err)
 		return nil, err
 	}
-	session.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   cookiestoreConfig.MaxAge,
-		HttpOnly: true}
 	return session, nil
 }
 
-//openBoltDB returns an opened Bolt Database for dbName.
-func openBoltDB(dbName string) (*bolt.DB, error) {
+//OpenBoltDB returns an opened Bolt Database for dbName.
+func OpenBoltDB(dbName string) (*bolt.DB, error) {
 
 	db, err := bolt.Open(dbName, 0600, &bolt.Options{Timeout: 30 * time.Second}) //open DB with - wr- --- ---
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("DB opened")
+	//fmt.Println("DB opened")
 	return db, nil
 }
 
 //initializeUserDB should be called once during login attempt to make sure that all buckets are in place.
-func initializeUserDB() error {
-	fmt.Println("Initialzing UserDB.")
-
-	db, err := openBoltDB(cookiestoreConfig.UserDB)
+func InitializeUserDB() error {
+	fmt.Println("Initializing UserDB")
+	db, err := OpenBoltDB(config.UserDB)
 	if err != nil {
 		return err
 	}
@@ -232,7 +244,7 @@ func initializeUserDB() error {
 	})
 
 	db.Close() //always remember to close the db
-	fmt.Println("DB closed")
+	//fmt.Println("DB closed")
 	return nil
 }
 
@@ -259,7 +271,7 @@ func ValidateUserName(username string) *Validation {
 	}
 }
 
-func ValidateUser(res http.ResponseWriter, req *http.Request) (*Validation, error) {
+func ValidateUser(req *http.Request) (*Validation, error) {
 	bUserValidation := &Validation{
 		Message:      "An internal error occured. (This should never happen.)",
 		ErrorCode:    false,
@@ -282,22 +294,23 @@ func ValidateUser(res http.ResponseWriter, req *http.Request) (*Validation, erro
 	if !ok {
 		fmt.Errorf("Func ValidateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved.")
 	}
-	providerNickName, ok := session.Values["ProviderNickName"].(string)
+	/*providerNickName, ok := session.Values["ProviderNickName"].(string)
 	if !ok {
 		fmt.Errorf("Func ValidateUser: Type assertion of ProviderNickName cookie value to string failed or session value could not be retrieved.")
-	}
+	}*/
 	providerUserID, ok := session.Values["ProviderUserID"].(string)
 	if !ok {
 		fmt.Errorf("Func ValidateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved.")
 	}
 
-	fmt.Println("Debugging values from session:")
+	/*fmt.Println("Debugging values from session:")
 	fmt.Println("brucheionUserName: " + brucheionUserName)
 	fmt.Println("provider: " + provider)
 	fmt.Println("providerNickName: " + providerNickName)
 	fmt.Println("providerUserID: " + providerUserID)
 
-	userDB, err := openBoltDB(cookiestoreConfig.UserDB)
+	fmt.Printf("\nValidateUser: Attempting to open: %s\n", config.UserDB)*/
+	userDB, err := OpenBoltDB(config.UserDB)
 	if err != nil {
 		return nil, err
 	}
@@ -313,15 +326,13 @@ func ValidateUser(res http.ResponseWriter, req *http.Request) (*Validation, erro
 		for BUserName, _ := cursor.First(); BUserName != nil; BUserName, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
 			//Login scenario (4)
 			if string(BUserName) == brucheionUserName { //if this userID was in the Bucket
-				buffer := bucket.Get([]byte(brucheionUserName)) //get the
-				err := json.Unmarshal(buffer, &brucheionUser)
+				buffer := bucket.Get([]byte(brucheionUserName)) //get the brucheionUser as []byte buffer
+				err := json.Unmarshal(buffer, &brucheionUser)   //unmarshal the buffer
 				if err != nil {
-					fmt.Println("Error unmarshalling brucheionUser:", err)
+					fmt.Println("Error unmarshalling brucheionUser: ", err)
 				}
-				pointer = &brucheionUser
-				fmt.Println("brucheionuser")
-				fmt.Println(brucheionUser)
-				fmt.Println("&brucheionUser")
+				pointer = &brucheionUser //set the pointer to the brucheionuser
+				/*fmt.Println("&brucheionUser")
 				fmt.Println(&brucheionUser)
 				/*fmt.Println("*brucheionUser")
 				fmt.Println(*brucheionUser)*/
@@ -347,7 +358,7 @@ func ValidateUser(res http.ResponseWriter, req *http.Request) (*Validation, erro
 			cursor = nil
 			//Login scenario (5)
 			if bUserValidation.Message == "An internal error occured. (This should never happen.)" { //If userID was not found in DB, message will be unaltered.
-				bUserValidation.Message = "User not in DB yet. Created new entry for " + brucheionUserName + ". Logged in successfully"
+				bUserValidation.Message = "User " + brucheionUserName + " created for login with provider " + provider + ". Login successfull."
 				bUserValidation.ErrorCode = true   //New BUser and new PUser -> Creating a new user is not an error
 				bUserValidation.PUserInUse = false //ProviderUser not in use yet
 			}
@@ -356,35 +367,35 @@ func ValidateUser(res http.ResponseWriter, req *http.Request) (*Validation, erro
 			if provider == brucheionUser.Provider { //Login Scenarios (1), (2)
 				bUserValidation.SameProvider = true                 //Provider from session and BrucheionUser match
 				if providerUserID == brucheionUser.ProviderUserID { //if there was a user bucket and the session values match the DB values; Login Scenarios (1)
-					bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Logged in successfully."
+					bUserValidation.Message = "User " + brucheionUserName + " logged in successfully."
 					bUserValidation.ErrorCode = true  //No error encountered
 					bUserValidation.PUserInUse = true //ProviderUser from session and BrucheionUser match
 				} else { //brucheionUser.ProviderUserID != providerUserID; Login Scenarios (2)
-					bUserValidation.Message = "Found user " + brucheionUserName + " in DB. Already logged in with " + brucheionUser.Provider + ", using another account."
+					bUserValidation.Message = "Username " + brucheionUserName + " is already registered with another account. Choose another username."
 					bUserValidation.ErrorCode = false  //Error encountered
 					bUserValidation.PUserInUse = false //ProviderUser from session and BrucheionUser don't match
 				}
 			} else { //brucheionUser.Provider != provider; Login Scenario (3)
-				bUserValidation.Message = "User " + brucheionUserName + " already logged in with provider " + brucheionUser.Provider + ". You tried to login with " + provider + " instead."
+				bUserValidation.Message = "Username " + brucheionUserName + " already in use with another provider."
 				bUserValidation.ErrorCode = false    //Error encountered
 				bUserValidation.SameProvider = false //The BUser is in Use with another Provider
 				bUserValidation.PUserInUse = false   //ProviderUser from session and BrucheionUser don't match
 			}
 		}
-		fmt.Println("Debugging bUser retrieved from DB:")
+		/*fmt.Println("Debugging bUser retrieved from DB:")
 		fmt.Println("BUserName: " + brucheionUser.BUserName)
 		fmt.Println("Provider: " + brucheionUser.Provider)
 		fmt.Println("providerNickName: " + brucheionUser.PUserName)
-		fmt.Println("ProviderUserID: " + brucheionUser.ProviderUserID)
+		fmt.Println("ProviderUserID: " + brucheionUser.ProviderUserID)*/
 
 		return nil //close DB view without an error
 	})
 
-	fmt.Println("Print Debugging db.Update: ")
+	/*fmt.Println("Print Debugging db.Update: ")
 	fmt.Println("validation.ErrorCode: " + strconv.FormatBool(bUserValidation.ErrorCode))
 	fmt.Println("validation.BUserInUse: " + strconv.FormatBool(bUserValidation.BUserInUse))
 	fmt.Println("validation.SameProvider: " + strconv.FormatBool(bUserValidation.SameProvider))
-	fmt.Println("validation.PUserInUse: " + strconv.FormatBool(bUserValidation.PUserInUse))
+	fmt.Println("validation.PUserInUse: " + strconv.FormatBool(bUserValidation.PUserInUse))*/
 
 	return bUserValidation, nil
 }
@@ -409,7 +420,7 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Printf("User %s has logged out", bUserName)
+	fmt.Printf("User %s has logged out\n", bUserName)
 	http.Redirect(res, req, "/login/", http.StatusFound)
 
 }
