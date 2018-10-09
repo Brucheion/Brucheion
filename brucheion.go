@@ -21,8 +21,30 @@ import (
 	"github.com/ThomasK81/gonwr"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
-	"golang.org/x/net/html"
+
+	"github.com/gorilla/sessions" //for Cookiestore and other session functionality
+
+	"github.com/markbates/goth/gothic"
 )
+
+//The Config stores Host/Port Information, where the user DB is and settings for the cookiestores
+//
+//Host and Port are used throughout brucheion for parsing and delivering the pages
+//
+//The Key/Secret pairs are obtained from the provider when registering the application.
+type Config struct {
+	Host         string `json:"host"`
+	Port         string `json:"port"`
+	GitHubKey    string `json:"gitHubKey"`
+	GitHubSecret string `json:"githHubSecret"`
+	GitLabKey    string `json:"gitLabKey"`
+	GitLabSecret string `json:"gitLabSecret"`
+	GitLabScope  string `json:"gitLabScope"` //for accessing GitLab user information this has to be "read_user"
+	MaxAge       int    `json:"maxAge"`      //defines the lifetime of the brucheion session
+	UserDB       string `json:"userDB"`
+	//	GoogleKey	  string `json:"googleKey"`
+	//	GoogleSecret  string `json:"googleSecret"`
+}
 
 type JSONlist struct {
 	Item []string `json:"item"`
@@ -102,105 +124,458 @@ type Page struct {
 	CatLan       string
 }
 
-var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html", "tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html"))
+//LoginPage stores Information necessary to parse and display /login/ and /auth/{provider}/callback pages
+type LoginPage struct {
+	BUserName    string //The username that the user chooses to work with within Brucheion
+	Provider     string //The login provider
+	HrefUserName string //Combination {user}_{provider} as displayed in link
+	Message      string //Message to be displayed according to login scenario
+	Port         string //Port of the Link
+	Title        string //Title of the website
+}
+
+//BrucheionUser stores Information about the logged in Brucheion-user
+type BrucheionUser struct {
+	BUserName      string //The username choosen by user to use Brucheion with
+	Provider       string //The provider used for authentification
+	PUserName      string //The username used for login with the provider
+	ProviderUserID string //The UserID issued by Provider
+}
+
+//Validation stores the result of the validation
+type Validation struct {
+	Message      string //Message according to outcome of validation
+	ErrorCode    bool   //Was an error encountered during validation (something did not match)?
+	BUserInUse   bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
+	SameProvider bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
+	PUserInUse   bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
+}
+
+//The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
+var config = LoadConfiguration("./config.json")
+
+var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html",
+	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
+	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html",
+	"tmpl/main.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
-var serverIP = ":7000"
 
+
+//The sessionName of the Brucheion Session
+const SessionName = "brucheionSession"
+
+//
+var BrucheionStore sessions.Store
+
+//Main initializes the mux server
 func main() {
+
+	//
+	SetUpGothic()
+
+	//Create new Cookiestore for Brucheion
+	BrucheionStore = GetCookieStore(config.MaxAge)
+
+	//Set up the router
 	router := mux.NewRouter().StrictSlash(true)
-	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	js := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
-	cex := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
-	router.PathPrefix("/static/").Handler(s)
-	router.PathPrefix("/js/").Handler(js)
-	router.PathPrefix("/cex/").Handler(cex)
-	router.HandleFunc("/{user}/{urn}/treenode.json", Treenode)
-	router.HandleFunc("/{user}/main/", MainPage)
-	router.HandleFunc("/{user}/load/{cex}", LoadDB)
-	router.HandleFunc("/{user}/new/{key}", newText)
-	router.HandleFunc("/{user}/view/{urn}", ViewPage)
-	router.HandleFunc("/{user}/tree/", TreePage)
-	router.HandleFunc("/{user}/multicompare/{urn}", MultiPage)
-	router.HandleFunc("/{user}/edit/{urn}", EditPage)
-	router.HandleFunc("/{user}/editcat/{urn}", EditCatPage)
-	router.HandleFunc("/{user}/save/{key}", SaveTranscription)
-	router.HandleFunc("/{user}/addNodeAfter/{key}", AddNodeAfter)
-	router.HandleFunc("/{user}/addFirstNode/{key}", AddFirstNode)
-	router.HandleFunc("/{user}/crud/", CrudPage)
-	router.HandleFunc("/{user}/deleteBucket/{urn}", deleteBucket)
-	router.HandleFunc("/{user}/deleteNode/{urn}", deleteNode)
-	router.HandleFunc("/{user}/export/{filename}", ExportCEX)
-	router.HandleFunc("/{user}/edit2/{urn}", Edit2Page)
-	router.HandleFunc("/{user}/compare/{urn}+{urn2}", comparePage)
-	router.HandleFunc("/{user}/consolidate/{urn}+{urn2}", consolidatePage)
-	router.HandleFunc("/{user}/saveImage/{key}", SaveImageRef)
-	router.HandleFunc("/{user}/newWork", newWork)
-	router.HandleFunc("/{user}/newCollection/{name}/{urns}", newCollection)
-	router.HandleFunc("/{user}/newCITECollection/{name}", newCITECollection)
-	router.HandleFunc("/{user}/getImageInfo/{name}/{imageurn}", getImageInfo)
-	router.HandleFunc("/{user}/addtoCITE", addCITE)
+	
 
-	router.HandleFunc("/{user}/requestImgID/{name}", requestImgID)
-	router.HandleFunc("/{user}/deleteCollection", deleteCollection)
-	router.HandleFunc("/{user}/requestImgCollection", requestImgCollection)
-	log.Println("Listening at" + serverIP + "...")
-	log.Fatal(http.ListenAndServe(serverIP, router))
+	//Set up handlers for serving static files
+	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	jsHandler := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
+	cexHandler := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
+
+	//Set up PathPrefix routes for serving static files
+	router.PathPrefix("/static/").Handler(staticHandler)
+	router.PathPrefix("/js/").Handler(jsHandler)
+	router.PathPrefix("/cex/").Handler(cexHandler)
+
+	//Set up HandleFunc routes
+	router.HandleFunc("/login/", LoginGET).Methods("GET")         //The initial page. Idially the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.
+	router.HandleFunc("/login/", LoginPOST).Methods("POST")       //This is where users are redirected to when credentials habe been entered.
+	router.HandleFunc("/auth/{provider}/", Auth)                  //Initializes the authentication, redirects to callback.
+	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //Displays message when logged in successfully. Forwards to Main
+	router.HandleFunc("/logout/", Logout)                         //Logs out the User. Moved to helper.go
+	router.HandleFunc("/{urn}/treenode.json/", Treenode)          //Function at treeBank.go
+	router.HandleFunc("/main/", MainPage)                         //So far this is just the page, a user is redirected to after login
+	router.HandleFunc("/load/{cex}/", LoadDB)
+	router.HandleFunc("/new/{key}/", newText)
+	router.HandleFunc("/view/{urn}/", ViewPage)
+	router.HandleFunc("/tree/", TreePage)
+	router.HandleFunc("/multicompare/{urn}/", MultiPage)
+	router.HandleFunc("/edit/{urn}/", EditPage)
+	router.HandleFunc("/editcat/{urn}/", EditCatPage)
+	router.HandleFunc("/save/{key}/", SaveTranscription)
+	router.HandleFunc("/addNodeAfter/{key}/", AddNodeAfter)
+	router.HandleFunc("/addFirstNode/{key}/", AddFirstNode)
+	router.HandleFunc("/crud/", CrudPage)
+	router.HandleFunc("/deleteBucket/{urn}/", deleteBucket)
+	router.HandleFunc("/deleteNode/{urn}/", deleteNode)
+	router.HandleFunc("/export/{filename}/", ExportCEX)
+	router.HandleFunc("/edit2/{urn}/", Edit2Page)
+	router.HandleFunc("/compare/{urn}+{urn2}/", comparePage)
+	router.HandleFunc("/consolidate/{urn}+{urn2}/", consolidatePage)
+	router.HandleFunc("/saveImage/{key}/", SaveImageRef)
+	router.HandleFunc("/newWork/", newWork)
+	router.HandleFunc("/newCollection/{name}/{urns}/", newCollection)
+	router.HandleFunc("/newCITECollection/{name}/", newCITECollection)
+	router.HandleFunc("/getImageInfo/{name}/{imageurn}/", getImageInfo)
+	router.HandleFunc("/addtoCITE/", addCITE)
+	router.HandleFunc("/requestImgID/{name}", requestImgID)
+	router.HandleFunc("/deleteCollection", deleteCollection)
+	router.HandleFunc("/requestImgCollection", requestImgCollection)
+	log.Println("Listening at " + config.Host + config.Port + "...")
+	log.Fatal(http.ListenAndServe(config.Port, router))
 }
 
-// Helper function to pull the href attribute from a Token
-func getHref(t html.Token) (ok bool, href string) {
-	for _, a := range t.Attr {
-		if a.Key == "href" {
-			href = a.Val
-			ok = true
-		}
-	}
-	return
-}
+//LoginGET renders the login page. The user can enter the login Credentials into the form.
+//If already logged in, the user will be redirected to main page.
+func LoginGET(res http.ResponseWriter, req *http.Request) {
 
-func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
-	urnLink := urn.Namespace + "/" + strings.Replace(urn.Collection, ".", "/", -1) + "/"
-	url := "http://localhost" + serverIP + "/static/image_archive/" + urnLink
-	response, err := http.Get(url)
+	//Make sure user is not logged in yet
+	session, err := GetSession(req) //Get a session
 	if err != nil {
-		return links, err
+		fmt.Errorf("LoginGET: Error getting session: %s", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	z := html.NewTokenizer(response.Body)
-	for {
-		tt := z.Next()
-
-		switch {
-		case tt == html.ErrorToken:
-			// End of the document, we're done
-			return
-		case tt == html.StartTagToken:
-			t := z.Token()
-
-			isAnchor := t.Data == "a"
-			if !isAnchor {
-				continue
-			}
-			ok, url := getHref(t)
-			if strings.Contains(url, ".dzi") {
-				urnStr := urn.Base + ":" + urn.Protocol + ":" + urn.Namespace + ":" + urn.Collection + ":" + strings.Replace(url, ".dzi", "", -1)
-				links = append(links, urnStr)
-			}
+	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has been set already
+		if session.Values["Loggedin"].(bool) { //Loggedin will be true if login was successfull
+			user, ok := session.Values["BrucheionUserName"].(string) //if session was valid we can get a username
 			if !ok {
-				continue
+				fmt.Println("func LoginGET: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
+			fmt.Printf("User %s is already logged in. Redirecting to main", user) //we can use the username for debugging
+			http.Redirect(res, req, "/main/", http.StatusFound)
+		}
+	} else { //Destroy the newly created session if Loggedin was not set
+		session.Options.MaxAge = -1
+		session.Values = make(map[interface{}]interface{})
+		err = session.Save(req, res)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
-	return links, nil
+
+	lp := &LoginPage{
+		Title: "Brucheion Login Page"}
+	renderLoginTemplate(res, "login", lp)
+}
+
+//LoginPOST logs in the user using the form values and gothic.
+func LoginPOST(res http.ResponseWriter, req *http.Request) {
+	//Make sure user is not logged in yet
+	session, err := GetSession(req) //get a session
+	if err != nil {
+		fmt.Errorf("LoginGET: Error getting session: %s", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if session.Values["Loggedin"] != nil { //If the Loggedin variable has been set already..
+		if session.Values["Loggedin"].(bool) { //And if "Loggedin" is true..
+			user, ok := session.Values["BrucheionUserName"].(string) //Then get the username
+			if !ok {
+				fmt.Println("func LoginPOST: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
+			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
+		}
+	} else { //Destroy the session we just got if was not logged in yet (proceed with login process)
+		session.Options.MaxAge = -1
+		session.Values = make(map[interface{}]interface{})
+		err = session.Save(req, res)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	title := "Brucheion Login Page"
+
+	/*fmt.Println("req.FormValue(\"brucheionUserName\")" + req.FormValue("brucheionusername"))
+	fmt.Println("req.FormValue(\"provider\")" + req.FormValue("provider"))*/
+
+	//populates Loginpage with basic data and the form values
+	lp := &LoginPage{
+		BUserName: strings.TrimSpace(req.FormValue("brucheionusername")),
+		Provider:  req.FormValue("provider"),
+		Title:     title}
+
+	unameValidation := ValidateUserName(lp.BUserName) //checks if this username only has (latin) letters and (arabian) numbers
+
+	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
+
+	/*fmt.Println("authPath: " + authPath)
+	fmt.Println("userDB:" + config.UserDB)*/
+
+	if unameValidation.ErrorCode { //if a valid username has been chosen
+		session, err = InitializeSession(req) //initialize a persisting session
+		if err != nil {
+			fmt.Println("LoginPOST: Error initializing the session.")
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		//save the values from the form in the session
+		session.Values["BrucheionUserName"] = lp.BUserName
+		session.Values["Provider"] = lp.Provider            //the provider used for login
+		session.Values["Loggedin"] = false                  //make sure the "Loggedin" session value is set but false
+		session.Save(req, res)                              //always save the session after setting values
+		http.Redirect(res, req, authPath, http.StatusFound) //redirect to auth page with correct provider
+	} else { //if the the user name was not valid
+		lp.Message = unameValidation.Message  //add the message to the loginpage..
+		renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
+	}
+}
+
+//Auth redirects to provider for authentification using gothic.
+//Provider redirects to callback page.
+func Auth(res http.ResponseWriter, req *http.Request) {
+	//Make sure user is not logged in yet
+	session, err := GetSession(req) //get a session
+	if err != nil {
+		fmt.Errorf("LoginGET: Error getting session: %s", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if session.Values["Loggedin"] != nil { //If the Loggedin variable has been set already
+		if session.Values["Loggedin"].(bool) { //And if "Loggedin" is true
+			user, ok := session.Values["BrucheionUserName"].(string) //Then get the username
+			if !ok {
+				fmt.Println("func Auth: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
+			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
+		} else { //proceed with login process
+			gothic.BeginAuthHandler(res, req)
+		}
+	} else { //kill the session and redirect to login
+		fmt.Println("func Auth: \"Loggedin\" was nil. Session was not initialized. Logging out")
+		Logout(res, req)
+	}
+}
+
+//AuthCallback complets user authentification, sets session variables and DB entries.
+func AuthCallback(res http.ResponseWriter, req *http.Request) {
+	//Make sure user is not logged in yet
+	session, err := GetSession(req) //get a session
+	if err != nil {
+		fmt.Errorf("LoginGET: Error getting session: %s", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if session.Values["Loggedin"] != nil { //If the Loggedin variable has been set already
+		if session.Values["Loggedin"].(bool) { //And if "Loggedin" is true
+			user, ok := session.Values["BrucheionUserName"].(string) //Then get the username
+			if !ok {
+				fmt.Println("func AuthCallback: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
+			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
+		} //else proceed with login process
+	} else { //kill the session and redirect to login
+		fmt.Println("func AuthCallback: \"Loggedin\" was nil. Session was not initialized.")
+		Logout(res, req)
+	}
+
+	err = InitializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	gothUser, err := gothic.CompleteUserAuth(res, req) //authentificate user and get gothUser from gothic
+	if err != nil {
+		fmt.Fprintln(res, err)
+		return
+	}
+
+	//get provider and username from session values
+	provider, ok := session.Values["Provider"].(string)
+	if !ok {
+		fmt.Println("Func AuthCallback: Type assertion of value Provider to string failed or session value could not be retrieved.")
+	}
+	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
+	if !ok {
+		fmt.Println("Func AuthCallback: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
+	}
+
+	//save values retrieved from gothUser in session
+	session.Values["Loggedin"] = false                     //assumed for later use, maybe going to be deprecated later
+	session.Values["ProviderNickName"] = gothUser.NickName //The nickname used for logging in with provider
+	session.Values["ProviderUserID"] = gothUser.UserID     //the userID returned by the login from provider
+	session.Save(req, res)                                 //always remember to save the session
+
+	validation, err := ValidateUser(req) //validate if credentials match existing user
+	if err != nil {
+		fmt.Printf("\nAuthCallback error validating user: %s", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+
+	brucheionUser := &BrucheionUser{ //create Brucheionuser instance
+		BUserName:      brucheionUserName,
+		Provider:       provider,
+		PUserName:      gothUser.NickName,
+		ProviderUserID: gothUser.UserID}
+
+	//Save user in DB and/or login user if user is valid. Redirect back to login page is not
+	if validation.ErrorCode { //Login scenarios (1), (5)
+		if validation.BUserInUse && validation.SameProvider && validation.PUserInUse { //Login scenario (1)
+			session.Values["Loggedin"] = true
+			session.Save(req, res)
+			fmt.Println(validation.Message) //Display validation.Message if all went well.
+		} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
+			//create new enty for new BUser
+			db, err := OpenBoltDB(config.UserDB) //open the userDB
+			if err != nil {
+				fmt.Printf("Error opening userDB: %s", err)
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			db.Update(func(tx *bolt.Tx) error {
+				bucket := tx.Bucket([]byte("users"))
+				buffer, err := json.Marshal(brucheionUser) //Marshal user data
+				if err != nil {
+					fmt.Errorf("Failed marshalling user data for user %s: %s\n", brucheionUserName, err)
+					return err
+				}
+				err = bucket.Put([]byte(brucheionUserName), buffer) //put user into bucket
+				if err != nil {
+					fmt.Errorf("Failed saving user %s in users.db\n", brucheionUserName, err)
+					return err
+				}
+				fmt.Printf("Successfully saved new user %s in users.DB.\n", brucheionUserName)
+
+				bucket = tx.Bucket([]byte(provider))
+				err = bucket.Put([]byte(brucheionUser.ProviderUserID), []byte(brucheionUserName))
+				if err != nil {
+					fmt.Errorf("Failed saving user ProviderUserID for user %s in Bucket %s.\n", brucheionUserName, provider, err)
+					return err
+				}
+				fmt.Printf("Successfully saved ProviderUserID of BUser %s in Bucket %s.\n", brucheionUserName, provider)
+				fmt.Println(validation.Message) //Display validation.Message if all went well.
+				return nil
+			})
+			db.Close() //always remember to close the db
+			//fmt.Println("DB closed")
+			session.Values["Loggedin"] = true //To keep the user logged in
+			session.Save(req, res)
+
+		} else { //unknown login behavior
+			fmt.Errorf("Unknown login behavior. This should never happen")
+			//return errors.New("Unknown login behavior. This should never happen")
+			return
+		}
+	} else { //Login scenarios (2), (3), (4)
+
+		if (validation.BUserInUse && !validation.SameProvider && validation.PUserInUse) ||
+			(!validation.BUserInUse && validation.SameProvider && validation.PUserInUse) ||
+			(!validation.BUserInUse && validation.SameProvider && !validation.PUserInUse) { //unknown login behavior
+			fmt.Errorf("Unknown login behavior. This should never happen")
+			//return errors.New("Unknown login behavior. This should never happen")
+			return
+		} else {
+			fmt.Println(validation.Message)
+			validation.Message = validation.Message + "\nPlease always use the same combination of username, provider, and provider account."
+			fmt.Println("Please always use the same combination of username, provider, and provider account.")
+			lp := &LoginPage{
+				Message: validation.Message}
+			renderLoginTemplate(res, "login", lp)
+			return
+		}
+	}
+
+	port := config.Port
+	lp := &LoginPage{
+		Port:         port,
+		BUserName:    brucheionUserName,
+		Provider:     provider,
+		HrefUserName: brucheionUserName + "_" + provider,
+		Message:      validation.Message} //The message to be replied in regard to the login scenario
+
+	renderAuthTemplate(res, "callback", lp)
+
+}
+
+func MainPage(res http.ResponseWriter, req *http.Request) {
+
+	session, err := GetSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			ok := false
+			user, ok = session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MainPage: User %s is logged in.\n", user)
+		} else {
+			fmt.Printf("func MainPage: \"Loggedin\" was false. User was not logged in.")
+			Logout(res, req)
+		}
+	} else {
+		fmt.Println("func MainPage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(res, req)
+	}
+
+	/*fmt.Printf("User still known? Should be: %s\n", user)*/
+
+	dbname := config.UserDB
+	/*
+		db, err := bolt.Open(dbname, 0644, nil)
+		if err != nil {
+			fmt.Println("Error opening DB.")
+			log.Fatal(err)
+		}
+		defer db.Close()*/
+
+	buckets := Buckets(dbname)
+	fmt.Println()
+	fmt.Printf("func MainPage. Printing buckets of %s:\n", dbname)
+	fmt.Println()
+	fmt.Println(buckets)
+
+	page := &Page{
+		User: user,
+		Port: config.Port}
+	renderTemplate(res, "main", page)
 }
 
 func requestImgCollection(w http.ResponseWriter, r *http.Request) {
-	response := JSONlist{}
-	vars := mux.Vars(r)
-	user := vars["user"]
-	dbname := user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	session, err := GetSession(r)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func requestImgCollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func requestImgCollection: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func requestImgCollection: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func requestImgCollection: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
+	response := JSONlist{}
+	dbname := user + ".db"
+	db, err := OpenBoltDB(dbname)
+	if err != nil {
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	err = db.View(func(tx *bolt.Tx) error {
@@ -225,17 +600,39 @@ func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func getImageInfo(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func getImageInfo: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func getImageInfo: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func getImageInfo: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func getImageInfo: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	retImage := imageCollection{}
 	newImage := image{}
 	vars := mux.Vars(r)
-	user := vars["user"]
 	collectionName := vars["name"]
 	imageurn := vars["imageurn"]
 	dbkey := []byte(collectionName)
 	dbname := user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	err = db.View(func(tx *bolt.Tx) error {
@@ -244,6 +641,7 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 			return errors.New("failed to get bucket")
 		}
 		val := b.Get(dbkey)
+		// fmt.Println("got", string(dbkey))
 		retImage, _ = gobDecodeImgCol(val)
 		for _, v := range retImage.Collection {
 			if v.URN == imageurn {
@@ -263,16 +661,38 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func requestImgID(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func requestImgID: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func requestImgID: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func requestImgID: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func requestImgID: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	response := JSONlist{}
 	collection := imageCollection{}
 	vars := mux.Vars(r)
-	user := vars["user"]
 	name := vars["name"]
 	dbname := user + ".db"
 	dbkey := []byte(name)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	err = db.View(func(tx *bolt.Tx) error {
@@ -304,17 +724,56 @@ func requestImgID(w http.ResponseWriter, r *http.Request) {
 }
 
 func newCITECollection(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func newCITECollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func newCITECollection: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func newCITECollection: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func newCITECollection: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
-	user := vars["user"]
-	name := vars["name"]
+	name := vars["name"] //the name of the new CITE collection
 	newCITECollectionDB(user, name)
 	io.WriteString(w, "success")
 }
 
 func addCITE(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func addCITE: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func addCITE: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func addCITE: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func addCITE: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
-	vars := mux.Vars(r)
-	user := vars["user"]
 	name := r.URL.Query().Get("name")
 	name = strings.Replace(name, "\"", "", -1)
 	imageurn := r.URL.Query().Get("urn")
@@ -337,8 +796,28 @@ func addCITE(w http.ResponseWriter, r *http.Request) {
 }
 
 func newCollection(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func newCollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func newCollection: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func newCollection: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func newCollection: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
-	user := vars["user"]
 	name := vars["name"]
 	imageIDs := strings.Split(vars["urns"], ",")
 	var collection imageCollection
@@ -379,12 +858,31 @@ func newCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func newWork(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func newWork: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func newWork: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func newWork: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func newWork: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	if r.Method == "GET" {
 		varmap := map[string]interface{}{
 			"user": user,
-			"port": serverIP,
+			"port": config.Port,
 		}
 		t, _ := template.ParseFiles("tmpl/newWork.html")
 		t.Execute(w, varmap)
@@ -410,17 +908,31 @@ func newWork(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func MainPage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
-	dbname := user + ".db"
-	buckets := Buckets(dbname)
-	fmt.Println(buckets)
-}
-
 func TreePage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user := ""
+
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func TreePage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func TreePage: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func TreePage: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func TreePage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
+
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -428,14 +940,32 @@ func TreePage(w http.ResponseWriter, r *http.Request) {
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
-	port := ":7000"
-	p, _ := loadCrudPage(transcription, port)
+	p, _ := loadCrudPage(transcription, config.Port)
 	renderTemplate(w, "tree", p)
 }
 
 func CrudPage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func CrudPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func CrudPage: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func CrudPage: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func CrudPage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -443,8 +973,7 @@ func CrudPage(w http.ResponseWriter, r *http.Request) {
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
-	port := ":7000"
-	p, _ := loadCrudPage(transcription, port)
+	p, _ := loadCrudPage(transcription, config.Port)
 	renderTemplate(w, "crud", p)
 }
 
@@ -459,16 +988,38 @@ func loadCrudPage(transcription Transcription, port string) (*Page, error) {
 }
 
 func ExportCEX(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func ExportCEX: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func ExportCEX: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func ExportCEX: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func ExportCEX: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	var texturns, texts, areas, imageurns []string
 	var indexs []int
 	vars := mux.Vars(r)
 	filename := vars["filename"]
-	user := vars["user"]
 	dbname := user + ".db"
 	buckets := Buckets(dbname)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	for i := range buckets {
@@ -529,10 +1080,30 @@ func ExportCEX(w http.ResponseWriter, r *http.Request) {
 }
 
 func SaveImageRef(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func SaveImageRef: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func SaveImageRef: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func SaveImageRef: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func SaveImageRef: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
 	imagerefstr := r.FormValue("text")
 	imageref := strings.Split(imagerefstr, "#")
 	dbname := user + ".db"
@@ -541,9 +1112,11 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	retrievedjson.ImageRef = imageref
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	key := []byte(newkey)    //
@@ -569,14 +1142,33 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddFirstNode(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func AddFirstNode: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func AddFirstNode: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func AddFirstNode: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func AddFirstNode: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	var texturns, texts, previouss, nexts, firsts, lasts []string
 	var imagerefs, linetexts [][]string
 	var indexs []int
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
-
 	dbname := user + ".db"
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
 	retrievednodejson := BoltURN{}
@@ -590,9 +1182,11 @@ func AddFirstNode(w http.ResponseWriter, r *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 
@@ -741,13 +1335,33 @@ func AddFirstNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func AddNodeAfter: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func AddNodeAfter: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func AddNodeAfter: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func AddNodeAfter: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	var texturns, texts, previouss, nexts, firsts, lasts []string
 	var imagerefs, linetexts [][]string
 	var indexs []int
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
 
 	dbname := user + ".db"
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
@@ -758,9 +1372,11 @@ func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 
@@ -909,17 +1525,39 @@ func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
 }
 
 func newText(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func newText: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func newText: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func newText: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func newText: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
 	dbname := user + ".db"
 	retrievedjson := BoltURN{}
 	retrievedjson.URN = newkey
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	key := []byte(newkey)    //
@@ -945,10 +1583,30 @@ func newText(w http.ResponseWriter, r *http.Request) {
 }
 
 func SaveTranscription(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func SaveTranscription: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func SaveTranscription: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func SaveTranscription: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func SaveTranscription: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	user := vars["user"]
 	text := r.FormValue("text")
 	linetext := strings.Split(text, "\r\n")
 	text = strings.Replace(text, "\r\n", "", -1)
@@ -959,9 +1617,11 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 	retrievedjson.Text = text
 	retrievedjson.LineText = linetext
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	key := []byte(newkey)    //
@@ -987,9 +1647,29 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 }
 
 func LoadDB(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func LoadDB: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func LoadDB: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func LoadDB: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func LoadDB: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	cex := vars["cex"]
-	user := vars["user"]
 	http_req := "http://localhost:7000/cex/" + cex + ".cex"
 	data, _ := getContent(http_req)
 	str := string(data)
@@ -1164,9 +1844,11 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	// write to database
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	for i := range boltdata.Bucket {
@@ -1662,11 +2344,45 @@ func renderCompTemplate(w http.ResponseWriter, tmpl string, p *CompPage) {
 	}
 }
 
+func renderLoginTemplate(res http.ResponseWriter, tmpl string, p *LoginPage) {
+	err := templates.ExecuteTemplate(res, tmpl+".html", p)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func renderAuthTemplate(res http.ResponseWriter, tmpl string, p *LoginPage) {
+	err := templates.ExecuteTemplate(res, tmpl+".html", p)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 // ViewPage generates the webpage based on the sent request
 func ViewPage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func ViewPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func ViewPage: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func ViewPage: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func ViewPage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
-	user := vars["user"]
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -1728,17 +2444,37 @@ func ViewPage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := ":7000"
+	port := config.Port
 	kind := "/view/"
 	p, _ := loadPage(transcription, kind, port)
 	renderTemplate(w, "view", p)
 }
 
 func comparePage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func comparePage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func comparePage: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func : \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func comparePage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	urn2 := vars["urn2"]
-	user := vars["user"]
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -1856,17 +2592,37 @@ func comparePage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := ":7000"
+	port := config.Port
 
 	p, _ := loadCompPage(transcription, transcription2, port)
 	renderCompTemplate(w, "compare", p)
 }
 
 func consolidatePage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func consolidatePage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func consolidatePage: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func : \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func consolidatePage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	urn2 := vars["urn2"]
-	user := vars["user"]
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -1984,16 +2740,36 @@ func consolidatePage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := ":7000"
+	port := config.Port
 
 	p, _ := loadCompPage(transcription, transcription2, port)
 	renderCompTemplate(w, "consolidate", p)
 }
 
 func EditCatPage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func EditCatPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func EditCatPage: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func EditCatPage: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func EditCatPage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
-	user := vars["user"]
 	dbname := user + ".db"
 	textref := Buckets(dbname)
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
@@ -2027,16 +2803,36 @@ func EditCatPage(w http.ResponseWriter, r *http.Request) {
 		First:       first,
 		Last:        last,
 		CatID:       catid, CatCit: catcit, CatGroup: catgroup, CatWork: catwork, CatVers: catversion, CatExmpl: catexpl, CatOn: caton, CatLan: catlan}
-	port := ":7000"
+	port := config.Port
 	kind := "/editcat/"
 	p, _ := loadPage(transcription, kind, port)
 	renderTemplate(w, "editcat", p)
 }
 
 func EditPage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func EditPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func EditPage: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func EditPage: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func EditPage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
-	user := vars["user"]
 	dbname := user + ".db"
 	textref := Buckets(dbname)
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
@@ -2075,16 +2871,36 @@ func EditPage(w http.ResponseWriter, r *http.Request) {
 		TextRef:       textref,
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
-	port := ":7000"
+	port := config.Port
 	kind := "/edit/"
 	p, _ := loadPage(transcription, kind, port)
 	renderTemplate(w, "edit", p)
 }
 
 func Edit2Page(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func Edit2Page: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func Edit2Page: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func Edit2Page: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func Edit2Page: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
 	urn := vars["urn"]
-	user := vars["user"]
 	dbname := user + ".db"
 	textref := Buckets(dbname)
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
@@ -2116,7 +2932,7 @@ func Edit2Page(w http.ResponseWriter, r *http.Request) {
 		TextRef:       textref,
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
-	port := ":7000"
+	port := config.Port
 	kind := "/edit2/"
 	p, _ := loadPage(transcription, kind, port)
 	renderTemplate(w, "edit2", p)
@@ -2136,8 +2952,28 @@ type Alignment struct {
 }
 
 func MultiPage(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := ""
+	if session.Values["Loggedin"] != nil {
+		if session.Values["Loggedin"].(bool) {
+			user, ok := session.Values["BrucheionUserName"].(string)
+			if !ok {
+				fmt.Println("func MultiPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			fmt.Printf("func MultiPage: User %s is logged in.", user)
+		} else {
+			fmt.Printf("func MultiPage: \"Loggedin\" was false. User was not logged in.")
+			Logout(w, r)
+		}
+	} else {
+		fmt.Println("func MultiPage: \"Loggedin\" was nil. Session was not initialzed.")
+		Logout(w, r)
+	}
 	vars := mux.Vars(r)
-	user := vars["user"]
 	urn := vars["urn"]
 
 	dbname := user + ".db"
@@ -2161,9 +2997,11 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	passageId := strings.Split(urn, ":")[4]
 
 	buckets := Buckets(dbname)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	for i := range buckets {
 		if buckets[i] == requestedbucket {
@@ -2337,7 +3175,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 		First:         first1,
 		Last:          last1,
 		Transcription: tmpstr}
-	port := ":7000"
+	port := config.Port
 	p, _ := loadMultiPage(transcription, port)
 	renderTemplate(w, "multicompare", p)
 }

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brucheion Main Page</title>
+  <link rel="stylesheet" href="/static/css/font-awesome.min.css">
+  <link rel="stylesheet" type="text/css" href="/static/css/bulma.css">
+</head>
+<body>
+
+<section class="hero is-fullheight is-primary">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <a href="/logout/">Logout here</a>
+    </div>
+    <p>
+      <label class="label">You're logged in as {{.User}}</label>
+    </p>
+  </div>
+
+  <div class="hero-foot">
+    <div class="container">
+      <div class="tabs is-centered">
+        <ul>
+          <li><a>A project brought to you by the Digital Humanities department at the University of Leipzig</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
