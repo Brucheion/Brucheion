@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+
 	//"strconv"
 	"strings"
 	"time"
@@ -101,7 +102,7 @@ func getHref(t html.Token) (ok bool, href string) {
 
 func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 	urnLink := urn.Namespace + "/" + strings.Replace(urn.Collection, ".", "/", -1) + "/"
-	url := "http://localhost" + config.Port + "/static/image_archive/" + urnLink
+	url := config.Host + "/static/image_archive/" + urnLink
 	response, err := http.Get(url)
 	if err != nil {
 		return links, err
@@ -137,8 +138,8 @@ func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 //SetUpGothic sets up Gothic for login procedure
 func SetUpGothic() {
 	//Build the authentification paths for the choosen providers
-	gitHubPath := ("http://" + config.Host + config.Port + "/auth/github/callback")
-	gitLabPath := ("http://" + config.Host + config.Port + "/auth/gitlab/callback")
+	gitHubPath := (config.Host + "/auth/github/callback")
+	gitLabPath := (config.Host + "/auth/gitlab/callback")
 	//Tell gothic which login providers to use
 	goth.UseProviders(
 		github.New(config.GitHubKey, config.GitHubSecret, gitHubPath),
