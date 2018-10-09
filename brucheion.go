@@ -75,7 +75,7 @@ type CompPage struct {
 	User      string
 	Title     string
 	Text      template.HTML
-	Port      string
+	Host      string
 	CatID     string
 	CatCit    string
 	CatGroup  string
@@ -112,7 +112,7 @@ type Page struct {
 	NextLink     template.HTML
 	First        string
 	Last         string
-	Port         string
+	Host         string
 	ImageRef     string
 	CatID        string
 	CatCit       string
@@ -130,7 +130,7 @@ type LoginPage struct {
 	Provider     string //The login provider
 	HrefUserName string //Combination {user}_{provider} as displayed in link
 	Message      string //Message to be displayed according to login scenario
-	Port         string //Port of the Link
+	Host         string //Port of the Link
 	Title        string //Title of the website
 }
 
@@ -160,7 +160,6 @@ var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.h
 	"tmpl/main.html"))
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
-
 //The sessionName of the Brucheion Session
 const SessionName = "brucheionSession"
 
@@ -178,7 +177,6 @@ func main() {
 
 	//Set up the router
 	router := mux.NewRouter().StrictSlash(true)
-	
 
 	//Set up handlers for serving static files
 	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
@@ -224,7 +222,7 @@ func main() {
 	router.HandleFunc("/requestImgID/{name}", requestImgID)
 	router.HandleFunc("/deleteCollection", deleteCollection)
 	router.HandleFunc("/requestImgCollection", requestImgCollection)
-	log.Println("Listening at " + config.Host + config.Port + "...")
+	log.Println("Listening at " + config.Host + "...")
 	log.Fatal(http.ListenAndServe(config.Port, router))
 }
 
@@ -486,9 +484,8 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	port := config.Port
 	lp := &LoginPage{
-		Port:         port,
+		Host:         config.Host,
 		BUserName:    brucheionUserName,
 		Provider:     provider,
 		HrefUserName: brucheionUserName + "_" + provider,
@@ -543,7 +540,7 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 
 	page := &Page{
 		User: user,
-		Port: config.Port}
+		Host: config.Host}
 	renderTemplate(res, "main", page)
 }
 
@@ -940,7 +937,7 @@ func TreePage(w http.ResponseWriter, r *http.Request) {
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
-	p, _ := loadCrudPage(transcription, config.Port)
+	p, _ := loadCrudPage(transcription)
 	renderTemplate(w, "tree", p)
 }
 
@@ -973,18 +970,18 @@ func CrudPage(w http.ResponseWriter, r *http.Request) {
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
-	p, _ := loadCrudPage(transcription, config.Port)
+	p, _ := loadCrudPage(transcription)
 	renderTemplate(w, "crud", p)
 }
 
-func loadCrudPage(transcription Transcription, port string) (*Page, error) {
+func loadCrudPage(transcription Transcription) (*Page, error) {
 	user := transcription.Transcriber
 	var textrefrences []string
 	for i := range transcription.TextRef {
 		textrefrences = append(textrefrences, transcription.TextRef[i])
 	}
 	textref := strings.Join(textrefrences, " ")
-	return &Page{User: user, Text: template.HTML(textref), Port: port}, nil
+	return &Page{User: user, Text: template.HTML(textref), Host: config.Host}, nil
 }
 
 func ExportCEX(w http.ResponseWriter, r *http.Request) {
@@ -1670,7 +1667,7 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	}
 	vars := mux.Vars(r)
 	cex := vars["cex"]
-	http_req := "http://localhost:7000/cex/" + cex + ".cex"
+	http_req := config.Host + "/cex/" + cex + ".cex"
 	data, _ := getContent(http_req)
 	str := string(data)
 	var urns, areas []string
@@ -1903,7 +1900,7 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Success")
 }
 
-func loadPage(transcription Transcription, kind, port string) (*Page, error) {
+func loadPage(transcription Transcription, kind string) (*Page, error) {
 	user := transcription.Transcriber
 	imagejs := transcription.ImageJS
 	title := transcription.CTSURN
@@ -1925,17 +1922,17 @@ func loadPage(transcription Transcription, kind, port string) (*Page, error) {
 	var previouslink, nextlink string
 	switch {
 	case previous == "":
-		previouslink = `<a href ="/` + user + `/new/">add previous</a>`
+		previouslink = `<a href ="` + config.Host + `/new/">add previous</a>`
 		previous = title
 	default:
-		previouslink = `<a href ="/` + user + kind + previous + `">` + previous + `</a>`
+		previouslink = `<a href ="` + config.Host + kind + previous + `">` + previous + `</a>`
 	}
 	switch {
 	case next == "":
-		nextlink = `<a href ="/` + user + `/new/">add next</a>`
+		nextlink = `<a href ="` + config.Host + `/new/">add next</a>`
 		next = title
 	default:
-		nextlink = `<a href ="/` + user + kind + next + `">` + next + `</a>`
+		nextlink = `<a href ="` + config.Host + kind + next + `">` + next + `</a>`
 	}
 	var textrefrences []string
 	for i := range transcription.TextRef {
@@ -1957,12 +1954,12 @@ func loadPage(transcription Transcription, kind, port string) (*Page, error) {
 		var htmllink string
 		switch {
 		case ctsurn == title:
-			htmllink = `<option value="/` + user + kind + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="` + config.Host + kind + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
 		case ctsurn == "":
 			ctsurn = BoltRetrieveFirstKey(dbname, requestedbucket)
-			htmllink = `<option value="/` + user + kind + ctsurn + `">` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="` + config.Host + kind + ctsurn + `">` + transcription.TextRef[i] + `</option>`
 		default:
-			htmllink = `<option value="/` + user + kind + ctsurn + `">` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="` + config.Host + kind + ctsurn + `">` + transcription.TextRef[i] + `</option>`
 		}
 		textrefrences = append(textrefrences, htmllink)
 	}
@@ -2024,11 +2021,11 @@ func loadPage(transcription Transcription, kind, port string) (*Page, error) {
 		CatExmpl:     catexpl,
 		CatOn:        caton,
 		CatLan:       catlan,
-		Port:         port,
+		Host:         config.Host,
 		ImageJS:      imagejs}, nil
 }
 
-func loadCompPage(transcription, transcription2 Transcription, port string) (*CompPage, error) {
+func loadCompPage(transcription, transcription2 Transcription) (*CompPage, error) {
 	user := transcription.Transcriber
 	title := transcription.CTSURN
 	text := transcription.Transcription
@@ -2075,7 +2072,7 @@ func loadCompPage(transcription, transcription2 Transcription, port string) (*Co
 		CatExmpl2: catexpl2,
 		CatOn2:    caton2,
 		CatLan2:   catlan2,
-		Port:      port}, nil
+		Host:      config.Host}, nil
 }
 
 func fieldNWA(alntext []string) [][]string {
@@ -2444,9 +2441,8 @@ func ViewPage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := config.Port
 	kind := "/view/"
-	p, _ := loadPage(transcription, kind, port)
+	p, _ := loadPage(transcription, kind)
 	renderTemplate(w, "view", p)
 }
 
@@ -2592,9 +2588,7 @@ func comparePage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := config.Port
-
-	p, _ := loadCompPage(transcription, transcription2, port)
+	p, _ := loadCompPage(transcription, transcription2)
 	renderCompTemplate(w, "compare", p)
 }
 
@@ -2740,9 +2734,7 @@ func consolidatePage(w http.ResponseWriter, r *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	port := config.Port
-
-	p, _ := loadCompPage(transcription, transcription2, port)
+	p, _ := loadCompPage(transcription, transcription2)
 	renderCompTemplate(w, "consolidate", p)
 }
 
@@ -2803,9 +2795,8 @@ func EditCatPage(w http.ResponseWriter, r *http.Request) {
 		First:       first,
 		Last:        last,
 		CatID:       catid, CatCit: catcit, CatGroup: catgroup, CatWork: catwork, CatVers: catversion, CatExmpl: catexpl, CatOn: caton, CatLan: catlan}
-	port := config.Port
 	kind := "/editcat/"
-	p, _ := loadPage(transcription, kind, port)
+	p, _ := loadPage(transcription, kind)
 	renderTemplate(w, "editcat", p)
 }
 
@@ -2871,9 +2862,8 @@ func EditPage(w http.ResponseWriter, r *http.Request) {
 		TextRef:       textref,
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
-	port := config.Port
 	kind := "/edit/"
-	p, _ := loadPage(transcription, kind, port)
+	p, _ := loadPage(transcription, kind)
 	renderTemplate(w, "edit", p)
 }
 
@@ -2932,9 +2922,8 @@ func Edit2Page(w http.ResponseWriter, r *http.Request) {
 		TextRef:       textref,
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
-	port := config.Port
 	kind := "/edit2/"
-	p, _ := loadPage(transcription, kind, port)
+	p, _ := loadPage(transcription, kind)
 	renderTemplate(w, "edit2", p)
 }
 
@@ -3175,12 +3164,11 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 		First:         first1,
 		Last:          last1,
 		Transcription: tmpstr}
-	port := config.Port
-	p, _ := loadMultiPage(transcription, port)
+	p, _ := loadMultiPage(transcription)
 	renderTemplate(w, "multicompare", p)
 }
 
-func loadMultiPage(transcription Transcription, port string) (*Page, error) {
+func loadMultiPage(transcription Transcription) (*Page, error) {
 	user := transcription.Transcriber
 	dbname := user + ".db"
 	var textrefrences []string
@@ -3204,18 +3192,18 @@ func loadMultiPage(transcription Transcription, port string) (*Page, error) {
 		var htmllink string
 		switch {
 		case ctsurn == transcription.CTSURN:
-			htmllink = `<option value="/` + user + "/multicompare/" + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="` + config.Host + "/multicompare/" + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
 		case ctsurn == "":
 			ctsurn = BoltRetrieveFirstKey(dbname, requestedbucket)
-			htmllink = `<option value="/` + user + "/multicompare/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="` + config.Host + "/multicompare/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
 		default:
-			htmllink = `<option value="/` + user + "/multicompare/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
+			htmllink = `<option value="` + config.Host + "/multicompare/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
 		}
 		textrefrences = append(textrefrences, htmllink)
 	}
 	textref := strings.Join(textrefrences, " ")
 	texthtml := template.HTML(textref)
-	return &Page{User: user, Title: transcription.CTSURN, TextHTML: texthtml, InTextHTML: template.HTML(transcription.Transcription), Next: transcription.Next, Previous: transcription.Previous, First: transcription.First, Last: transcription.Last, Port: port}, nil
+	return &Page{User: user, Title: transcription.CTSURN, TextHTML: texthtml, InTextHTML: template.HTML(transcription.Transcription), Next: transcription.Next, Previous: transcription.Previous, First: transcription.First, Last: transcription.Last, Host: config.Host}, nil
 }
 
 func fieldNWA2(alntext []string) [][]string {
