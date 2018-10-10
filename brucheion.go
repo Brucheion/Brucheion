@@ -237,13 +237,13 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has been set already
-		if session.Values["Loggedin"].(bool) { //Loggedin will be true if login was successfull
-			user, ok := session.Values["BrucheionUserName"].(string) //if session was valid we can get a username
+	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has already been set
+		if session.Values["Loggedin"].(bool) { //"Loggedin" will be true if user is already logged in
+			user, ok := session.Values["BrucheionUserName"].(string) //if session was valid get a username
 			if !ok {
 				fmt.Println("func LoginGET: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("User %s is already logged in. Redirecting to main", user) //we can use the username for debugging
+			fmt.Printf("User %s is already logged in. Redirecting to main", user) //use the username for debugging
 			http.Redirect(res, req, "/main/", http.StatusFound)
 		}
 	} else { //Destroy the newly created session if Loggedin was not set
@@ -503,25 +503,15 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			ok := false
-			user, ok = session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func MainPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func MainPage: User %s is logged in.\n", user)
-		} else {
-			fmt.Printf("func MainPage: \"Loggedin\" was false. User was not logged in.")
-			Logout(res, req)
-		}
+	user, message, loggedin := TestLoginStatus("MainPage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func MainPage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(res, req)
 	}
 
-	/*fmt.Printf("User still known? Should be: %s\n", user)*/
+	fmt.Printf("User still known? Should be: %s\n", user)
 
 	dbname := config.UserDB
 	/*
@@ -545,27 +535,23 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 }
 
 func requestImgCollection(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func requestImgCollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func requestImgCollection: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func requestImgCollection: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("requestImgCollection", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func requestImgCollection: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	response := JSONlist{}
 	dbname := user + ".db"
 	db, err := OpenBoltDB(dbname)
@@ -597,27 +583,22 @@ func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func getImageInfo(w http.ResponseWriter, r *http.Request) {
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func getImageInfo: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func getImageInfo: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func getImageInfo: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("getImageInfo", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func getImageInfo: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	retImage := imageCollection{}
 	newImage := image{}
 	vars := mux.Vars(r)
@@ -658,27 +639,22 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func requestImgID(w http.ResponseWriter, r *http.Request) {
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func requestImgID: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func requestImgID: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func requestImgID: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("requestImgID", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func requestImgID: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	response := JSONlist{}
 	collection := imageCollection{}
 	vars := mux.Vars(r)
@@ -721,27 +697,22 @@ func requestImgID(w http.ResponseWriter, r *http.Request) {
 }
 
 func newCITECollection(w http.ResponseWriter, r *http.Request) {
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func newCITECollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func newCITECollection: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func newCITECollection: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("newCITECollection", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func newCITECollection: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	name := vars["name"] //the name of the new CITE collection
 	newCITECollectionDB(user, name)
@@ -749,27 +720,22 @@ func newCITECollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func addCITE(w http.ResponseWriter, r *http.Request) {
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func addCITE: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func addCITE: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func addCITE: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("addCITE", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func addCITE: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
 	name := r.URL.Query().Get("name")
 	name = strings.Replace(name, "\"", "", -1)
@@ -793,27 +759,23 @@ func addCITE(w http.ResponseWriter, r *http.Request) {
 }
 
 func newCollection(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func newCollection: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func newCollection: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func newCollection: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("newCollection", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func newCollection: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	name := vars["name"]
 	imageIDs := strings.Split(vars["urns"], ",")
@@ -855,27 +817,23 @@ func newCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func newWork(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func newWork: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func newWork: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func newWork: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("newWork", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func newWork: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	if r.Method == "GET" {
 		varmap := map[string]interface{}{
 			"user": user,
@@ -906,27 +864,20 @@ func newWork(w http.ResponseWriter, r *http.Request) {
 }
 
 func TreePage(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	user := ""
-
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func TreePage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func TreePage: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func TreePage: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("TreePage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func TreePage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
 
@@ -942,27 +893,23 @@ func TreePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func CrudPage(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func CrudPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func CrudPage: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func CrudPage: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("CrudPage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func CrudPage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	dbname := user + ".db"
 
 	textref := Buckets(dbname)
@@ -985,27 +932,23 @@ func loadCrudPage(transcription Transcription) (*Page, error) {
 }
 
 func ExportCEX(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func ExportCEX: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func ExportCEX: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func ExportCEX: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("ExportCEX", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func ExportCEX: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	var texturns, texts, areas, imageurns []string
 	var indexs []int
 	vars := mux.Vars(r)
@@ -1077,27 +1020,23 @@ func ExportCEX(w http.ResponseWriter, r *http.Request) {
 }
 
 func SaveImageRef(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func SaveImageRef: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func SaveImageRef: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func SaveImageRef: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("SaveImageRef", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func SaveImageRef: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
@@ -1139,27 +1078,23 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddFirstNode(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func AddFirstNode: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func AddFirstNode: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func AddFirstNode: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("AddFirstNode", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func AddFirstNode: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	var texturns, texts, previouss, nexts, firsts, lasts []string
 	var imagerefs, linetexts [][]string
 	var indexs []int
@@ -1332,27 +1267,23 @@ func AddFirstNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func AddNodeAfter: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func AddNodeAfter: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func AddNodeAfter: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("AddNodeAfter", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func AddNodeAfter: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	var texturns, texts, previouss, nexts, firsts, lasts []string
 	var imagerefs, linetexts [][]string
 	var indexs []int
@@ -1522,27 +1453,23 @@ func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
 }
 
 func newText(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func newText: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func newText: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func newText: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("newText", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func newText: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
@@ -1580,27 +1507,23 @@ func newText(w http.ResponseWriter, r *http.Request) {
 }
 
 func SaveTranscription(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func SaveTranscription: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func SaveTranscription: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func SaveTranscription: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("SaveTranscription", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func SaveTranscription: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
@@ -1643,36 +1566,35 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+user+"/view/"+newkey, http.StatusFound)
 }
 
+//LoadDB loads a CEX file, parses it, and saves its contents in the user DB.
+//THIS NAME IS MISLEADING
 func LoadDB(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func LoadDB: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func LoadDB: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func LoadDB: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("LoadDB", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func LoadDB: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
-	cex := vars["cex"]
-	http_req := config.Host + "/cex/" + cex + ".cex"
-	data, _ := getContent(http_req)
-	str := string(data)
+	cex := vars["cex"]                               //get the name of the CEX file from URL
+	http_req := config.Host + "/cex/" + cex + ".cex" //build the URL to pass to cexHandler
+	data, _ := getContent(http_req)                  //get response data using getContent and cexHandler
+	str := string(data)                              //make the response data a string
 	var urns, areas []string
 	var catalog []BoltCatalog
 
+	//read in the relations of the CEX file cutting away all unnecessary signs
 	if strings.Contains(str, "#!relations") {
 		relations := strings.Split(str, "#!relations")[1]
 		relations = strings.Split(relations, "#!")[0]
@@ -1898,6 +1820,8 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	io.WriteString(w, "Success")
+	//This function should load a page using a template and display a propper success flash.
+	//Alternatively it could become a helper function alltogether.
 }
 
 func loadPage(transcription Transcription, kind string) (*Page, error) {
@@ -2357,27 +2281,23 @@ func renderAuthTemplate(res http.ResponseWriter, tmpl string, p *LoginPage) {
 
 // ViewPage generates the webpage based on the sent request
 func ViewPage(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func ViewPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func ViewPage: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func ViewPage: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("ViewPage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func ViewPage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	dbname := user + ".db"
@@ -2447,27 +2367,23 @@ func ViewPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func comparePage(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func comparePage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func comparePage: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func : \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("comparePage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func comparePage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	urn2 := vars["urn2"]
@@ -2593,27 +2509,23 @@ func comparePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func consolidatePage(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func consolidatePage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func consolidatePage: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func : \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("consolidatePage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func consolidatePage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	urn2 := vars["urn2"]
@@ -2739,27 +2651,23 @@ func consolidatePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func EditCatPage(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func EditCatPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func EditCatPage: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func EditCatPage: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("EditCatPage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func EditCatPage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	dbname := user + ".db"
@@ -2801,27 +2709,23 @@ func EditCatPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func EditPage(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func EditPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func EditPage: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func EditPage: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("EditPage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func EditPage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	dbname := user + ".db"
@@ -2868,27 +2772,23 @@ func EditPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func Edit2Page(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func Edit2Page: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func Edit2Page: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func Edit2Page: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("Edit2Page", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func Edit2Page: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 	dbname := user + ".db"
@@ -2941,27 +2841,23 @@ type Alignment struct {
 }
 
 func MultiPage(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user := ""
-	if session.Values["Loggedin"] != nil {
-		if session.Values["Loggedin"].(bool) {
-			user, ok := session.Values["BrucheionUserName"].(string)
-			if !ok {
-				fmt.Println("func MultiPage: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			fmt.Printf("func MultiPage: User %s is logged in.", user)
-		} else {
-			fmt.Printf("func MultiPage: \"Loggedin\" was false. User was not logged in.")
-			Logout(w, r)
-		}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("MultiPage", session)
+	if loggedin {
+		fmt.Println(message)
 	} else {
-		fmt.Println("func MultiPage: \"Loggedin\" was nil. Session was not initialzed.")
+		fmt.Println(message)
 		Logout(w, r)
 	}
+
 	vars := mux.Vars(r)
 	urn := vars["urn"]
 
