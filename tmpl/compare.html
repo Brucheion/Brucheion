@@ -3,19 +3,19 @@
 <head>
 	<title>Brucheion</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-	<script type="text/javascript" src="http://localhost{{.Port}}/js/jquery-3.2.1.min.js"></script>
-	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon.js"></script>
-	<script type="text/javascript" src="http://localhost{{.Port}}/js/openseadragon-guides.js"></script>
-	<script type="text/javascript" src="http://localhost{{.Port}}/js/selection.js"></script>
-	<script type="text/javascript" src="http://localhost{{.Port}}/js/selectionoverlay.js"></script>
-	<script type="text/javascript" src="http://localhost{{.Port}}/js/selectionrect.js"></script>
-	<script type="text/javascript" src="http://localhost{{.Port}}/js/dragging.js"></script>
-	<script type="text/javascript" src="http://localhost{{.Port}}/js/bootstrap.min.js"></script>
-	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap.min.css">
-	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/bootstrap-theme.min.css">
-	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/application.css">
-	<link rel="stylesheet" href="http://localhost{{.Port}}/static/css/font-awesome.min.css">
-	<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/brulma.css">
+	<script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/openseadragon.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/openseadragon-guides.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/selection.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/selectionoverlay.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/selectionrect.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/dragging.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/application.css">
+	<link rel="stylesheet" href="{{.Host}}/static/css/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/brulma.css">
 	<style>
 		.tile-resizable {
 			resize: both;
@@ -79,7 +79,7 @@ color: black; }
 				</div>
 				<div class="nav-right nav-menu">
 					<p class="nav-item is-tab">
-						<a href="http://localhost{{.Port}}/{{.User}}/export/{{.User}}">
+						<a href="{{.Host}}/{{.User}}/export/{{.User}}">
 							<i class="fa fa-download">CEX-Download</i>
 						</a>
 					</p>
@@ -107,7 +107,7 @@ color: black; }
 								<div class="card-content is-hidden">
 									<div class="content">
 										<p class="has-text-right">
-											<a class="button is-small" href="/{{.User}}/editcat/{{.Title}}">EDIT METADATA</a>
+											<a class="button is-small" href="/editcat/{{.Title}}">EDIT METADATA</a>
 										</p>
 										<br/>
 										<table>
@@ -174,7 +174,7 @@ color: black; }
 									<div class="card-content is-hidden">
 										<div class="content">
 											<p class="has-text-right">
-												<a class="button is-small" href="/{{.User}}/editcat/{{.Title}}">EDIT METADATA</a>
+												<a class="button is-small" href="/editcat/{{.Title}}">EDIT METADATA</a>
 											</p>
 											<br/>
 											<table>

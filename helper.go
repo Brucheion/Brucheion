@@ -35,8 +35,6 @@ type dataframe struct {
 	Values2 []string
 }
 
-//var config Config
-
 func (m dataframe) Len() int           { return len(m.Indices) }
 func (m dataframe) Less(i, j int) bool { return m.Indices[i] < m.Indices[j] }
 func (m dataframe) Swap(i, j int) {
@@ -45,6 +43,7 @@ func (m dataframe) Swap(i, j int) {
 	m.Values2[i], m.Values2[j] = m.Values2[j], m.Values2[i]
 }
 
+//getContent returns the response data from a GET request using url from parameter as a byte slice.
 func getContent(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -411,7 +410,7 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 
 	bUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Println("Func Logout: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
+		fmt.Println("func Logout: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
 	}
 
 	session.Options.MaxAge = -1
@@ -424,4 +423,29 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 	fmt.Printf("User %s has logged out\n", bUserName)
 	http.Redirect(res, req, "/login/", http.StatusFound)
 
+}
+
+//TestLoginStatus returns the tests if a user is logged in.
+//It takes the name of the function to build an appropriate message and the session to extract the user from
+//and returns the name of the user, the message according to the test, and a boolean representing the login status.
+func TestLoginStatus(function string, session *sessions.Session) (user string, message string, loggedin bool) {
+	loggedin = false                       // before proven to be logged in, the login state should always be false
+	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has already been set
+		if session.Values["Loggedin"].(bool) { //"Loggedin" will be true if user is already logged in
+			ok := false                                             //necessary so that fuction-wide variable user is changed instead of a new variable being created.
+			user, ok = session.Values["BrucheionUserName"].(string) //if session was valid get a username
+			if !ok {                                                //error handling
+				fmt.Println("func TestLoginStatus: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+			}
+			message = "func " + function + ": User " + user + " is logged in." //build appropriate message
+			loggedin = true                                                    //set loggedin to true
+		} else {
+			message = "func " + function + ": \"Loggedin\" was false. User was not logged in." //build appropriate message
+			loggedin = false                                                                   //set loggedin to false
+		}
+	} else {
+		message = "func " + function + " \"Loggedin\" was nil. Session was not initialzed." //build appropriate message
+		loggedin = false                                                                    //set loggedin to true
+	}
+	return user, message, loggedin //return username, message, and login state
 }

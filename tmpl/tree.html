@@ -42,13 +42,13 @@
         display: none;
     }
 </style>
-<link rel="stylesheet" type="text/css" href="http://localhost{{.Port}}/static/css/brulma.css">
+<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/brulma.css">
 <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
 <script src="http://d3js.org/d3.v3.min.js"></script>
-<script src="http://localhost{{.Port}}/js/FileSaver.js"></script>
+<script src="{{.Host}}/js/FileSaver.js"></script>
 <script>
     // Get JSON data
-    treeJSON = d3.json("http://localhost:7000/thomas/urn:cts:sktlit:skt0001.nyaya002.msV7D:3.1.35/treenode.json", function (error, treeData) {
+    treeJSON = d3.json("{{.Host}}/thomas/urn:cts:sktlit:skt0001.nyaya002.msV7D:3.1.35/treenode.json", function (error, treeData) {
 
         // Calculate total nodes, max label length
         var totalNodes = 0;
@@ -606,11 +606,11 @@
                             {{.Title}}
                         </p>
                         <div class="navbar-dropdown">
-                            <a href="http://localhost{{.Port}}/{{.User}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
-                            <a href="http://localhost{{.Port}}/{{.User}}/edit2/{{.Title}}" class="navbar-item">Image Citation</a>
-                            <a href="http://localhost{{.Port}}/{{.User}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
-                            <a href="http://localhost{{.Port}}/{{.User}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
-                            <a href="http://localhost{{.Port}}/{{.User}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
+                            <a href="{{.Host}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
+                            <a href="{{.Host}}/edit2/{{.Title}}" class="navbar-item">Image Citation</a>
+                            <a href="{{.Host}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
+                            <a href="{{.Host}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
+                            <a href="{{.Host}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
                         </div>
                     </div>
                     <div class="navbar-item has-dropdown is-hoverable">
@@ -618,7 +618,7 @@
                             Work
                         </p>
                         <div class="navbar-dropdown">
-                            <a href="http://localhost{{.Port}}/{{.User}}/editcat/{{.Title}}" class="navbar-item">Metadata</a>
+                            <a href="{{.Host}}/editcat/{{.Title}}" class="navbar-item">Metadata</a>
                         </div>
                     </div>
                     <div class="navbar-item has-dropdown is-hoverable">
@@ -626,7 +626,7 @@
                             {{.User}}
                         </p>
                         <div class="navbar-dropdown">
-                            <a href="http://localhost{{.Port}}/{{.User}}/export/exported" class="navbar-item">Download CEX</a>
+                            <a href="{{.Host}}/export/exported" class="navbar-item">Download CEX</a>
                             <a href="#" class="navbar-item">Account Settings</a>
                             <a href="#" class="navbar-item">Display Settings</a>
                             <a href="#" class="navbar-item">Logout</a>

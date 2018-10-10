@@ -5,25 +5,25 @@
     <title>Image Citation Tool 2</title>
   	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <script data-semver="1.2.13" src="http://code.angularjs.org/1.2.13/angular.js" data-require="angular.js@1.2.x"></script>
-  	<script type="text/javascript" src="http://localhost:8080/js/jquery-3.2.1.min.js"></script>
-  	<script type="text/javascript" src="http://localhost:8080/js/openseadragon.js"></script>
-  	<script type="text/javascript" src="http://localhost:8080/js/openseadragon-guides.js"></script>
-  	<script type="text/javascript" src="http://localhost:8080/js/selection.js"></script>
-  	<script type="text/javascript" src="http://localhost:8080/js/selectionoverlay.js"></script>
-  	<script type="text/javascript" src="http://localhost:8080/js/selectionrect.js"></script>
-  	<script type="text/javascript" src="http://localhost:8080/js/dragging.js"></script>
-  	<script type="text/javascript" src="http://localhost:8080/js/bootstrap.min.js"></script>
-  	<link rel="stylesheet" type="text/css" href="http://localhost:8080/static/css/bootstrap.min.css">
-  	<link rel="stylesheet" type="text/css" href="http://localhost:8080/static/css/bootstrap-theme.min.css">
-  	<link rel="stylesheet" type="text/css" href="http://localhost:8080/static/css/application.css">
-  	<link rel="stylesheet" href="http://localhost:8080/static/css/font-awesome.min.css">
-  	<link rel="stylesheet" type="text/css" href="http://localhost:8080/static/css/bulma.css">
+  	<script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
+  	<script type="text/javascript" src="{{.Host}}/js/openseadragon.js"></script>
+  	<script type="text/javascript" src="{{.Host}}/js/openseadragon-guides.js"></script>
+  	<script type="text/javascript" src="{{.Host}}/js/selection.js"></script>
+  	<script type="text/javascript" src="{{.Host}}/js/selectionoverlay.js"></script>
+  	<script type="text/javascript" src="{{.Host}}/js/selectionrect.js"></script>
+  	<script type="text/javascript" src="{{.Host}}/js/dragging.js"></script>
+  	<script type="text/javascript" src="{{.Host}}/js/bootstrap.min.js"></script>
+  	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap.min.css">
+  	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap-theme.min.css">
+  	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/application.css">
+  	<link rel="stylesheet" href="{{.Host}}/static/css/font-awesome.min.css">
+  	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bulma.css">
     <script>document.write('<base href="' + document.location + '" />');</script>
-    <link href="http://localhost:8080/static/css/style.css" rel="stylesheet" />
+    <link href="{{.Host}}/static/css/style.css" rel="stylesheet" />
     <script src="http://code.jquery.com/jquery-2.0.3.min.js" data-semver="2.0.3" data-require="jquery"></script>
 
-    <script src="http://localhost:8080/js/app.js"></script>
-    <script src="http://localhost:8080/js/resizer.js"></script>
+    <script src="{{.Host}}/js/app.js"></script>
+    <script src="{{.Host}}/js/resizer.js"></script>
   </head>
 
   <body ng-controller="MainCtrl">
@@ -56,8 +56,8 @@
 
   		<div id="bottom-content">
         <p class="title">Metadata</p>
-				<p> Transcriber: {{.User}}</p>
-				<p> ImageRef: <a href="http://localhost:8080/cts/?urn={{.ImageRef}}">{{.ImageRef}}</a></p>
+				<p> Transcriber: {{.user}}</p>
+				<p> ImageRef: <a href="{{.Host}}/cts/?urn={{.ImageRef}}">{{.ImageRef}}</a></p>
       </div>
 
   		<div id="content-resizer"
@@ -75,7 +75,7 @@
   		resizer-left="#sidebar"
   		resizer-right="#content">
   	</div>
-<script type="text/javascript" src="http://localhost:8080/js/ict2.js"></script>
+<script type="text/javascript" src="{{.Host}}/js/ict2.js"></script>
 
   </body>
 
