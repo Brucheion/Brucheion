@@ -217,7 +217,7 @@ func main() {
 	router.HandleFunc("/newWork/", newWork)
 	router.HandleFunc("/newCollection/{name}/{urns}/", newCollection)
 	router.HandleFunc("/newCITECollection/{name}/", newCITECollection)
-	router.HandleFunc("/getImageInfo/{name}/{imageurn}/", getImageInfo)
+	router.HandleFunc("/getImageInfo/{name}/{imageurn}", getImageInfo)
 	router.HandleFunc("/addtoCITE/", addCITE)
 	router.HandleFunc("/requestImgID/{name}", requestImgID)
 	router.HandleFunc("/deleteCollection", deleteCollection)
@@ -583,6 +583,7 @@ func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 }
 
 func getImageInfo(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
@@ -601,7 +602,6 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 
 	retImage := imageCollection{}
 	newImage := image{}
-	vars := mux.Vars(r)
 	collectionName := vars["name"]
 	imageurn := vars["imageurn"]
 	dbkey := []byte(collectionName)
@@ -633,6 +633,8 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		fmt.Fprintln(w, string(resultJSON))
 	}
+	fmt.Println("request:", collectionName, collectionName)
+	fmt.Println("answer:", newImage)
 	resultJSON, _ := json.Marshal(newImage)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintln(w, string(resultJSON))
