@@ -12,6 +12,7 @@ var defaultServiceZoomPostfix = ".dzi"
 var defaultLocalpath = "/static/image_archive/"
 var defaultThumbWidth = 250;
 
+var defaultHost = "http://localhost:7000"
 var serviceUrl = defaultServiceUrl
 var servicePath = defaultServicePath
 var serviceUrlAndPath = serviceUrl + defaultServiceZoomService + servicePath
@@ -205,7 +206,7 @@ async function initOpenSeadragon() {
 		allowRotation: false,        // Make it possible to rotate the guidelines (by double clicking them)
 		horizontalGuideButton: null, // Element for horizontal guideline button
 		verticalGuideButton: null,   // Element for vertical guideline button
-		prefixUrl: "http://localhost:7000/static/css/images/",             // Images folder
+		prefixUrl: defaultHost + "/static/css/images/",             // Images folder
 		removeOnClose: false,        // Remove guidelines when viewer closes
 		useSessionStorage: false,    // Save guidelines in sessionStorage
 		navImages: {
@@ -694,7 +695,7 @@ async function getViewerByURN(imgUrn) {
 	if (newType == "localDZ" || newType == "") {
 		tmpviewer = OpenSeadragon({
 			id: 'image_imageContainer',
-			prefixUrl: 'http://localhost:7000/static/css/images/',
+			prefixUrl: defaultHost + '/static/css/images/',
 			crossOriginPolicy: "Anonymous",
 			defaultZoomLevel: 1,
 			tileSources: getTileSources(imgUrn),
@@ -704,7 +705,7 @@ async function getViewerByURN(imgUrn) {
 	} else if (newType == "static") {
 		tmpviewer = OpenSeadragon({
 			id: 'image_imageContainer',
-			prefixUrl: 'http://localhost:7000/static/css/images/',
+			prefixUrl: defaultHost + '/static/css/images/',
 			defaultZoomLevel: 1,
 			tileSources: {
 				type: 'image',
@@ -717,7 +718,7 @@ async function getViewerByURN(imgUrn) {
 	} else if (newType == "iiif") {
 		tmpviewer = OpenSeadragon({
 			id: 'image_imageContainer',
-			prefixUrl: 'http://localhost:7000/static/css/images/',
+			prefixUrl: defaultHost + '/static/css/images/',
 			crossOriginPolicy: "Anonymous",
 			defaultZoomLevel: 1,
 			tileSources: newURL,
@@ -736,9 +737,9 @@ function metaForUrn() {
 		console.log(imgUrn.indexOf('@'));
 		if (imgUrn.indexOf('@') != -1) {
 			redURN = imgUrn.substring(0, imgUrn.indexOf('@'));
-			querystring = 'http://localhost:7000/thomas/getImageInfo/' + baseURN + '/' + redURN;
+			querystring = defaultHost + '/getImageInfo/' + baseURN + '/' + redURN;
 		} else {
-			querystring = 'http://localhost:7000/thomas/getImageInfo/' + baseURN + '/' + imgUrn;
+			querystring = defaultHost + '/getImageInfo/' + baseURN + '/' + imgUrn;
 		}
 		console.log(querystring);
 		$.getJSON(querystring, function (data) {

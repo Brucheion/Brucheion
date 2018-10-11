@@ -34,6 +34,7 @@ type Sentence struct {
 	Text          string
 }
 
+//Some kind of proof of concept for something?
 func Treenode(w http.ResponseWriter, r *http.Request) {
 	var parentNode, childNode1, childNode2, childNode3, childNode4, childNode5 TreeNode
 
