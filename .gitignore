@@ -1,6 +1,7 @@
 # Windows and Mac OS X
 Thumbs.db
 .DS_Store
+*.db
 
 # exclude image_archive and cex
 static/image_archive/*
