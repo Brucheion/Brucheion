@@ -182,7 +182,7 @@
 		dropdown2.append('<option selected="true" disabled>Choose collection</option>');
 		dropdown2.prop('selectedIndex', 0);
 
-		const collectionurl = '{{.Host}}/thomas/requestImgCollection';
+		const collectionurl = '{{.Host}}/requestImgCollection';
 
 		// Populate dropdown with list of provinces
 		$.getJSON(collectionurl, function (data) {
@@ -193,10 +193,10 @@
 	</script>
 
 	<script>
-		var imageurl = "{{.Host}}/thomas/requestImgID/morgantina";
+		var imageurl = "{{.Host}}/requestImgID/morgantina";
 
 		function refreshURL() {
-			imageurl = '{{.Host}}/thomas/requestImgID/' + $('#image_colSelect').val();
+			imageurl = '{{.Host}}/requestImgID/' + $('#image_colSelect').val();
 			let dropdown = $('#image_urnSelect');
 
 			dropdown.empty();
