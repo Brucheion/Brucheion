@@ -181,7 +181,7 @@ func InitializeSession(req *http.Request) (*sessions.Session, error) {
 	fmt.Println("Initializing session for " + SessionName)
 	session, err := BrucheionStore.Get(req, SessionName)
 	if err != nil {
-		fmt.Printf("GetSession: Error getting the session: %s\n", err)
+		fmt.Printf("InitializeSession: Error getting the session: %s\n", err)
 		return nil, err
 	}
 	session.Options = &sessions.Options{

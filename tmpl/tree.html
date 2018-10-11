@@ -1,5 +1,32 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+
+<head>
+    <title>Brucheion</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/openseadragon.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/openseadragon-guides.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/selection.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/selectionoverlay.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/selectionrect.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/dragging.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/application.css">
+    <link rel="stylesheet" href="{{.Host}}/static/css/font-awesome.css">
+    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/brulma.css">
+    <style>
+        .tile-resizable {
+            resize: both;
+            overflow: hidden
+        }
+    </style>
+    {{.ImageScript}}
+</head>
+
+
 <style type="text/css">
     .node,
     .link {
@@ -48,7 +75,7 @@
 <script src="{{.Host}}/js/FileSaver.js"></script>
 <script>
     // Get JSON data
-    treeJSON = d3.json("{{.Host}}/thomas/urn:cts:sktlit:skt0001.nyaya002.msV7D:3.1.35/treenode.json", function (error, treeData) {
+    treeJSON = d3.json("{{.Host}}/urn:cts:sktlit:skt0001.nyaya002.msV7D:3.1.35/treenode.json", function (error, treeData) {
 
         // Calculate total nodes, max label length
         var totalNodes = 0;
@@ -591,7 +618,7 @@
         <div class="container">
             <div class="navbar-brand">
                 <a class="navbar-item img">
-                    <img src="/static/img/BrucheionLogo.png" alt="Brucheion logo" height="95rem">
+                    <img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
                 </a>
                 <span class="navbar-burger burger" data-target="navMenu">
                     <span></span>
@@ -603,7 +630,7 @@
                 <div class="navbar-end">
                     <div class="navbar-item has-dropdown is-hoverable">
                         <p class="navbar-link">
-                            {{.Title}}
+                            Tools
                         </p>
                         <div class="navbar-dropdown">
                             <a href="{{.Host}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
@@ -611,25 +638,18 @@
                             <a href="{{.Host}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
                             <a href="{{.Host}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
                             <a href="{{.Host}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
+                            <a href="{{.Host}}/editcat/{{.Title}}" class="navbar-item">Edit Metadata</a>
                         </div>
                     </div>
                     <div class="navbar-item has-dropdown is-hoverable">
                         <p class="navbar-link">
-                            Work
-                        </p>
-                        <div class="navbar-dropdown">
-                            <a href="{{.Host}}/editcat/{{.Title}}" class="navbar-item">Metadata</a>
-                        </div>
-                    </div>
-                    <div class="navbar-item has-dropdown is-hoverable">
-                        <p class="navbar-link">
-                            {{.User}}
+                            <i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
                         </p>
                         <div class="navbar-dropdown">
                             <a href="{{.Host}}/export/exported" class="navbar-item">Download CEX</a>
                             <a href="#" class="navbar-item">Account Settings</a>
                             <a href="#" class="navbar-item">Display Settings</a>
-                            <a href="#" class="navbar-item">Logout</a>
+                            <a href="{{.Host}}/logout/" class="navbar-item">Logout</a>
                         </div>
                     </div>
                 </div>
