@@ -4,6 +4,7 @@
 // var viewer = null
 var viewer = null;
 
+var defaultHost = "http://localhost:7000"
 var defaultServiceUrl = ""
 var defaultServiceZoomService = "DeepZoom="
 var defaultServicePath = ""
