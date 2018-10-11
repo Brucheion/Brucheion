@@ -213,7 +213,7 @@ func main() {
 	router.HandleFunc("/edit2/{urn}/", Edit2Page)
 	router.HandleFunc("/compare/{urn}+{urn2}/", comparePage)
 	router.HandleFunc("/consolidate/{urn}+{urn2}/", consolidatePage)
-	router.HandleFunc("/saveImage/{key}/", SaveImageRef)
+	router.HandleFunc("/saveImage/{key}", SaveImageRef)
 	router.HandleFunc("/newWork/", newWork)
 	router.HandleFunc("/newCollection/{name}/{urns}/", newCollection)
 	router.HandleFunc("/newCITECollection/{name}/", newCITECollection)
@@ -1020,7 +1020,13 @@ func ExportCEX(w http.ResponseWriter, r *http.Request) {
 }
 
 func SaveImageRef(w http.ResponseWriter, r *http.Request) {
-
+	fmt.Println(r.Method)
+	if r.Method != "POST" {
+		io.WriteString(w, "Only POST is supported!")
+		return
+	}
+	fmt.Println(r.ParseForm())
+	fmt.Println(r.FormValue("text"))
 	//First get the session..
 	session, err := GetSession(r)
 	if err != nil {
@@ -1046,7 +1052,9 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
 	retrievedjson := BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	fmt.Println(retrievedjson.ImageRef)
 	retrievedjson.ImageRef = imageref
+	fmt.Println(imageref)
 	newnode, _ := json.Marshal(retrievedjson)
 	db, err := OpenBoltDB(dbname)
 	if err != nil {
@@ -1066,6 +1074,7 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 
 		err = bucket.Put(key, value)
 		if err != nil {
+			fmt.Println(err)
 			return err
 		}
 		return nil
@@ -1074,7 +1083,7 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	http.Redirect(w, r, "/"+user+"/view/"+newkey, http.StatusFound)
+	http.Redirect(w, r, "/view/"+newkey, http.StatusFound)
 }
 
 func AddFirstNode(w http.ResponseWriter, r *http.Request) {
@@ -1503,7 +1512,7 @@ func newText(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	http.Redirect(w, r, "/"+user+"/view/"+newkey, http.StatusFound)
+	http.Redirect(w, r, "/view/"+newkey, http.StatusFound)
 }
 
 func SaveTranscription(w http.ResponseWriter, r *http.Request) {
@@ -1563,7 +1572,7 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	http.Redirect(w, r, "/"+user+"/view/"+newkey, http.StatusFound)
+	http.Redirect(w, r, "view/"+newkey, http.StatusFound)
 }
 
 //LoadDB loads a CEX file, parses it, and saves its contents in the user DB.
