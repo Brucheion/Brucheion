@@ -2,13 +2,11 @@
 
 Brucheion is a Virtual Research Environment (VRE) to create Linked Open Data (LOD) for historical languages and the research of historical objects.
 
-<img src="static/img/BrucheionLogo.png" alt="" width="448" height="221">
-
-![Brucheion Logo](static/img/BrucheionLogo.png)
+<img src="static/img/BrucheionLogo.png" alt="" width="500" height="500">
 
 ## Using Brucheion
 
-Parts of Brucheion are already ready to be tested. But please note, that the VRE is still under development and potentially has bugs.
+Parts of Brucheion are ready to be tested. Please note, that the VRE is still under development and potentially buggy.
 
 ## Install 
 
@@ -17,9 +15,9 @@ To Install Brucheion simply download the repository. Depending on the operating 
 
 ## Usage
 
- If you simply want to try out brucheion with the standard configuration you can start it using the terminal:
+If you simply want to try out Brucheion with the standard configuration you can start it using the terminal:
 
-![Starting Brucheion using the terminal](static/img/tutorial/callfromterminal.png)
+![Starting Brucheion using the terminal](static/img/tutorial/callFromTerminal.png)
 
 As soon as Brucheion is running you may access it using your favorite browser. 
 
@@ -27,7 +25,7 @@ As soon as Brucheion is running you may access it using your favorite browser.
 
 Brucheion is configured using a file called the config.json. 
 
-![config.json](static/img/tutorial/jsonconfig.png)
+![config.json](static/img/tutorial/jsonConfig.png)
 
 JSON is a common data format used for asynchronous browser–server communication, that uses human-readable text to transmit data objects consisting of attribute–value pairs and array data types.<sup id="1">[1](#Wikipedia_JSON)</sup> Therefore it is essential to format config.json correctly.
 
