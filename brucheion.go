@@ -425,7 +425,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			fmt.Println(validation.Message) //Display validation.Message if all went well.
 		} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
 			//create new enty for new BUser
-			db, err := OpenBoltDB(config.UserDB) //open the userDB
+			db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
 			if err != nil {
 				fmt.Printf("Error opening userDB: %s", err)
 				http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -554,7 +554,7 @@ func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 
 	response := JSONlist{}
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -606,7 +606,7 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 	imageurn := vars["imageurn"]
 	dbkey := []byte(collectionName)
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -663,7 +663,7 @@ func requestImgID(w http.ResponseWriter, r *http.Request) {
 	name := vars["name"]
 	dbname := user + ".db"
 	dbkey := []byte(name)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -948,7 +948,7 @@ func ExportCEX(w http.ResponseWriter, r *http.Request) {
 	filename := vars["filename"]
 	dbname := user + ".db"
 	buckets := Buckets(dbname)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1052,7 +1052,7 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 	retrievedjson.ImageRef = imageref
 	fmt.Println(imageref) //DEBUG
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1119,7 +1119,7 @@ func AddFirstNode(w http.ResponseWriter, r *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1305,7 +1305,7 @@ func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1482,7 +1482,7 @@ func newText(w http.ResponseWriter, r *http.Request) {
 	retrievedjson := BoltURN{}
 	retrievedjson.URN = newkey
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1542,7 +1542,7 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 	retrievedjson.Text = text
 	retrievedjson.LineText = linetext
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1768,7 +1768,7 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	// write to database
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + user + ".db"
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2687,7 +2687,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	passageId := strings.Split(urn, ":")[4]
 
 	buckets := Buckets(dbname)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

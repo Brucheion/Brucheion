@@ -1,8 +1,6 @@
-# Brucheion
+<img src="static/img/BrucheionLogo.png" alt="" width="500" height="500" align="middle">
 
 Brucheion is a Virtual Research Environment (VRE) to create Linked Open Data (LOD) for historical languages and the research of historical objects.
-
-<img src="static/img/BrucheionLogo.png" alt="" width="500" height="500">
 
 ## Using Brucheion
 
