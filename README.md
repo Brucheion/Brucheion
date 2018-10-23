@@ -61,6 +61,30 @@ JSON is a common data format used for asynchronous browser–server communicatio
 
 ### Login
 
+To login you need a GitHub or a GitLab account. 
+
+1. If the server is running navigate to /login/ (with the standard configuration navigate to http://localhost:7000/login/)
+
+![loginPage](static/img/tutorial/loginBlank.png)
+
+2. Enter a user name of your liking. For this tutorial it'll be Adri.
+
+![loginAdri](static/img/tutorial/loginAdri.png)
+
+3. Choose the login provider that you want to use to authenticate and click on login. If the user is new you should see the following confirmation message:
+
+![loginNewUserGitHubsuccess](static/img/tutorial/newUserGHsuccess.png)
+
+4. To choose another provider simply use the drop-down menu:
+
+![loginChooseProvider](static/img/tutorial/loginChooseProvider.png)
+
+5. But please always use the same user name with the same login provider. For example: if user Adri tries to login using his GitLab account, Brucheion will show an error message:
+
+![loginUsernameInUse](static/img/tutorial/loginUsernameInUse.png)
+
+6. Likewise a new user can not be registered with an GitHub or GiLab account that is already in use.
+
 ### View
 
 <b id="Wikipedia_JSON">1</b> https://en.wikipedia.org/wiki/JSON [↩](#1)
