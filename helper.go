@@ -213,7 +213,7 @@ func OpenBoltDB(dbName string) (*bolt.DB, error) {
 	return db, nil
 }
 
-//initializeUserDB should be called once during login attempt to make sure that all buckets are in place.
+//InitializeUserDB should be called once during login attempt to make sure that all buckets are in place.
 func InitializeUserDB() error {
 	fmt.Println("Initializing UserDB")
 	db, err := OpenBoltDB(config.UserDB)
@@ -238,37 +238,69 @@ func InitializeUserDB() error {
 			fmt.Errorf("Failed creating bucket GitLab: %s", err)
 			return err
 		}
+		bucket, err := tx.CreateBucketIfNotExists([]byte("noAuth"))
+		if err != nil {
+			fmt.Errorf("Failed creating bucket noAuth: %s", err)
+			return err
+		}
+
 		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error)
 
 		return nil //if all went well, error can be returned with <nil>
 	})
-
 	db.Close() //always remember to close the db
 	//fmt.Println("DB closed")
 	return nil
 }
 
+//ValidateUserName guarantees that a user name was entered (not left blank)
+//and that only numbers and letters were used.
 func ValidateUserName(username string) *Validation {
 
-	unameValidation := &Validation{
+	unameValidation := &Validation{ //create a validation object by reference
 		ErrorCode: false}
 
-	matched, err := regexp.MatchString("^[0-9a-zA-Z]*$", username)
+	matched, err := regexp.MatchString("^[0-9a-zA-Z]*$", username) //create a regexp object to hold the regular expression to be tested
 	if err != nil {
 		fmt.Println("Wrong regex pattern.")
 	}
 
 	fmt.Println("Validating: " + username)
-	if strings.TrimSpace(username) == "" {
-		unameValidation.Message = "Please enter a username."
+	if strings.TrimSpace(username) == "" { //form was left blank
+		unameValidation.Message = "Please enter a username." //the message will be displayed on the login page
 		return unameValidation
-	} else if !matched {
+	} else if !matched { //illegal characters were used
 		unameValidation.Message = "Please only use letters and numbers."
 		return unameValidation
-	} else {
-		unameValidation.ErrorCode = true
+	} else { //a username only made of numbers and letters was used
+		unameValidation.ErrorCode = true //the username was successfully validated
 		return unameValidation
 	}
+}
+
+func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
+	noAuthUserValidation := &Validation{
+		Message:    "An internal error occured. (This should never happen.)",
+		ErrorCode:  false,
+		BUserInUse: false}
+
+	//get the session to retrieve session/cookie values
+	session, err := GetSession(req)
+	if err != nil {
+		return nil, err
+	}
+
+	//get user data from session
+	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
+	if !ok {
+		fmt.Errorf("Func ValidateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved.")
+	}
+
+	userDB, err := OpenBoltDB(config.UserDB)
+	if err != nil {
+		return nil, err
+	}
+	defer userDB.Close()
 }
 
 func ValidateUser(req *http.Request) (*Validation, error) {

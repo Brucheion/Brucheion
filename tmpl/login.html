@@ -31,12 +31,16 @@
                   <input class="input" type="text" name="brucheionusername" placeholder="●●●●●●●">
                 </p>
                 <br>
+                {{ if .NoAuth }}
+                <label class ="label">Started in noAuth mode. You'll be redirected to main page directly.</label>
+                {{ else }}
                 <p class="control">
                   <select class="select" name="provider" >
                     <option value="GitHub">GitHub</option>
                     <option value="GitLab">GitLab</option>
                   </select>
                 </p>
+                {{ end }}
                 <br>
                 <p class="control">
                   <button class="button is-primary" type = "submit">Login</button> 
