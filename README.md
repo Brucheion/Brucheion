@@ -79,11 +79,11 @@ To login you need a GitHub or a GitLab account.
 
 ![loginChooseProvider](static/img/tutorial/loginChooseProvider.png)
 
-5. But please always use the same user name with the same login provider. For example: if user Adri tries to login using his GitLab account, Brucheion will show an error message:
+5. You can only use the same user name with the same login provider. For example: if user Adri tries to login using his GitLab account, Brucheion will show an error message:
 
 ![loginUsernameInUse](static/img/tutorial/loginUsernameInUse.png)
 
-6. Likewise a new user can not be registered with an GitHub or GiLab account that is already in use.
+6. Likewise, a new user can not be registered with an GitHub or GitLab account that is already in use.
 
 ### View
 

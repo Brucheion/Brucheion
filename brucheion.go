@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -132,6 +133,7 @@ type LoginPage struct {
 	Message      string //Message to be displayed according to login scenario
 	Host         string //Port of the Link
 	Title        string //Title of the website
+	NoAuth       bool   //representation of the noAuth flag
 }
 
 //BrucheionUser stores Information about the logged in Brucheion-user
@@ -166,11 +168,18 @@ const SessionName = "brucheionSession"
 //
 var BrucheionStore sessions.Store
 
+var noAuth *bool
+
 //Main initializes the mux server
 func main() {
 
-	//
-	SetUpGothic()
+	noAuth = flag.Bool("noauth", false, "Start Brucheion without authentificating with a provider (default: false)")
+	flag.Parse()
+
+	if !*noAuth { //If Brucheion is NOT started in noAuth mode:
+		//Set up gothic for authentification using the helper function
+		SetUpGothic()
+	}
 
 	//Create new Cookiestore for Brucheion
 	BrucheionStore = GetCookieStore(config.MaxAge)
@@ -256,13 +265,21 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	if *noAuth {
+		fmt.Println("flag was true")
+	} else {
+		fmt.Println("flag was false")
+	}
+
 	lp := &LoginPage{
-		Title: "Brucheion Login Page"}
+		Title:  "Brucheion Login Page",
+		NoAuth: *noAuth}
 	renderLoginTemplate(res, "login", lp)
 }
 
 //LoginPOST logs in the user using the form values and gothic.
 func LoginPOST(res http.ResponseWriter, req *http.Request) {
+
 	//Make sure user is not logged in yet
 	session, err := GetSession(req) //get a session
 	if err != nil {
@@ -302,28 +319,65 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 
 	unameValidation := ValidateUserName(lp.BUserName) //checks if this username only has (latin) letters and (arabian) numbers
 
-	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
+	if *noAuth { //if the noauth flag was set true: check if username is valid and not in use for a login with a provider
+		fmt.Println("flag was true")
 
-	/*fmt.Println("authPath: " + authPath)
-	fmt.Println("userDB:" + config.UserDB)*/
+		if unameValidation.ErrorCode { //if a valid username has been chosen
+			session, err = InitializeSession(req) //initialize a persisting session
+			if err != nil {
+				fmt.Println("LoginPOST: Error initializing the session.")
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+				return
+			}
 
-	if unameValidation.ErrorCode { //if a valid username has been chosen
-		session, err = InitializeSession(req) //initialize a persisting session
-		if err != nil {
-			fmt.Println("LoginPOST: Error initializing the session.")
-			http.Error(res, err.Error(), http.StatusInternalServerError)
-			return
+			//save the values from the form in the session
+			session.Values["BrucheionUserName"] = lp.BUserName
+			session.Values["Loggedin"] = false
+			session.Save(req, res)
+
+			err = InitializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
+			if err != nil {
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			validation, err := ValidateUser(req) //validate if credentials match existing user
+			if err != nil {
+				fmt.Printf("\nAuthCallback error validating user: %s", err)
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+			}
+
 		}
+		/*
+			Check if user was in GH or GL Bucket (not accessable via noAuth ->redirect to login
+			Was in noAuth bucket: redirect
+			Was not in noAuth Bucket: Put user in noAuth Bucket
+		*/
+		http.Redirect(res, req, "/main/", http.StatusFound)
+	} else { //if the noauth flag was not set, or set false: continue with authentification using a provider
+		authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
 
-		//save the values from the form in the session
-		session.Values["BrucheionUserName"] = lp.BUserName
-		session.Values["Provider"] = lp.Provider            //the provider used for login
-		session.Values["Loggedin"] = false                  //make sure the "Loggedin" session value is set but false
-		session.Save(req, res)                              //always save the session after setting values
-		http.Redirect(res, req, authPath, http.StatusFound) //redirect to auth page with correct provider
-	} else { //if the the user name was not valid
-		lp.Message = unameValidation.Message  //add the message to the loginpage..
-		renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
+		/*fmt.Println("authPath: " + authPath)
+		fmt.Println("userDB:" + config.UserDB)*/
+
+		if unameValidation.ErrorCode { //if a valid username has been chosen
+			session, err = InitializeSession(req) //initialize a persisting session
+			if err != nil {
+				fmt.Println("LoginPOST: Error initializing the session.")
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			//save the values from the form in the session
+			session.Values["BrucheionUserName"] = lp.BUserName
+			session.Values["Provider"] = lp.Provider            //the provider used for login
+			session.Values["Loggedin"] = false                  //make sure the "Loggedin" session value is set but false
+			session.Save(req, res)                              //always save the session after setting values
+			http.Redirect(res, req, authPath, http.StatusFound) //redirect to auth page with correct provider
+		} else { //if the the user name was not valid
+			lp.Message = unameValidation.Message  //add the message to the loginpage..
+			renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
+		}
 	}
 }
 
@@ -345,7 +399,7 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 			}
 			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
 			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
-		} else { //proceed with login process
+		} else { //proceed with login process (gothic redirects to provider and redirects to callback)
 			gothic.BeginAuthHandler(res, req)
 		}
 	} else { //kill the session and redirect to login
