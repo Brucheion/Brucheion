@@ -146,11 +146,12 @@ type BrucheionUser struct {
 
 //Validation stores the result of the validation
 type Validation struct {
-	Message      string //Message according to outcome of validation
-	ErrorCode    bool   //Was an error encountered during validation (something did not match)?
-	BUserInUse   bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
-	SameProvider bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
-	PUserInUse   bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
+	Message       string //Message according to outcome of validation
+	ErrorCode     bool   //Was an error encountered during validation (something did not match)?
+	BUserInUse    bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
+	SameProvider  bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
+	PUserInUse    bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
+	BPAssociation bool   // func ValidateNoAuthUser: Is the choosen NoAuthUser already in use with a provider login?
 }
 
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
@@ -169,12 +170,19 @@ const SessionName = "brucheionSession"
 var BrucheionStore sessions.Store
 
 var noAuth *bool
+var configLocation *string
 
 //Main initializes the mux server
 func main() {
 
 	noAuth = flag.Bool("noauth", false, "Start Brucheion without authentificating with a provider (default: false)")
+	configLocation = flag.String("config", "./config.json", "Specify where to load the JSON config from. (defalult: ./config.json")
 	flag.Parse()
+
+	if *configLocation != "./config.json" {
+		log.Println("loading configuration from: " + *configLocation)
+		config = LoadConfiguration(*configLocation)
+	}
 
 	if !*noAuth { //If Brucheion is NOT started in noAuth mode:
 		//Set up gothic for authentification using the helper function
@@ -266,9 +274,9 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if *noAuth {
-		fmt.Println("flag was true")
+		log.Println("noAuth flag was true")
 	} else {
-		fmt.Println("flag was false")
+		log.Println("noAuth flag was false")
 	}
 
 	lp := &LoginPage{
@@ -296,7 +304,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
 			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
 		}
-	} else { //Destroy the session we just got if was not logged in yet (proceed with login process)
+	} else { //Destroy the session we just got if user was not logged in yet (proceed with login process)
 		session.Options.MaxAge = -1
 		session.Values = make(map[interface{}]interface{})
 		err = session.Save(req, res)
@@ -306,78 +314,92 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	title := "Brucheion Login Page"
-
-	/*fmt.Println("req.FormValue(\"brucheionUserName\")" + req.FormValue("brucheionusername"))
-	fmt.Println("req.FormValue(\"provider\")" + req.FormValue("provider"))*/
+	title := "Brucheion Login Page" //set the title of the page
 
 	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
 		BUserName: strings.TrimSpace(req.FormValue("brucheionusername")),
-		Provider:  req.FormValue("provider"),
+		Host:      config.Host,
 		Title:     title}
 
 	unameValidation := ValidateUserName(lp.BUserName) //checks if this username only has (latin) letters and (arabian) numbers
 
-	if *noAuth { //if the noauth flag was set true: check if username is valid and not in use for a login with a provider
-		fmt.Println("flag was true")
-
-		if unameValidation.ErrorCode { //if a valid username has been chosen
-			session, err = InitializeSession(req) //initialize a persisting session
-			if err != nil {
-				fmt.Println("LoginPOST: Error initializing the session.")
-				http.Error(res, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			//save the values from the form in the session
-			session.Values["BrucheionUserName"] = lp.BUserName
-			session.Values["Loggedin"] = false
-			session.Save(req, res)
-
-			err = InitializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
-			if err != nil {
-				http.Error(res, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			validation, err := ValidateUser(req) //validate if credentials match existing user
-			if err != nil {
-				fmt.Printf("\nAuthCallback error validating user: %s", err)
-				http.Error(res, err.Error(), http.StatusInternalServerError)
-			}
-
+	if unameValidation.ErrorCode { //if a valid username has been chosen
+		session, err = InitializeSession(req) //initialize a persisting session
+		if err != nil {
+			fmt.Println("LoginPOST: Error initializing the session.")
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
 		}
-		/*
-			Check if user was in GH or GL Bucket (not accessable via noAuth ->redirect to login
-			Was in noAuth bucket: redirect
-			Was not in noAuth Bucket: Put user in noAuth Bucket
-		*/
-		http.Redirect(res, req, "/main/", http.StatusFound)
-	} else { //if the noauth flag was not set, or set false: continue with authentification using a provider
-		authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
 
-		/*fmt.Println("authPath: " + authPath)
-		fmt.Println("userDB:" + config.UserDB)*/
+		//save the BrucheionUserName in the session as well and set the Loggedin value to false
+		session.Values["BrucheionUserName"] = lp.BUserName
+		session.Values["Loggedin"] = false
+		session.Save(req, res)
 
-		if unameValidation.ErrorCode { //if a valid username has been chosen
-			session, err = InitializeSession(req) //initialize a persisting session
+		err = InitializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if *noAuth { //if the noauth flag was set true: check if username is not in use for a login with a provider
+			fmt.Println("flag was true")
+			lp.NoAuth = *noAuth
+
+			validation, err := ValidateNoAuthUser(req) //validate if credentials match existing user and not in use with a provider login yet
 			if err != nil {
-				fmt.Println("LoginPOST: Error initializing the session.")
+				fmt.Printf("\nLoginPOST error validating user: %s", err)
 				http.Error(res, err.Error(), http.StatusInternalServerError)
-				return
 			}
+			if validation.ErrorCode {
+				brucheionUser := &BrucheionUser{ //create Brucheionuser instance
+					BUserName: lp.BUserName,
+					Provider:  "noAuth"}
+				if !validation.BUserInUse { // create new noAuth user if the username was not in use
+					db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
+					if err != nil {
+						fmt.Printf("Error opening userDB: %s", err)
+						http.Error(res, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					db.Update(func(tx *bolt.Tx) error {
+						bucket := tx.Bucket([]byte("users"))
+						buffer, err := json.Marshal(brucheionUser) //Marshal user data
+						if err != nil {
+							fmt.Errorf("Failed marshalling user data for user %s: %s\n", brucheionUser.BUserName, err)
+							return err
+						}
+						err = bucket.Put([]byte(brucheionUser.BUserName), buffer) //put user into bucket
+						if err != nil {
+							fmt.Errorf("Failed saving user %s in users.db\n", brucheionUser.BUserName, err)
+							return err
+						}
+						fmt.Printf("Successfully saved new user %s in users.DB.\n", brucheionUser.BUserName)
 
-			//save the values from the form in the session
-			session.Values["BrucheionUserName"] = lp.BUserName
+						fmt.Println(validation.Message) //Display validation.Message if all went well.
+						return nil
+					})
+					db.Close() //always remember to close the db
+				}
+				session.Values["Loggedin"] = true //To keep the user logged in
+				session.Save(req, res)
+				lp.Message = validation.Message //The message to be replied in regard to the login scenario
+				renderAuthTemplate(res, "callback", lp)
+			} else {
+				lp.Message = validation.Message       //add the message to the loginpage
+				renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
+			}
+		} else { //if the noauth flag was not set, or set false: continue with authentification using a provider
+			authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
+			lp.Provider = req.FormValue("provider")
 			session.Values["Provider"] = lp.Provider            //the provider used for login
-			session.Values["Loggedin"] = false                  //make sure the "Loggedin" session value is set but false
 			session.Save(req, res)                              //always save the session after setting values
 			http.Redirect(res, req, authPath, http.StatusFound) //redirect to auth page with correct provider
-		} else { //if the the user name was not valid
-			lp.Message = unameValidation.Message  //add the message to the loginpage..
-			renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
 		}
+	} else { //if the the user name was not valid
+		lp.Message = unameValidation.Message  //add the message to the loginpage
+		renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
 	}
 }
 
@@ -478,7 +500,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			session.Save(req, res)
 			fmt.Println(validation.Message) //Display validation.Message if all went well.
 		} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
-			//create new enty for new BUser
+			//create new entry for new BUser
 			db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
 			if err != nil {
 				fmt.Printf("Error opening userDB: %s", err)
@@ -520,7 +542,6 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 	} else { //Login scenarios (2), (3), (4)
-
 		if (validation.BUserInUse && !validation.SameProvider && validation.PUserInUse) ||
 			(!validation.BUserInUse && validation.SameProvider && validation.PUserInUse) ||
 			(!validation.BUserInUse && validation.SameProvider && !validation.PUserInUse) { //unknown login behavior
@@ -568,13 +589,6 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 	fmt.Printf("User still known? Should be: %s\n", user)
 
 	dbname := config.UserDB
-	/*
-		db, err := bolt.Open(dbname, 0644, nil)
-		if err != nil {
-			fmt.Println("Error opening DB.")
-			log.Fatal(err)
-		}
-		defer db.Close()*/
 
 	buckets := Buckets(dbname)
 	fmt.Println()
