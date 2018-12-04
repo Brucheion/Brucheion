@@ -391,11 +391,11 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 				renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
 			}
 		} else { //if the noauth flag was not set, or set false: continue with authentification using a provider
-			authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
 			lp.Provider = req.FormValue("provider")
-			session.Values["Provider"] = lp.Provider            //the provider used for login
-			session.Save(req, res)                              //always save the session after setting values
-			http.Redirect(res, req, authPath, http.StatusFound) //redirect to auth page with correct provider
+			authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
+			session.Values["Provider"] = lp.Provider                  //the provider used for login
+			session.Save(req, res)                                    //always save the session after setting values
+			http.Redirect(res, req, authPath, http.StatusFound)       //redirect to auth page with correct provider
 		}
 	} else { //if the the user name was not valid
 		lp.Message = unameValidation.Message  //add the message to the loginpage
@@ -586,7 +586,7 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 		Logout(res, req)
 	}
 
-	fmt.Printf("User still known? Should be: %s\n", user)
+	//log.Printf("func MainPage: User still known? Should be: %s\n", user)
 
 	dbname := config.UserDB
 
