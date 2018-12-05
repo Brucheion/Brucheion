@@ -21,6 +21,17 @@
             </h1>
             <div class="box">
               <form action="/login/" method="POST" novalidate>
+                {{ if .NoAuth }}
+                <label class ="label">Started in noAuth mode. Choose the username you want to use in Brucheion that was not used for a provider login.</label>
+                {{ if .Message }}
+                <p class="error">{{ .Message }}</p>
+                {{ end }}
+                <label class="label">User name</label>
+                <p class="control">
+                  <input class="input" type="text" name="brucheionusername" placeholder="●●●●●●●">
+                </p>
+                <br>
+                {{ else }}
                 <label class="label">Enter the username you want to use in Brucheion and authentificate using GH or GL</label>
                 <hr>
                 {{ if .Message }}
@@ -37,6 +48,7 @@
                     <option value="GitLab">GitLab</option>
                   </select>
                 </p>
+                {{ end }}
                 <br>
                 <p class="control">
                   <button class="button is-primary" type = "submit">Login</button> 

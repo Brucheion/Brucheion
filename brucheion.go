@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -132,6 +133,7 @@ type LoginPage struct {
 	Message      string //Message to be displayed according to login scenario
 	Host         string //Port of the Link
 	Title        string //Title of the website
+	NoAuth       bool   //representation of the noAuth flag
 }
 
 //BrucheionUser stores Information about the logged in Brucheion-user
@@ -144,11 +146,12 @@ type BrucheionUser struct {
 
 //Validation stores the result of the validation
 type Validation struct {
-	Message      string //Message according to outcome of validation
-	ErrorCode    bool   //Was an error encountered during validation (something did not match)?
-	BUserInUse   bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
-	SameProvider bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
-	PUserInUse   bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
+	Message       string //Message according to outcome of validation
+	ErrorCode     bool   //Was an error encountered during validation (something did not match)?
+	BUserInUse    bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
+	SameProvider  bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
+	PUserInUse    bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
+	BPAssociation bool   // func ValidateNoAuthUser: Is the choosen NoAuthUser already in use with a provider login?
 }
 
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
@@ -166,11 +169,25 @@ const SessionName = "brucheionSession"
 //
 var BrucheionStore sessions.Store
 
+var noAuth *bool
+var configLocation *string
+
 //Main initializes the mux server
 func main() {
 
-	//
-	SetUpGothic()
+	noAuth = flag.Bool("noauth", false, "Start Brucheion without authentificating with a provider (default: false)")
+	configLocation = flag.String("config", "./config.json", "Specify where to load the JSON config from. (defalult: ./config.json")
+	flag.Parse()
+
+	if *configLocation != "./config.json" {
+		log.Println("loading configuration from: " + *configLocation)
+		config = LoadConfiguration(*configLocation)
+	}
+
+	if !*noAuth { //If Brucheion is NOT started in noAuth mode:
+		//Set up gothic for authentification using the helper function
+		SetUpGothic()
+	}
 
 	//Create new Cookiestore for Brucheion
 	BrucheionStore = GetCookieStore(config.MaxAge)
@@ -256,13 +273,21 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	if *noAuth {
+		log.Println("noAuth flag was true")
+	} else {
+		log.Println("noAuth flag was false")
+	}
+
 	lp := &LoginPage{
-		Title: "Brucheion Login Page"}
+		Title:  "Brucheion Login Page",
+		NoAuth: *noAuth}
 	renderLoginTemplate(res, "login", lp)
 }
 
 //LoginPOST logs in the user using the form values and gothic.
 func LoginPOST(res http.ResponseWriter, req *http.Request) {
+
 	//Make sure user is not logged in yet
 	session, err := GetSession(req) //get a session
 	if err != nil {
@@ -279,7 +304,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
 			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
 		}
-	} else { //Destroy the session we just got if was not logged in yet (proceed with login process)
+	} else { //Destroy the session we just got if user was not logged in yet (proceed with login process)
 		session.Options.MaxAge = -1
 		session.Values = make(map[interface{}]interface{})
 		err = session.Save(req, res)
@@ -289,23 +314,15 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	title := "Brucheion Login Page"
-
-	/*fmt.Println("req.FormValue(\"brucheionUserName\")" + req.FormValue("brucheionusername"))
-	fmt.Println("req.FormValue(\"provider\")" + req.FormValue("provider"))*/
+	title := "Brucheion Login Page" //set the title of the page
 
 	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
 		BUserName: strings.TrimSpace(req.FormValue("brucheionusername")),
-		Provider:  req.FormValue("provider"),
+		Host:      config.Host,
 		Title:     title}
 
 	unameValidation := ValidateUserName(lp.BUserName) //checks if this username only has (latin) letters and (arabian) numbers
-
-	authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
-
-	/*fmt.Println("authPath: " + authPath)
-	fmt.Println("userDB:" + config.UserDB)*/
 
 	if unameValidation.ErrorCode { //if a valid username has been chosen
 		session, err = InitializeSession(req) //initialize a persisting session
@@ -315,14 +332,73 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		//save the values from the form in the session
+		//save the BrucheionUserName in the session as well and set the Loggedin value to false
 		session.Values["BrucheionUserName"] = lp.BUserName
-		session.Values["Provider"] = lp.Provider            //the provider used for login
-		session.Values["Loggedin"] = false                  //make sure the "Loggedin" session value is set but false
-		session.Save(req, res)                              //always save the session after setting values
-		http.Redirect(res, req, authPath, http.StatusFound) //redirect to auth page with correct provider
+		session.Values["Loggedin"] = false
+		session.Save(req, res)
+
+		err = InitializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if *noAuth { //if the noauth flag was set true: check if username is not in use for a login with a provider
+			fmt.Println("flag was true")
+			lp.NoAuth = *noAuth
+
+			validation, err := ValidateNoAuthUser(req) //validate if credentials match existing user and not in use with a provider login yet
+			if err != nil {
+				fmt.Printf("\nLoginPOST error validating user: %s", err)
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+			}
+			if validation.ErrorCode {
+				brucheionUser := &BrucheionUser{ //create Brucheionuser instance
+					BUserName: lp.BUserName,
+					Provider:  "noAuth"}
+				if !validation.BUserInUse { // create new noAuth user if the username was not in use
+					db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
+					if err != nil {
+						fmt.Printf("Error opening userDB: %s", err)
+						http.Error(res, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					db.Update(func(tx *bolt.Tx) error {
+						bucket := tx.Bucket([]byte("users"))
+						buffer, err := json.Marshal(brucheionUser) //Marshal user data
+						if err != nil {
+							fmt.Errorf("Failed marshalling user data for user %s: %s\n", brucheionUser.BUserName, err)
+							return err
+						}
+						err = bucket.Put([]byte(brucheionUser.BUserName), buffer) //put user into bucket
+						if err != nil {
+							fmt.Errorf("Failed saving user %s in users.db\n", brucheionUser.BUserName, err)
+							return err
+						}
+						fmt.Printf("Successfully saved new user %s in users.DB.\n", brucheionUser.BUserName)
+
+						fmt.Println(validation.Message) //Display validation.Message if all went well.
+						return nil
+					})
+					db.Close() //always remember to close the db
+				}
+				session.Values["Loggedin"] = true //To keep the user logged in
+				session.Save(req, res)
+				lp.Message = validation.Message //The message to be replied in regard to the login scenario
+				renderAuthTemplate(res, "callback", lp)
+			} else {
+				lp.Message = validation.Message       //add the message to the loginpage
+				renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
+			}
+		} else { //if the noauth flag was not set, or set false: continue with authentification using a provider
+			lp.Provider = req.FormValue("provider")
+			authPath := "/auth/" + strings.ToLower(lp.Provider) + "/" //set up the path for redirect according to provider
+			session.Values["Provider"] = lp.Provider                  //the provider used for login
+			session.Save(req, res)                                    //always save the session after setting values
+			http.Redirect(res, req, authPath, http.StatusFound)       //redirect to auth page with correct provider
+		}
 	} else { //if the the user name was not valid
-		lp.Message = unameValidation.Message  //add the message to the loginpage..
+		lp.Message = unameValidation.Message  //add the message to the loginpage
 		renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
 	}
 }
@@ -345,7 +421,7 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 			}
 			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
 			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
-		} else { //proceed with login process
+		} else { //proceed with login process (gothic redirects to provider and redirects to callback)
 			gothic.BeginAuthHandler(res, req)
 		}
 	} else { //kill the session and redirect to login
@@ -424,8 +500,8 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			session.Save(req, res)
 			fmt.Println(validation.Message) //Display validation.Message if all went well.
 		} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
-			//create new enty for new BUser
-			db, err := OpenBoltDB(config.UserDB) //open the userDB
+			//create new entry for new BUser
+			db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
 			if err != nil {
 				fmt.Printf("Error opening userDB: %s", err)
 				http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -466,7 +542,6 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 	} else { //Login scenarios (2), (3), (4)
-
 		if (validation.BUserInUse && !validation.SameProvider && validation.PUserInUse) ||
 			(!validation.BUserInUse && validation.SameProvider && validation.PUserInUse) ||
 			(!validation.BUserInUse && validation.SameProvider && !validation.PUserInUse) { //unknown login behavior
@@ -511,16 +586,9 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 		Logout(res, req)
 	}
 
-	fmt.Printf("User still known? Should be: %s\n", user)
+	//log.Printf("func MainPage: User still known? Should be: %s\n", user)
 
 	dbname := config.UserDB
-	/*
-		db, err := bolt.Open(dbname, 0644, nil)
-		if err != nil {
-			fmt.Println("Error opening DB.")
-			log.Fatal(err)
-		}
-		defer db.Close()*/
 
 	buckets := Buckets(dbname)
 	fmt.Println()
@@ -554,7 +622,7 @@ func requestImgCollection(w http.ResponseWriter, r *http.Request) {
 
 	response := JSONlist{}
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -606,7 +674,7 @@ func getImageInfo(w http.ResponseWriter, r *http.Request) {
 	imageurn := vars["imageurn"]
 	dbkey := []byte(collectionName)
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -663,7 +731,7 @@ func requestImgID(w http.ResponseWriter, r *http.Request) {
 	name := vars["name"]
 	dbname := user + ".db"
 	dbkey := []byte(name)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -948,7 +1016,7 @@ func ExportCEX(w http.ResponseWriter, r *http.Request) {
 	filename := vars["filename"]
 	dbname := user + ".db"
 	buckets := Buckets(dbname)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1052,7 +1120,7 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 	retrievedjson.ImageRef = imageref
 	fmt.Println(imageref) //DEBUG
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1119,7 +1187,7 @@ func AddFirstNode(w http.ResponseWriter, r *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1305,7 +1373,7 @@ func AddNodeAfter(w http.ResponseWriter, r *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1482,7 +1550,7 @@ func newText(w http.ResponseWriter, r *http.Request) {
 	retrievedjson := BoltURN{}
 	retrievedjson.URN = newkey
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1542,7 +1610,7 @@ func SaveTranscription(w http.ResponseWriter, r *http.Request) {
 	retrievedjson.Text = text
 	retrievedjson.LineText = linetext
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1768,7 +1836,7 @@ func LoadDB(w http.ResponseWriter, r *http.Request) {
 	// write to database
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + user + ".db"
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2687,7 +2755,7 @@ func MultiPage(w http.ResponseWriter, r *http.Request) {
 	passageId := strings.Split(urn, ":")[4]
 
 	buckets := Buckets(dbname)
-	db, err := OpenBoltDB(dbname)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
