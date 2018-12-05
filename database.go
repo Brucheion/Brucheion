@@ -73,14 +73,31 @@ type image struct {
 }
 
 func deleteCollection(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	user := vars["user"]
+
+	//First get the session..
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("deleteCollection", session)
+	if loggedin {
+		fmt.Println(message)
+	} else {
+		fmt.Println(message)
+		Logout(w, r)
+	}
+
 	newkey := r.URL.Query().Get("name")
 	newkey = strings.Replace(newkey, "\"", "", -1)
 	dbname := user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	db.Update(func(tx *bolt.Tx) error {
@@ -102,9 +119,9 @@ func newCollectiontoDB(dbName, collectionName string, collection imageCollection
 		fmt.Println(err)
 		return err
 	}
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error opening userDB: %s", err)
 		return err
 	}
 	defer db.Close()
@@ -141,9 +158,9 @@ func newCITECollectionDB(dbName, collectionName string) error {
 		fmt.Println(err)
 		return err
 	}
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error opening userDB: %s", err)
 		return err
 	}
 	defer db.Close()
@@ -175,9 +192,9 @@ func addtoCITECollection(dbName, collectionName string, newImage image) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(collectionName)
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error opening userDB: %s", err)
 		return err
 	}
 	defer db.Close()
@@ -226,9 +243,9 @@ func newWorktoDB(dbName string, meta cexMeta) error {
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(meta.URN)
 	dbvalue, err := gobEncode(&meta)
-
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
+		fmt.Printf("Error opening userDB: %s", err)
 		return err
 	}
 	defer db.Close()
@@ -258,9 +275,9 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(meta.URN)
 	dbvalue, err := gobEncode(&meta)
-
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
+		fmt.Printf("Error opening userDB: %s", err)
 		return err
 	}
 	defer db.Close()
@@ -317,20 +334,18 @@ func gobDecodePassage(data []byte) (gocite.Passage, error) {
 	return *p, nil
 }
 
-func BoltRetrieveFirstKey(path, bucket string) string {
+func BoltRetrieveFirstKey(dbname, bucket string) string {
 	var result string
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
 		return result
 	}
-
-	db, err := bolt.Open(path, 0600, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Println(err)
+		fmt.Printf("Error opening userDB: %s", err)
 		return result
 	}
 	defer db.Close()
-
 	// retrieve the data
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucket))
@@ -345,19 +360,18 @@ func BoltRetrieveFirstKey(path, bucket string) string {
 	return result
 }
 
-func BoltRetrieve(path, bucket, key string) BoltJSON {
+func BoltRetrieve(dbname, bucket, key string) BoltJSON {
 	var result BoltJSON
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
 		return result
 	}
-	db, err := bolt.Open(path, 0600, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Println(err)
+		fmt.Printf("Error opening userDB: %s", err)
 		return result
 	}
 	defer db.Close()
-
 	// retrieve the data
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucket))
@@ -371,21 +385,19 @@ func BoltRetrieve(path, bucket, key string) BoltJSON {
 	return result
 }
 
-// Buckets prints a list of all buckets.
-func Buckets(path string) []string {
+// Buckets returns a slice of strings with the names of all buckets in a BoltDB.
+func Buckets(dbname string) []string {
 	var result []string
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
 		return result
 	}
-
-	db, err := bolt.Open(path, 0600, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Println(err)
+		fmt.Printf("Error opening userDB: %s", err)
 		return result
 	}
 	defer db.Close()
-
 	err = db.View(func(tx *bolt.Tx) error {
 		return tx.ForEach(func(name []byte, _ *bolt.Bucket) error {
 			result = append(result, string(name))
@@ -400,13 +412,31 @@ func Buckets(path string) []string {
 }
 
 func deleteBucket(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("deleteCollection", session)
+	if loggedin {
+		fmt.Println(message)
+	} else {
+		fmt.Println(message)
+		Logout(w, r)
+	}
+
 	vars := mux.Vars(r)
-	user := vars["user"]
 	newbucket := vars["urn"]
 	dbname := user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	db.Update(func(tx *bolt.Tx) error {
@@ -420,14 +450,32 @@ func deleteBucket(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteNode(w http.ResponseWriter, r *http.Request) {
+
+	//First get the session..
+	session, err := GetSession(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("deleteCollection", session)
+	if loggedin {
+		fmt.Println(message)
+	} else {
+		fmt.Println(message)
+		Logout(w, r)
+	}
+
 	vars := mux.Vars(r)
-	user := vars["user"]
 	newkey := vars["urn"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
 	dbname := user + ".db"
-	db, err := bolt.Open(dbname, 0644, nil)
+	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer db.Close()
 	db.Update(func(tx *bolt.Tx) error {
