@@ -63,7 +63,7 @@ JSON is a common data format used for asynchronous browser–server communicatio
 
 Users can login with or without verification. It is recommended to login with verification using a login provider. 
 
-#### The usual login process with a login provider
+#### The ordinary login process using a login provider
 
 For logging in with a provider start Brucheion normally (without the noauth flag). Brucheion supports authentification with GitHub and GitLab. Accordingly, the user needs a GitHub or a GitLab account. 
 
@@ -94,6 +94,8 @@ For logging in with a provider start Brucheion normally (without the noauth flag
 For logging in without authentification start Brucheion with setting the noauth flag. 
 
 ![startWithNoauthFlag](static/img/tutorial/startWithNoauthFlag.png)
+
+###
 
 
 ### View
