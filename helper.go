@@ -135,6 +135,201 @@ func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 	return links, nil
 }
 
+func maxfloat(floatslice []float64) int {
+	max := floatslice[0]
+	maxindex := 0
+	for i, value := range floatslice {
+		if value > max {
+			max = value
+			maxindex = i
+		}
+	}
+	return maxindex
+}
+
+func testString(str string, strsl1 []string, cursorIn int) (cursorOut int, sl []int, ok bool) {
+	calcStr1 := ""
+	if len([]rune(str)) > len([]rune(strings.Join(strsl1[cursorIn:], ""))) {
+		return 0, []int{}, false
+	}
+	base := cursorIn
+	for i, v := range strsl1[cursorIn:] {
+		calcStr1 = calcStr1 + v
+		if calcStr1 != str {
+			if i+1 == len(sl) {
+				return 0, []int{}, false
+			}
+			sl = append(sl, i+base)
+			continue
+		}
+		if calcStr1 == str {
+			sl = append(sl, i+base)
+			cursorOut = i + base + 1
+			ok = true
+			return cursorOut, sl, ok
+		}
+	}
+	return 0, []int{}, false
+}
+
+func testStringSl(slsl [][]string) (slsl2 [][][]int, ok bool) {
+	if len(slsl) == 0 {
+		// fmt.Println("zero length")
+		slsl2 = [][][]int{}
+		return slsl2, ok
+	}
+	ok = testAllTheSame(slsl)
+	if !ok {
+		// fmt.Println("slices not same length")
+		slsl2 = [][][]int{}
+		return slsl2, ok
+	}
+	// fmt.Println("passed testAllTheSame")
+
+	length := len(slsl)
+
+	base := make([]int, length)
+	cursor := make([]int, length)
+	indeces := make([][]int, length)
+	testr := ""
+	slsl2 = make([][][]int, length)
+
+	for i := 0; i < len(slsl[0]); i++ {
+		match := false
+		indeces[0] = append(indeces[0], i)
+		testr = testr + slsl[0][i]
+		// fmt.Println("test", testr)
+		// fmt.Scanln()
+
+		for k := range slsl {
+			if k == 0 {
+				continue
+			}
+			cursor[k], indeces[k], match = testString(testr, slsl[k], base[k])
+			if !match {
+				// fmt.Println(testr, "and", slsl[k][base[k]:], "do not match")
+				// fmt.Scanln()
+				break
+			}
+		}
+		if match {
+			// fmt.Println("write to slice!!")
+			// fmt.Scanln()
+			for k := range slsl {
+				slsl2[k] = append(slsl2[k], indeces[k])
+				if k == 0 {
+					continue
+				}
+				base[k] = cursor[k]
+			}
+			indeces[0] = []int{}
+			testr = ""
+		}
+	}
+	ok = true
+	return slsl2, ok
+}
+
+func testAllTheSame(testset [][]string) bool {
+	teststr := strings.Join(testset[0], "")
+	for i := range testset {
+		if i == 0 {
+			continue
+		}
+		if teststr != strings.Join(testset[i], "") {
+			return false
+		}
+	}
+	return true
+}
+
+func findSpace(runeSl []rune) (spBefore, spAfter int, newSl []rune) {
+	spAfter = 0
+	spBefore = 0
+	for i := 0; i < len(runeSl); i++ {
+		if runeSl[i] == rune(' ') {
+			spBefore++
+		} else {
+			break
+		}
+	}
+	for i := len(runeSl) - 1; i >= 0; i-- {
+		if runeSl[i] == rune(' ') {
+			spAfter++
+		} else {
+			break
+		}
+	}
+	return spBefore, spAfter, runeSl[spBefore : len(runeSl)-spAfter]
+}
+
+func addSansHyphens(s string) string {
+	hyphen := []rune(`&shy;`)
+	after := []rune{rune('a'), rune('ā'), rune('i'), rune('ī'), rune('u'), rune('ū'), rune('ṛ'), rune('ṝ'), rune('ḷ'), rune('ḹ'), rune('e'), rune('o'), rune('ṃ'), rune('ḥ')}
+	notBefore := []rune{rune('ṃ'), rune('ḥ'), rune(' ')}
+	runeSl := []rune(s)
+	spBefore, spAfter, runeSl := findSpace(runeSl)
+	newSl := []rune{}
+	if len(runeSl) <= 2 {
+		return s
+	}
+	newSl = append(newSl, runeSl[0:2]...)
+
+	for i := 2; i < len(runeSl)-2; i++ {
+		next := false
+		possible := false
+		for j := range after {
+			if after[j] == runeSl[i] {
+				possible = true
+			}
+		}
+		if !possible {
+			newSl = append(newSl, runeSl[i])
+			continue
+		}
+		for j := range notBefore {
+			if notBefore[j] == runeSl[i+1] {
+				next = true
+			}
+		}
+		if next {
+			newSl = append(newSl, runeSl[i])
+			next = false
+			continue
+		}
+		if runeSl[i] == rune('a') {
+			if runeSl[i+1] == rune('i') || runeSl[i+1] == rune('u') {
+				newSl = append(newSl, runeSl[i])
+				continue
+			}
+		}
+		if runeSl[i-1] == rune(' ') {
+			newSl = append(newSl, runeSl[i])
+			continue
+		}
+		newSl = append(newSl, runeSl[i])
+		for k := range hyphen {
+			newSl = append(newSl, hyphen[k])
+		}
+	}
+	SpBefore := []rune{}
+	SpAfter := []rune{}
+	for i := 0; i < spBefore; i++ {
+		SpBefore = append(SpBefore, rune(' '))
+	}
+	for i := 0; i < spAfter; i++ {
+		SpAfter = append(SpAfter, rune(' '))
+	}
+	if len(runeSl) < 4 {
+		newSl = append(newSl, runeSl[len(runeSl)-1:]...)
+	} else {
+		newSl = append(newSl, runeSl[len(runeSl)-2:]...)
+	}
+	newSl = append(newSl, SpAfter...)
+	newSl = append(SpBefore, newSl...)
+	return string(newSl)
+}
+
 //SetUpGothic sets up Gothic for login procedure
 func SetUpGothic() {
 	//Build the authentification paths for the choosen providers
@@ -323,11 +518,6 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 			}
 		}
 
-		//check if the username is use already
-		//var brucheionUser BrucheionUser //create a BrucheionUser variable
-		//BUPointer := new(BrucheionUser) //create a pointer that will later be used to check if BrucheionUser is still empty
-		//BUPointer = nil //and make sure that it is empty
-
 		bucket = tx.Bucket([]byte("users"))                                                  //open the user bucket
 		cursor = bucket.Cursor()                                                             //create a cursor object that will be used to iterate over database entries
 		for BUserName, _ := cursor.First(); BUserName != nil; BUserName, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
@@ -358,12 +548,6 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 		return nil //close DB view without an error
 	})
 	return bUserValidation, nil
-
-	/*
-		Check if user was in GH or GL Bucket (not accessable via noAuth ->redirect to login
-		Was in noAuth bucket: redirect
-		Was not in noAuth Bucket: Put user in noAuth Bucket
-	*/
 }
 
 func ValidateUser(req *http.Request) (*Validation, error) {
@@ -470,20 +654,9 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 				bUserValidation.PUserInUse = false   //ProviderUser from session and BrucheionUser don't match
 			}
 		}
-		/*fmt.Println("Debugging bUser retrieved from DB:")
-		fmt.Println("BUserName: " + brucheionUser.BUserName)
-		fmt.Println("Provider: " + brucheionUser.Provider)
-		fmt.Println("providerNickName: " + brucheionUser.PUserName)
-		fmt.Println("ProviderUserID: " + brucheionUser.ProviderUserID)*/
 
 		return nil //close DB view without an error
 	})
-
-	/*fmt.Println("Print Debugging db.Update: ")
-	fmt.Println("validation.ErrorCode: " + strconv.FormatBool(bUserValidation.ErrorCode))
-	fmt.Println("validation.BUserInUse: " + strconv.FormatBool(bUserValidation.BUserInUse))
-	fmt.Println("validation.SameProvider: " + strconv.FormatBool(bUserValidation.SameProvider))
-	fmt.Println("validation.PUserInUse: " + strconv.FormatBool(bUserValidation.PUserInUse))*/
 
 	return bUserValidation, nil
 }

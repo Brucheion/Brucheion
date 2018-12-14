@@ -1,0 +1,176 @@
+
+// old stuff
+
+//  calcStr1 := ""
+//  calcStr2 := ""
+//  tmpstr := ""
+//  accessed := false
+//  count := 0
+
+//  length := len(slsl)
+
+//  base := make([]int, length)
+//  cursor := make([]int, length)
+//  indeces := make([][]int, length)
+//  slsl2 = make([][][]int, length)
+
+//  for i, v := range slsl[0][base[0]:] {
+//      match := false
+//      smaller := false
+//      calcStr1 = calcStr1 + v
+//      if len([]rune(calcStr1)) < len([]rune(calcStr2)) {
+//          cursor[0]++
+//          indeces[0] = append(indeces[0], i)
+//          continue
+//      }
+//      for j, w := range slsl[1][base[1]:] {
+//          tmpstr = calcStr2
+//          calcStr2 = calcStr2 + w
+//          fmt.Println("compare", calcStr1, "and", calcStr2)
+//          fmt.Scanln()
+//          if len([]rune(calcStr1)) < len([]rune(calcStr2)) {
+//              smaller = true
+//              if accessed {
+//                  calcStr2 = tmpstr
+//                  // accessed = false
+//              } else {
+//                  calcStr2 = ""
+//              }
+
+//              break
+//          }
+//          if len([]rune(calcStr1)) > len([]rune(calcStr2)) {
+//              fmt.Println(len([]rune(calcStr1)), "and", len([]rune(calcStr2)))
+//              fmt.Scanln()
+//              cursor[1]++
+//              count++
+//              indeces[1] = append(indeces[1], j+base[1])
+//              continue
+//          }
+//          if calcStr1 == calcStr2 {
+//              fmt.Println("strings 1 + 2 match")
+//              fmt.Scanln()
+//              for k := range slsl {
+//                  if k < 2 {
+//                      continue
+//                  }
+//                  cursor[k], indeces[k], match = testString(calcStr1, slsl[k], base[k])
+//                  if !match {
+//                      fmt.Println(calcStr1, "and", slsl[k][base[k]:], "do not match")
+//                      fmt.Scanln()
+//                      accessed = true
+//                      break
+//                  }
+
+//              }
+
+//              indeces[0] = append(indeces[0], i)
+//              indeces[1] = append(indeces[1], j+base[1])
+//              cursor[1]++
+//              cursor[0]++
+//              count = 0
+//              base[1] = cursor[1]
+//              base[0] = cursor[0]
+//              break
+//          }
+//          break
+//      }
+//      if smaller {
+//          fmt.Println("smaller. count:", count)
+//          cursor[0]++
+//          cursor[1] = cursor[1] - count
+//          base[1] = cursor[1]
+//          fmt.Println("restart with", slsl[1][base[1]])
+//          fmt.Scanln()
+//          count = 0
+//          indeces[1] = []int{}
+//          indeces[0] = append(indeces[0], i)
+//          continue
+//      }
+//      if match {
+//          fmt.Println("write to slice!!")
+//          fmt.Scanln()
+//          accessed = false
+//          count = 0
+//          for k := range slsl {
+//              slsl2[k] = append(slsl2[k], indeces[k])
+//              if k < 2 {
+//                  continue
+//              }
+//              base[k] = cursor[k]
+//          }
+
+//          indeces[0] = []int{}
+//          indeces[1] = []int{}
+//          calcStr1 = ""
+//          calcStr2 = ""
+
+//          if base[0] == len(slsl[0]) {
+//              ok = true
+//              return slsl2, ok
+//          }
+//          continue
+//      }
+
+//  }
+//  fmt.Println("!!! accessed this!!")
+//  fmt.Scanln()
+//  ok = false
+//  for k := range slsl {
+//      slsl2[k] = [][]int{}
+//  }
+//  return slsl2, ok
+// }
+
+
+// func addSansHyphens(s string) string {
+//  hyphen := []rune(`&shy;`)
+//  after := []rune{rune('a'), rune('ā'), rune('i'), rune('ī'), rune('u'), rune('ū'), rune('ṛ'), rune('ṝ'), rune('ḷ'), rune('ḹ'), rune('e'), rune('o'), rune('ṃ'), rune('ḥ')}
+//  notBefore := []rune{rune('ṃ'), rune('ḥ'), rune(' ')}
+//  runeSl := []rune(s)
+//  newSl := []rune{}
+//  if len(runeSl) <= 2 {
+//      return s
+//  }
+//  newSl = append(newSl, runeSl[0:2]...)
+
+//  for i := 2; i < len(runeSl)-2; i++ {
+//      next := false
+//      possible := false
+//      for j := range after {
+//          if after[j] == runeSl[i] {
+//              possible = true
+//          }
+//      }
+//      if !possible {
+//          newSl = append(newSl, runeSl[i])
+//          continue
+//      }
+//      for j := range notBefore {
+//          if notBefore[j] == runeSl[i+1] {
+//              next = true
+//          }
+//      }
+//      if next {
+//          newSl = append(newSl, runeSl[i])
+//          next = false
+//          continue
+//      }
+//      if runeSl[i] == rune('a') {
+//          if runeSl[i+1] == rune('i') || runeSl[i+1] == rune('u') {
+//              newSl = append(newSl, runeSl[i])
+//              continue
+//          }
+//      }
+//      if runeSl[i-1] == rune(' ') {
+//          newSl = append(newSl, runeSl[i])
+//          continue
+//      }
+//      newSl = append(newSl, runeSl[i])
+//      for k := range hyphen {
+//          newSl = append(newSl, hyphen[k])
+//      }
+//  }
+//  newSl = append(newSl, runeSl[len(runeSl)-1:]...)
+//  return string(newSl)
+// }
