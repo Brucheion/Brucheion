@@ -17,12 +17,12 @@
         <div class="columns is-vcentered">
           <div class="column is-4 is-offset-4">
             <h1 class="title">
-              Login with Gitlab or Github
+              Brucheion Login
             </h1>
             <div class="box">
               <form action="/login/" method="POST" novalidate>
                 {{ if .NoAuth }}
-                <label class ="label">Started in noAuth mode. Choose the username you want to use in Brucheion that was not used for a provider login.</label>
+                <label class ="label">Started in noAuth mode. Choose the username you want to use in Brucheion.<br>Must not be in use with a provider login.</label>
                 {{ if .Message }}
                 <p class="error">{{ .Message }}</p>
                 {{ end }}
