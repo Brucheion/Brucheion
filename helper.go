@@ -456,7 +456,7 @@ func ValidateUserName(username string) *Validation {
 		fmt.Println("Wrong regex pattern.")
 	}
 
-	fmt.Println("Validating: " + username)
+	log.Println("func ValidateUserName: Validating: " + username)
 	if strings.TrimSpace(username) == "" { //form was left blank
 		unameValidation.Message = "Please enter a username." //the message will be displayed on the login page
 		return unameValidation
@@ -574,10 +574,6 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 	if !ok {
 		fmt.Errorf("Func ValidateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved.")
 	}
-	/*providerNickName, ok := session.Values["ProviderNickName"].(string)
-	if !ok {
-		fmt.Errorf("Func ValidateUser: Type assertion of ProviderNickName cookie value to string failed or session value could not be retrieved.")
-	}*/
 	providerUserID, ok := session.Values["ProviderUserID"].(string)
 	if !ok {
 		fmt.Errorf("Func ValidateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved.")
@@ -659,54 +655,4 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 	})
 
 	return bUserValidation, nil
-}
-
-func Logout(res http.ResponseWriter, req *http.Request) {
-
-	session, err := GetSession(req)
-	if err != nil {
-		fmt.Errorf("No session, no logout")
-		return
-	}
-
-	bUserName, ok := session.Values["BrucheionUserName"].(string)
-	if !ok {
-		fmt.Println("func Logout: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
-	}
-
-	session.Options.MaxAge = -1
-	session.Values = make(map[interface{}]interface{})
-	err = session.Save(req, res)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	fmt.Printf("User %s has logged out\n", bUserName)
-	http.Redirect(res, req, "/login/", http.StatusFound)
-
-}
-
-//TestLoginStatus returns the tests if a user is logged in.
-//It takes the name of the function to build an appropriate message and the session to extract the user from
-//and returns the name of the user, the message according to the test, and a boolean representing the login status.
-func TestLoginStatus(function string, session *sessions.Session) (user string, message string, loggedin bool) {
-	loggedin = false                       // before proven to be logged in, the login state should always be false
-	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has already been set
-		if session.Values["Loggedin"].(bool) { //"Loggedin" will be true if user is already logged in
-			ok := false                                             //necessary so that fuction-wide variable user is changed instead of a new variable being created.
-			user, ok = session.Values["BrucheionUserName"].(string) //if session was valid get a username
-			if !ok {                                                //error handling
-				fmt.Println("func TestLoginStatus: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
-			}
-			message = "func " + function + ": User " + user + " is logged in." //build appropriate message
-			loggedin = true                                                    //set loggedin to true
-		} else {
-			message = "func " + function + ": \"Loggedin\" was false. User was not logged in." //build appropriate message
-			loggedin = false                                                                   //set loggedin to false
-		}
-	} else {
-		message = "func " + function + " \"Loggedin\" was nil. Session was not initialzed." //build appropriate message
-		loggedin = false                                                                    //set loggedin to true
-	}
-	return user, message, loggedin //return username, message, and login state
 }
