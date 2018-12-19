@@ -230,7 +230,7 @@ func main() {
 	router.HandleFunc("/edit2/{urn}/", Edit2Page)
 	router.HandleFunc("/compare/{urn}+{urn2}/", comparePage)
 	router.HandleFunc("/consolidate/{urn}+{urn2}/", consolidatePage)
-	router.HandleFunc("/saveImage/{key}/", SaveImageRef)
+	router.HandleFunc("/saveImage/{key}/{updated}", SaveImageRef)
 	router.HandleFunc("/newWork/", newWork)
 	router.HandleFunc("/newCollection/{name}/{urns}/", newCollection)
 	router.HandleFunc("/newCITECollection/{name}/", newCITECollection)
@@ -1083,13 +1083,17 @@ func ExportCEX(w http.ResponseWriter, r *http.Request) {
 func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 
 	//DEBUGGING
-	fmt.Println(r.Method)
-	if r.Method != "POST" {
-		io.WriteString(w, "Only POST is supported!")
-		return
-	}
-	fmt.Println(r.ParseForm())
-	fmt.Println(r.FormValue("text"))
+	// fmt.Println(r.Method)
+	// if r.Method != "POST" {
+	// 	vars := mux.Vars(r)
+	// 	newkey := vars["key"]
+	// 	imagerefstr := r.FormValue("text")
+	// 	fmt.Println(newkey, imagerefstr)
+	// 	io.WriteString(w, "Only POST is supported!")
+	// 	return
+	// }
+	// fmt.Println(r.ParseForm())
+	// fmt.Println(r.FormValue("text"))
 
 	//First get the session..
 	session, err := GetSession(r)
@@ -1109,9 +1113,12 @@ func SaveImageRef(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	newkey := vars["key"]
+	imagerefstr := vars["updated"]
+	fmt.Println("debug1", imagerefstr) //DEBUG
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	imagerefstr := r.FormValue("text")
-	imageref := strings.Split(imagerefstr, "#")
+	// imagerefstr := r.FormValue("text")
+	imageref := strings.Split(imagerefstr, "+")
+	fmt.Println("debug2", imageref) //DEBUG
 	dbname := user + ".db"
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
 	retrievedjson := BoltURN{}
