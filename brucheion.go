@@ -239,8 +239,14 @@ func main() {
 	router.HandleFunc("/requestImgID/{name}", requestImgID)
 	router.HandleFunc("/deleteCollection", deleteCollection)
 	router.HandleFunc("/requestImgCollection", requestImgCollection)
+	router.NotFoundHandler = http.HandlerFunc(redirect)
 	log.Println("Listening at " + config.Host + "...")
 	log.Fatal(http.ListenAndServe(config.Port, router))
+}
+
+func redirect(w http.ResponseWriter, r *http.Request) {
+	newLink := config.Host + "/login/"
+	http.Redirect(w, r, newLink, 301)
 }
 
 //LoginGET renders the login page. The user can enter the login Credentials into the form.
