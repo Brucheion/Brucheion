@@ -503,13 +503,17 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 
 	//DEBUGGING
-	fmt.Println(req.Method)
-	if req.Method != "POST" {
-		io.WriteString(res, "Only POST is supported!")
-		return
-	}
-	fmt.Println(req.ParseForm())
-	fmt.Println(req.FormValue("text"))
+	// fmt.Println(r.Method)
+	// if r.Method != "POST" {
+	// 	vars := mux.Vars(r)
+	// 	newkey := vars["key"]
+	// 	imagerefstr := r.FormValue("text")
+	// 	fmt.Println(newkey, imagerefstr)
+	// 	io.WriteString(w, "Only POST is supported!")
+	// 	return
+	// }
+	// fmt.Println(r.ParseForm())
+	// fmt.Println(r.FormValue("text"))
 
 	//First get the session..
 	session, err := GetSession(req)
@@ -529,9 +533,12 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 
 	vars := mux.Vars(req)
 	newkey := vars["key"]
+	imagerefstr := vars["updated"]
+	fmt.Println("debug1", imagerefstr) //DEBUG
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-	imagerefstr := req.FormValue("text")
-	imageref := strings.Split(imagerefstr, "#")
+	// imagerefstr := r.FormValue("text")
+	imageref := strings.Split(imagerefstr, "+")
+	fmt.Println("debug2", imageref) //DEBUG
 	dbname := user + ".db"
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
 	retrievedjson := BoltURN{}

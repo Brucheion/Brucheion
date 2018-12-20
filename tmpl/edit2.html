@@ -85,8 +85,7 @@
 				</h1>
 				<div class="columns">
 					<div class="coulumn">
-						<p class="subtitle"></p><a href="{{.Host}}/edit2/{{.First}}"><i class="fa fa-chevron-left"></i><i
-							 class="fa fa-chevron-left"></i></a>
+						<p class="subtitle"></p><a href="{{.Host}}/edit2/{{.First}}"><i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
 						<a href="{{.Host}}/edit2/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
 						<strong>{{.Title}}</strong>
 						<a href="{{.Host}}/edit2/{{.Next}}"><i class="fa fa-chevron-right"></i></a>
@@ -147,7 +146,7 @@
 							<form method="post" action="{{.Host}}/saveImage/{{.Title}}">
 								<p class="subtitle">ImageRef
 									<div>
-										<input class="button is-primary" type="submit" value="Save">
+										<a class="button is-primary" href="#" onclick="manualPost();">Submit</a>
 										<a id="deletearea" class="button is-danger" href="#" onclick="function deleteLink(){document.getElementById('imageTextArea').value = '';}; deleteLink(); return false;">Clear</a>
 									</div>
 								</p>
@@ -211,6 +210,17 @@
 				})
 			});
 		}
+	</script>	
+	<script>
+		function manualPost() {
+			var xhttp = new XMLHttpRequest();
+			var imageArea = document.getElementById('imageTextArea').value.replace("#", "+");
+			var actualPost = "{{.Host}}/saveImage/{{.Title}}/" + imageArea;
+			console.log(actualPost);
+			xhttp.open("GET", actualPost, true);
+			xhttp.send();
+			// window.location = "{{.Host}}/view/{{.Title}}";
+		};
 	</script>
 	<script type="text/javascript" src="{{.Host}}/js/BrIC.js"></script>
 </body>

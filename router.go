@@ -38,7 +38,7 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/{urn}/treenode.json/", Treenode)          //Function at treeBank.go
 	router.HandleFunc("/main/", MainPage)                         //So far this is just the page, a user is redirected to after login
 	router.HandleFunc("/load/{cex}/", LoadCEX)
-	router.HandleFunc("/new/{key}/", newText)
+	router.HandleFunc("/new/{key}/{updated}", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
 	router.HandleFunc("/multicompare/{urn}/", MultiPage)
@@ -63,6 +63,12 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/requestImgID/{name}", requestImgID)
 	router.HandleFunc("/deleteCollection", deleteCollection)
 	router.HandleFunc("/requestImgCollection", requestImgCollection)
+	router.NotFoundHandler = http.HandlerFunc(redirect)
 
 	return router
+}
+
+func redirect(w http.ResponseWriter, r *http.Request) {
+	newLink := config.Host + "/login/"
+	http.Redirect(w, r, newLink, 301)
 }
