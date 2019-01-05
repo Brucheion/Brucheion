@@ -35,7 +35,7 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 			if !ok {
 				fmt.Println("func LoginGET: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("User %s is already logged in. Redirecting to main", user) //use the username for debugging
+			log.Printf("ĹoginGET: user %s is already logged in. Redirecting to main\n", user) //use the username for debugging
 			http.Redirect(res, req, "/main/", http.StatusFound)
 		}
 	} else { //Destroy the newly created session if Loggedin was not set
@@ -47,13 +47,7 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-
-	if *noAuth {
-		log.Println("noAuth flag was true")
-	} else {
-		log.Println("noAuth flag was false")
-	}
-
+	log.Println("loginGET was called")
 	lp := &LoginPage{
 		Title:  "Brucheion Login Page",
 		NoAuth: *noAuth}
@@ -66,7 +60,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
 	session, err := GetSession(req) //get a session
 	if err != nil {
-		fmt.Errorf("LoginGET: Error getting session: %s", err)
+		fmt.Errorf("LoginPOST: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -76,8 +70,8 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			if !ok {
 				fmt.Println("func LoginPOST: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
-			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
+			log.Printf("LoginPOST: User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
+			http.Redirect(res, req, "/main/", http.StatusFound)                                //redirect to main, as login is not necessary anymore
 		}
 	} else { //Destroy the session we just got if user was not logged in yet (proceed with login process)
 		session.Options.MaxAge = -1
@@ -95,7 +89,8 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 	lp := &LoginPage{
 		BUserName: strings.TrimSpace(req.FormValue("brucheionusername")),
 		Host:      config.Host,
-		Title:     title}
+		Title:     title,
+		NoAuth:    *noAuth}
 
 	unameValidation := ValidateUserName(lp.BUserName) //checks if this username only has (latin) letters and (arabian) numbers
 
@@ -119,22 +114,21 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 		}
 
 		if *noAuth { //if the noauth flag was set true: check if username is not in use for a login with a provider
-			log.Println("noAuth flag was true")
-			lp.NoAuth = *noAuth
+			//log.Println("noAuth flag was true")
 
 			validation, err := ValidateNoAuthUser(req) //validate if credentials match existing user and not in use with a provider login yet
 			if err != nil {
 				fmt.Printf("\nLoginPOST error validating user: %s", err)
 				http.Error(res, err.Error(), http.StatusInternalServerError)
 			}
-			if validation.ErrorCode {
+			if validation.ErrorCode { //if the username is valid
 				brucheionUser := &BrucheionUser{ //create Brucheionuser instance
 					BUserName: lp.BUserName,
 					Provider:  "noAuth"}
 				if !validation.BUserInUse { // create new noAuth user if the username was not in use
 					db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
 					if err != nil {
-						fmt.Printf("Error opening userDB: %s", err)
+						log.Printf("Error opening userDB: %s", err)
 						http.Error(res, err.Error(), http.StatusInternalServerError)
 						return
 					}
@@ -150,18 +144,21 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 							fmt.Errorf("Failed saving user %s in users.db\n", brucheionUser.BUserName, err)
 							return err
 						}
-						fmt.Printf("Successfully saved new user %s in users.DB.\n", brucheionUser.BUserName)
+						log.Printf("Successfully saved new user %s in users.DB.\n", brucheionUser.BUserName)
 
-						fmt.Println(validation.Message) //Display validation.Message if all went well.
+						log.Println(validation.Message) //Display validation.Message if all went well.
 						return nil
 					})
-					db.Close() //always remember to close the db
+					db.Close() //always remember to close the database
 				}
 				session.Values["Loggedin"] = true //To keep the user logged in
 				session.Save(req, res)
 				lp.Message = validation.Message //The message to be replied in regard to the login scenario
+				log.Println("debug before")
 				renderAuthTemplate(res, "callback", lp)
-			} else {
+				log.Println("debug after")
+			} else { //if the username is not valid
+				InSituLogout(res, req)                //kill the session
 				lp.Message = validation.Message       //add the message to the loginpage
 				renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
 			}
@@ -184,7 +181,7 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
 	session, err := GetSession(req) //get a session
 	if err != nil {
-		fmt.Errorf("LoginGET: Error getting session: %s", err)
+		fmt.Errorf("Auth: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -194,8 +191,8 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 			if !ok {
 				fmt.Println("func Auth: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
-			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
+			fmt.Printf("func Auth: user %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
+			http.Redirect(res, req, "/main/", http.StatusFound)                                //redirect to main, as login is not necessary anymore
 		} else { //proceed with login process (gothic redirects to provider and redirects to callback)
 			gothic.BeginAuthHandler(res, req)
 		}
@@ -210,7 +207,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
 	session, err := GetSession(req) //get a session
 	if err != nil {
-		fmt.Errorf("LoginGET: Error getting session: %s", err)
+		fmt.Errorf("func AuthCallback: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -218,16 +215,17 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		if session.Values["Loggedin"].(bool) { //And if "Loggedin" is true
 			user, ok := session.Values["BrucheionUserName"].(string) //Then get the username
 			if !ok {
-				fmt.Println("func AuthCallback: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
+				log.Println("func AuthCallback: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
-			fmt.Printf("User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
-			http.Redirect(res, req, "/main/", http.StatusFound)                     //redirect to main, as login is not necessary anymore
+			log.Printf("AuthCallback: User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
+			http.Redirect(res, req, "/main/", http.StatusFound)                                   //redirect to main, as login is not necessary anymore
 		} //else proceed with login process
 	} else { //kill the session and redirect to login
-		fmt.Println("func AuthCallback: \"Loggedin\" was nil. Session was not initialized.")
+		log.Println("func AuthCallback: \"Loggedin\" was nil. Session was not initialized.")
 		Logout(res, req)
 	}
 
+	log.Println("Debug Authcallback twice?")
 	err = InitializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -273,7 +271,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		if validation.BUserInUse && validation.SameProvider && validation.PUserInUse { //Login scenario (1)
 			session.Values["Loggedin"] = true
 			session.Save(req, res)
-			fmt.Println(validation.Message) //Display validation.Message if all went well.
+			log.Println(validation.Message) //Display validation.Message if all went well.
 		} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
 			//create new entry for new BUser
 			db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
@@ -294,7 +292,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 					fmt.Errorf("Failed saving user %s in users.db\n", brucheionUserName, err)
 					return err
 				}
-				fmt.Printf("Successfully saved new user %s in users.DB.\n", brucheionUserName)
+				log.Printf("Successfully saved new user %s in users.DB.\n", brucheionUserName)
 
 				bucket = tx.Bucket([]byte(provider))
 				err = bucket.Put([]byte(brucheionUser.ProviderUserID), []byte(brucheionUserName))
@@ -302,8 +300,8 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 					fmt.Errorf("Failed saving user ProviderUserID for user %s in Bucket %s.\n", brucheionUserName, provider, err)
 					return err
 				}
-				fmt.Printf("Successfully saved ProviderUserID of BUser %s in Bucket %s.\n", brucheionUserName, provider)
-				fmt.Println(validation.Message) //Display validation.Message if all went well.
+				log.Printf("Successfully saved ProviderUserID of BUser %s in Bucket %s.\n", brucheionUserName, provider)
+				log.Println(validation.Message) //Display validation.Message if all went well.
 				return nil
 			})
 			db.Close() //always remember to close the db
@@ -324,9 +322,8 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			//return errors.New("Unknown login behavior. This should never happen")
 			return
 		} else {
-			fmt.Println(validation.Message)
+			log.Println(validation.Message)
 			validation.Message = validation.Message + "\nPlease always use the same combination of username, provider, and provider account."
-			fmt.Println("Please always use the same combination of username, provider, and provider account.")
 			lp := &LoginPage{
 				Message: validation.Message}
 			renderLoginTemplate(res, "login", lp)
@@ -341,10 +338,12 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		HrefUserName: brucheionUserName + "_" + provider,
 		Message:      validation.Message} //The message to be replied in regard to the login scenario
 
+	log.Println("Debug: 1")
 	renderAuthTemplate(res, "callback", lp)
+	log.Println("Debug: 2")
 }
 
-//Logout kills the session (equivalent to logging out) and logs the logout.
+//Logout kills the session (equivalent to logging out), logs the logout, and redirects to login page.
 func Logout(res http.ResponseWriter, req *http.Request) {
 
 	session, err := GetSession(req)
@@ -365,9 +364,32 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("User %s has logged out\n", bUserName)
+	log.Printf("User %s logged out\n", bUserName)
 	http.Redirect(res, req, "/login/", http.StatusFound)
+}
 
+//This extra logout is necessary for custom redirects after killing the session
+func InSituLogout(res http.ResponseWriter, req *http.Request) {
+
+	session, err := GetSession(req)
+	if err != nil {
+		fmt.Errorf("No session, no logout")
+		return
+	}
+
+	bUserName, ok := session.Values["BrucheionUserName"].(string)
+	if !ok {
+		fmt.Println("func Logout: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
+	}
+
+	session.Options.MaxAge = -1
+	session.Values = make(map[interface{}]interface{})
+	err = session.Save(req, res)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Printf("User %s logged out\n", bUserName)
 }
 
 //TestLoginStatus returns the tests if a user is logged in.

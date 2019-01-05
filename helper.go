@@ -374,7 +374,7 @@ func GetCookieStore(maxAge int) sessions.Store {
 
 //InitializeSession will create and return the session and set the session options
 func InitializeSession(req *http.Request) (*sessions.Session, error) {
-	fmt.Println("Initializing session for " + SessionName)
+	log.Println("Initializing session: " + SessionName)
 	session, err := BrucheionStore.Get(req, SessionName)
 	if err != nil {
 		fmt.Printf("InitializeSession: Error getting the session: %s\n", err)
@@ -411,7 +411,7 @@ func OpenBoltDB(dbName string) (*bolt.DB, error) {
 
 //InitializeUserDB should be called once during login attempt to make sure that all buckets are in place.
 func InitializeUserDB() error {
-	fmt.Println("Initializing UserDB")
+	log.Println("Initializing UserDB")
 	db, err := OpenBoltDB(config.UserDB)
 	if err != nil {
 		return err
@@ -458,12 +458,15 @@ func ValidateUserName(username string) *Validation {
 
 	log.Println("func ValidateUserName: Validating: " + username)
 	if strings.TrimSpace(username) == "" { //form was left blank
+		log.Println("Username was left blank")
 		unameValidation.Message = "Please enter a username." //the message will be displayed on the login page
 		return unameValidation
 	} else if !matched { //illegal characters were used
+		log.Println("Username contained illegal characters")
 		unameValidation.Message = "Please only use letters and numbers."
 		return unameValidation
 	} else { //a username only made of numbers and letters was used
+		log.Println("Username valid")
 		unameValidation.ErrorCode = true //the username was successfully validated
 		return unameValidation
 	}
@@ -533,14 +536,15 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 		}
 
 		if bUserValidation.BUserInUse && bUserValidation.BPAssociation { //if the user was found in the user bucket and a provider bucket (!bUserValidation.ErrorCode) Scenario (1)
-			log.Println("Scenario (1)")
+			//log.Println("Scenario (1)")
+			log.Println("Username already in use with a provider login")
 			bUserValidation.Message = "Username " + brucheionUserName + " is already in use with a provider login. Please choose a different username."
 		} else if bUserValidation.BUserInUse && !bUserValidation.BPAssociation { //if the user was found in the user bucket but not in a provider bucket Scenario (2)
-			log.Println("Scenario (2)")
+			//log.Println("Scenario (2)")
 			bUserValidation.ErrorCode = true
 			bUserValidation.Message = "NoAuth user " + brucheionUserName + " found. Logged in."
 		} else if !bUserValidation.BUserInUse && !bUserValidation.BPAssociation { //if the user was not found in the user bucket and neither in a provider bucket Scenario (3)
-			log.Println("Scenario (3)")
+			//log.Println("Scenario (3)")
 			bUserValidation.ErrorCode = true
 			bUserValidation.Message = "New noAuth user " + brucheionUserName + " created. Logged in."
 		}
@@ -594,7 +598,6 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 		cursor := bucket.Cursor()       //create a cursor object that will be used to iterate over database entries
 
 		for BUserName, _ := cursor.First(); BUserName != nil; BUserName, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
-			//Login scenario (4)
 			if string(BUserName) == brucheionUserName { //if this username was found in the users Bucket
 				buffer := bucket.Get([]byte(brucheionUserName)) //get the brucheionUser as []byte buffer
 				err := json.Unmarshal(buffer, &brucheionUser)   //unmarshal the buffer and save the brucheionUser in its variable

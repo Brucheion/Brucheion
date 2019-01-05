@@ -72,12 +72,12 @@ type image struct {
 	Location string `json:"location"`
 }
 
-func deleteCollection(w http.ResponseWriter, r *http.Request) {
+func deleteCollection(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(r)
+	session, err := GetSession(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -87,16 +87,16 @@ func deleteCollection(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(message)
 	} else {
 		fmt.Println(message)
-		Logout(w, r)
+		Logout(res, req)
 	}
 
-	newkey := r.URL.Query().Get("name")
+	newkey := req.URL.Query().Get("name")
 	newkey = strings.Replace(newkey, "\"", "", -1)
 	dbname := user + ".db"
 	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer db.Close()
@@ -411,12 +411,12 @@ func Buckets(dbname string) []string {
 	return result
 }
 
-func deleteBucket(w http.ResponseWriter, r *http.Request) {
+func deleteBucket(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(r)
+	session, err := GetSession(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -426,16 +426,16 @@ func deleteBucket(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(message)
 	} else {
 		fmt.Println(message)
-		Logout(w, r)
+		Logout(res, req)
 	}
 
-	vars := mux.Vars(r)
+	vars := mux.Vars(req)
 	newbucket := vars["urn"]
 	dbname := user + ".db"
 	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer db.Close()
@@ -449,12 +449,12 @@ func deleteBucket(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func deleteNode(w http.ResponseWriter, r *http.Request) {
+func deleteNode(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(r)
+	session, err := GetSession(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -464,17 +464,17 @@ func deleteNode(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(message)
 	} else {
 		fmt.Println(message)
-		Logout(w, r)
+		Logout(res, req)
 	}
 
-	vars := mux.Vars(r)
+	vars := mux.Vars(req)
 	newkey := vars["urn"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
 	dbname := user + ".db"
 	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer db.Close()
