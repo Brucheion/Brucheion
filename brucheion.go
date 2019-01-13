@@ -64,6 +64,7 @@ func MainPage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		log.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	//log.Printf("func MainPage: User still known? Should be: %s\n", user)

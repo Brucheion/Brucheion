@@ -33,6 +33,7 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -119,6 +120,7 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -261,6 +263,7 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -404,6 +407,7 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -468,6 +472,7 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -525,6 +530,7 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -583,6 +589,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -808,6 +815,7 @@ func TreePage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	dbname := user + ".db"
@@ -837,6 +845,7 @@ func CrudPage(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	dbname := user + ".db"
