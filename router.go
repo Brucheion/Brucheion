@@ -63,12 +63,12 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/requestImgID/{name}", requestImgID)
 	router.HandleFunc("/deleteCollection", deleteCollection)
 	router.HandleFunc("/requestImgCollection", requestImgCollection)
-	router.NotFoundHandler = http.HandlerFunc(redirect)
+	router.NotFoundHandler = http.HandlerFunc(NotFoundRedirect)
 
 	return router
 }
 
-func redirect(w http.ResponseWriter, r *http.Request) {
+func NotFoundRedirect(w http.ResponseWriter, r *http.Request) {
 	newLink := config.Host + "/login/"
 	http.Redirect(w, r, newLink, 301)
 }

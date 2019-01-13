@@ -28,6 +28,7 @@ func AddFirstNode(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	var texturns, texts, previouss, nexts, firsts, lasts []string
@@ -217,6 +218,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	var texturns, texts, previouss, nexts, firsts, lasts []string

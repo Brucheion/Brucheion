@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -30,4 +31,5 @@ func renderAuthTemplate(res http.ResponseWriter, tmpl string, p *LoginPage) {
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
+	log.Println("Debug: Rendering Auth Template")
 }

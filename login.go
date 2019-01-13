@@ -21,15 +21,17 @@ const SessionName = "brucheionSession"
 //LoginGET renders the login page. The user can enter the login Credentials into the form.
 //If already logged in, the user will be redirected to main page.
 func LoginGET(res http.ResponseWriter, req *http.Request) {
-
+	log.Println("loginGET is being called")
 	//Make sure user is not logged in yet
 	session, err := GetSession(req) //Get a session
 	if err != nil {
+		log.Println("Debug: Session created")
 		fmt.Errorf("LoginGET: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has already been set
+		log.Println("Debug: loggedin != nil")
 		if session.Values["Loggedin"].(bool) { //"Loggedin" will be true if user is already logged in
 			user, ok := session.Values["BrucheionUserName"].(string) //if session was valid get a username
 			if !ok {
@@ -37,8 +39,10 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 			}
 			log.Printf("ĹoginGET: user %s is already logged in. Redirecting to main\n", user) //use the username for debugging
 			http.Redirect(res, req, "/main/", http.StatusFound)
+			return
 		}
 	} else { //Destroy the newly created session if Loggedin was not set
+		log.Println("Debug: loggedin == nil")
 		session.Options.MaxAge = -1
 		session.Values = make(map[interface{}]interface{})
 		err = session.Save(req, res)
@@ -72,6 +76,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			}
 			log.Printf("LoginPOST: User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
 			http.Redirect(res, req, "/main/", http.StatusFound)                                //redirect to main, as login is not necessary anymore
+			return
 		}
 	} else { //Destroy the session we just got if user was not logged in yet (proceed with login process)
 		session.Options.MaxAge = -1
@@ -161,6 +166,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 				InSituLogout(res, req)                //kill the session
 				lp.Message = validation.Message       //add the message to the loginpage
 				renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
+				return
 			}
 		} else { //if the noauth flag was not set, or set false: continue with authentification using a provider
 			lp.Provider = req.FormValue("provider")
@@ -168,6 +174,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			session.Values["Provider"] = lp.Provider                  //the provider used for login
 			session.Save(req, res)                                    //always save the session after setting values
 			http.Redirect(res, req, authPath, http.StatusFound)       //redirect to auth page with correct provider
+			return
 		}
 	} else { //if the the user name was not valid
 		lp.Message = unameValidation.Message  //add the message to the loginpage
@@ -192,13 +199,16 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 				fmt.Println("func Auth: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 			}
 			fmt.Printf("func Auth: user %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
-			http.Redirect(res, req, "/main/", http.StatusFound)                                //redirect to main, as login is not necessary anymore
+			log.Println("is this code being reached?")
+			http.Redirect(res, req, "/main/", http.StatusFound) //redirect to main, as login is not necessary anymore
+			return
 		} else { //proceed with login process (gothic redirects to provider and redirects to callback)
 			gothic.BeginAuthHandler(res, req)
 		}
 	} else { //kill the session and redirect to login
 		fmt.Println("func Auth: \"Loggedin\" was nil. Session was not initialized. Logging out")
 		Logout(res, req)
+		return
 	}
 }
 
@@ -219,10 +229,13 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			}
 			log.Printf("AuthCallback: User %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
 			http.Redirect(res, req, "/main/", http.StatusFound)                                   //redirect to main, as login is not necessary anymore
+			log.Println("Debug: redirect in AuthCallback")
+			return
 		} //else proceed with login process
 	} else { //kill the session and redirect to login
 		log.Println("func AuthCallback: \"Loggedin\" was nil. Session was not initialized.")
 		Logout(res, req)
+		return
 	}
 
 	log.Println("Debug Authcallback twice?")
@@ -337,10 +350,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		Provider:     provider,
 		HrefUserName: brucheionUserName + "_" + provider,
 		Message:      validation.Message} //The message to be replied in regard to the login scenario
-
-	log.Println("Debug: 1")
 	renderAuthTemplate(res, "callback", lp)
-	log.Println("Debug: 2")
 }
 
 //Logout kills the session (equivalent to logging out), logs the logout, and redirects to login page.
@@ -354,7 +364,7 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 
 	bUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Println("func Logout: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
+		log.Println("func Logout: Type assertion of value BrucheionUserName to string failed or session value could not be retrieved.")
 	}
 
 	session.Options.MaxAge = -1

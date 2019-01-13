@@ -88,6 +88,7 @@ func deleteCollection(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	newkey := req.URL.Query().Get("name")
@@ -427,6 +428,7 @@ func deleteBucket(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -465,6 +467,7 @@ func deleteNode(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)

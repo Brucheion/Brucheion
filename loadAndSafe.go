@@ -37,6 +37,7 @@ func newCITECollection(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -61,6 +62,7 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -119,6 +121,7 @@ func newWork(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	if req.Method == "GET" {
@@ -166,6 +169,7 @@ func newText(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -219,6 +223,7 @@ func addCITE(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
@@ -260,6 +265,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -529,6 +535,7 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -593,6 +600,7 @@ func SaveTranscription(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	vars := mux.Vars(req)
@@ -653,6 +661,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	var texturns, texts, areas, imageurns []string

@@ -27,6 +27,7 @@ func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	response := JSONlist{}
@@ -75,6 +76,7 @@ func getImageInfo(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	retImage := imageCollection{}
@@ -132,6 +134,7 @@ func requestImgID(res http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println(message)
 		Logout(res, req)
+		return
 	}
 
 	response := JSONlist{}
