@@ -33,9 +33,9 @@ func newCITECollection(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("newCITECollection", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -58,9 +58,9 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("newCollection", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -117,9 +117,9 @@ func newWork(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("newWork", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -165,9 +165,9 @@ func newText(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("newText", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -219,9 +219,9 @@ func addCITE(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("addCITE", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -259,11 +259,11 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("LoadDB", session)
+	user, message, loggedin := TestLoginStatus("LoadCEX", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -531,9 +531,9 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("SaveImageRef", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -596,9 +596,9 @@ func SaveTranscription(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("SaveTranscription", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -657,9 +657,9 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("ExportCEX", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
