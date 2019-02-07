@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -29,9 +30,9 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("ViewPage", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -116,9 +117,9 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("comparePage", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -259,9 +260,9 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("consolidatePage", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -403,9 +404,9 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("EditPage", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -468,9 +469,9 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("Edit2Page", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -526,9 +527,9 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("EditCatPage", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -585,9 +586,9 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("MultiPage", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -811,9 +812,9 @@ func TreePage(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("TreePage", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -841,9 +842,9 @@ func CrudPage(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("CrudPage", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}

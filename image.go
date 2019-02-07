@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -23,9 +24,9 @@ func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("requestImgCollection", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -72,9 +73,9 @@ func getImageInfo(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("getImageInfo", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -130,9 +131,9 @@ func requestImgID(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("requestImgID", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}

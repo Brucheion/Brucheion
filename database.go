@@ -84,9 +84,9 @@ func deleteCollection(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("deleteCollection", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -422,11 +422,11 @@ func deleteBucket(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("deleteCollection", session)
+	user, message, loggedin := TestLoginStatus("deleteBucket", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -461,11 +461,11 @@ func deleteNode(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("deleteCollection", session)
+	user, message, loggedin := TestLoginStatus("deleteNode", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
