@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,9 +25,9 @@ func AddFirstNode(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("AddFirstNode", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}
@@ -214,9 +215,9 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 	//..and check if user is logged in.
 	user, message, loggedin := TestLoginStatus("AddNodeAfter", session)
 	if loggedin {
-		fmt.Println(message)
+		log.Println(message)
 	} else {
-		fmt.Println(message)
+		log.Println(message)
 		Logout(res, req)
 		return
 	}

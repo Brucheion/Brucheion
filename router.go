@@ -68,7 +68,7 @@ func setUpRouter() *mux.Router {
 	return router
 }
 
-func NotFoundRedirect(w http.ResponseWriter, r *http.Request) {
+func NotFoundRedirect(res http.ResponseWriter, req *http.Request) {
 	newLink := config.Host + "/login/"
-	http.Redirect(w, r, newLink, 301)
+	http.Redirect(res, req, newLink, 301)
 }

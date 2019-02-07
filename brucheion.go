@@ -22,14 +22,6 @@ func main() {
 		config = LoadConfiguration("./config.json")
 	}
 
-	/*
-		//Make sure the userDB file is there and has the necessary buckets.
-		err = InitializeUserDB()
-		if err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
-			return
-		}*/
-
 	//Create new Cookiestore instance for use with Brucheion
 	BrucheionStore = GetCookieStore(config.MaxAge)
 
