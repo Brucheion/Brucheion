@@ -127,7 +127,7 @@ type Validation struct {
 	BUserInUse    bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
 	SameProvider  bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
 	PUserInUse    bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
-	BPAssociation bool   // func ValidateNoAuthUser: Is the choosen NoAuthUser already in use with a provider login?
+	BPAssociation bool   //func ValidateNoAuthUser: Is the choosen NoAuthUser already in use with a provider login?
 }
 
 // multi alignment testing

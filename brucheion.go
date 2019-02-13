@@ -28,21 +28,19 @@ func main() {
 	if !*noAuth { //If Brucheion is NOT started in noAuth mode:
 		//Set up gothic for authentification using the helper function
 		SetUpGothic()
+	} else {
+		log.Println("Started in noAuth mode.")
 	}
 
 	//Create new router instance with associated routes
 	router := setUpRouter()
 
-	if *noAuth {
-		log.Println("Started in noAuth mode.")
-	}
-
 	log.Println("Listening at " + config.Host + "...")
 	log.Fatal(http.ListenAndServe(config.Port, router))
 }
 
-//First landing page for experimental testing
-func MainPage(res http.ResponseWriter, req *http.Request) {
+//LandingPage is the first landing page for experimental testing
+func LandingPage(res http.ResponseWriter, req *http.Request) {
 
 	session, err := GetSession(req)
 	if err != nil {

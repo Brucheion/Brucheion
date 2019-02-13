@@ -16,7 +16,7 @@ var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
 func setUpRouter() *mux.Router {
 
-	//Set up the router
+	//Start the router
 	router := mux.NewRouter().StrictSlash(true)
 
 	//Set up handlers for serving static files
@@ -68,6 +68,7 @@ func setUpRouter() *mux.Router {
 	return router
 }
 
+//NotFoundRedirect redirects user to login in case an invalid request was issued.
 func NotFoundRedirect(res http.ResponseWriter, req *http.Request) {
 	newLink := config.Host + "/login/"
 	http.Redirect(res, req, newLink, 301)
