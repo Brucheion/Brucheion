@@ -340,7 +340,7 @@ func SetUpGothic() {
 		github.New(config.GitHubKey, config.GitHubSecret, gitHubPath),
 		gitlab.New(config.GitLabKey, config.GitLabSecret, gitLabPath, config.GitLabScope))
 	//Create new Cookiestore for _gothic_session
-	loginTimeout := 60 //Time the _BrucheionSession cookie will be alive in seconds
+	loginTimeout := 60 //Time the _gothic_session cookie will be alive in seconds
 	gothic.Store = GetCookieStore(loginTimeout)
 }
 
@@ -472,8 +472,9 @@ func ValidateUserName(username string) *Validation {
 	}
 }
 
+//ValidateNoAuthUser checks whether the Brucheion username is already in use and
+//whether it is already associated with a provider login.
 func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
-
 	//prepares the noAuthUserValidation
 	bUserValidation := &Validation{
 		Message:       "An internal error occured. (This should never happen.)",
@@ -490,7 +491,7 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 	//get user data from session
 	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Errorf("Func ValidateNoAuthUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved.")
+		fmt.Errorf("func ValidateNoAuthUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
 	}
 
 	//open the user database
@@ -554,6 +555,9 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 	return bUserValidation, nil
 }
 
+//ValidateUser checks whether the Brucheion username is already in use,
+//whether that username is associated with the same provider login (as chosen at the login screen),
+//and whether that provider login is already in use with another Brucheion user.
 func ValidateUser(req *http.Request) (*Validation, error) {
 
 	bUserValidation := &Validation{
@@ -572,22 +576,25 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 	//get user data from session
 	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Errorf("Func ValidateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved.")
+		fmt.Errorf("func ValidateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
 	}
+	log.Println("Debug: brucheionUserName = " + brucheionUserName)
 	provider, ok := session.Values["Provider"].(string)
 	if !ok {
-		fmt.Errorf("Func ValidateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved.")
+		fmt.Errorf("func ValidateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved")
 	}
+	log.Println("Debug: Provider = " + provider)
 	providerUserID, ok := session.Values["ProviderUserID"].(string)
 	if !ok {
-		fmt.Errorf("Func ValidateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved.")
+		fmt.Errorf("func ValidateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved")
 	}
+	log.Println("Debug: providerUserID = \"" + providerUserID + "\"")
 
 	userDB, err := OpenBoltDB(config.UserDB)
 	if err != nil {
 		return nil, err
 	}
-	defer userDB.Close()
+	defer userDB.Close() //always remember to close the DB
 
 	userDB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("users")) //try to open the user bucket
@@ -604,6 +611,7 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 				if err != nil {
 					fmt.Println("Error unmarshalling brucheionUser: ", err)
 				}
+				log.Println("Found BrucheionUser " + brucheionUserName + " in usersDB.")
 				BUPointer = &brucheionUser //set the pointer to the brucheionuser
 			}
 		}
@@ -619,15 +627,17 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 				//Login scenario (4)
 				if string(userID) == providerUserID { //if this userID was in the Bucket
 					bUserValidation.Message = "This " + provider + " account is already in use for authentificating another login."
-					bUserValidation.ErrorCode = false //Error encoungtered (PUser in use, but not for this BUser)
+					bUserValidation.ErrorCode = false //Error encountered (PUser in use, but not for this BUser)
 					bUserValidation.PUserInUse = true //ProviderUser from session already in use
 				}
 			}
-			cursor = nil
+			cursor = nil //necessary?
 			//Login scenario (5)
-			//TO BE TESTED: alternative if statement: if bUserValidation.BUserInUse == false
+			//TO DO: test alternative if statement:
+			//if bUserValidation.BUserInUse == false
 			//&& bUserValidation.SameProvider == false
 			//&& bUserValidation.PUserInUse == false{
+			//or if statement obsolete?
 			if bUserValidation.Message == "An internal error occured. (This should never happen.)" { //If userID was not found in DB, message will be unaltered.
 				bUserValidation.Message = "User " + brucheionUserName + " created for login with provider " + provider + ". Login successfull."
 				bUserValidation.ErrorCode = true   //New BUser and new PUser -> Creating a new user is not an error
@@ -639,14 +649,22 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 				bUserValidation.SameProvider = true                 //Provider from session and BrucheionUser match
 				if providerUserID == brucheionUser.ProviderUserID { //if there was a user bucket and the session values match the DB values; Login Scenarios (1)
 					bUserValidation.Message = "User " + brucheionUserName + " logged in successfully."
-					bUserValidation.ErrorCode = true  //No error encountered
+					bUserValidation.ErrorCode = true  //No error encountereddia
 					bUserValidation.PUserInUse = true //ProviderUser from session and BrucheionUser match
-				} else { //brucheionUser.ProviderUserID != providerUserID; Login Scenarios (2)
-					bUserValidation.Message = "Username " + brucheionUserName + " is already registered with another account. Choose another username."
-					bUserValidation.ErrorCode = false  //Error encountered
-					bUserValidation.PUserInUse = false //ProviderUser from session and BrucheionUser don't match
+				} else { //brucheionUser.ProviderUserID != providerUserID; Login Scenario (2)
+					if providerUserID == "" {
+						bUserValidation.Message = "Username " + brucheionUserName + " found in userDB. Redirecting to provider authentification."
+						bUserValidation.ErrorCode = true     //Error encountered
+						bUserValidation.SameProvider = false //The BUser is in Use with another Provider
+						bUserValidation.PUserInUse = false   //ProviderUser from session and BrucheionUser don't match
+					} else {
+						bUserValidation.Message = "Username " + brucheionUserName + " is already registered with another account. Choose another username."
+						bUserValidation.ErrorCode = false  //Error encountered
+						bUserValidation.PUserInUse = false //ProviderUser from session and BrucheionUser don't match
+					}
 				}
 			} else { //brucheionUser.Provider != provider; Login Scenario (3)
+				log.Println("providerUserID =\"" + providerUserID + "\".")
 				bUserValidation.Message = "Username " + brucheionUserName + " already in use with another provider."
 				bUserValidation.ErrorCode = false    //Error encountered
 				bUserValidation.SameProvider = false //The BUser is in Use with another Provider

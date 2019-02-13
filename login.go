@@ -13,9 +13,10 @@ import (
 	"github.com/markbates/goth/gothic"
 )
 
+//BrucheionStore represents the session on the server side
 var BrucheionStore sessions.Store
 
-//The sessionName of the Brucheion Session
+//SessionName saves the name of the Brucheion session
 const SessionName = "brucheionSession"
 
 //LoginGET renders the login page. The user can enter the login Credentials into the form.
@@ -39,9 +40,9 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 		http.Redirect(res, req, "/main/", http.StatusFound)
 		return
 		//}
-	} else { //Destroy the session we just got (proceed with login process)
-		InSituLogout(res, req)
-	}
+	} //Destroy the session we just got (proceed with login process)
+	InSituLogout(res, req)
+
 	lp := &LoginPage{
 		Title:  "Brucheion Login Page",
 		NoAuth: *noAuth}
@@ -68,17 +69,18 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 			http.Redirect(res, req, "/main/", http.StatusFound)                                //redirect to main, as login is not necessary anymore
 			return
 		}
-	} else { //Destroy the session we just got if user was not logged in yet (proceed with login process)
-		InSituLogout(res, req)
+		//if not its an unknown session state, destroy session and redirect to login
+		Logout(res, req)
+		return
 	}
-
-	title := "Brucheion Login Page" //set the title of the page
+	//if user was not logged in yet then destroy the session we just got (and proceed with login process)
+	InSituLogout(res, req)
 
 	//populates Loginpage with basic data and the form values
 	lp := &LoginPage{
-		BUserName: strings.TrimSpace(req.FormValue("brucheionusername")), //Trimspace possibly obsolete
+		BUserName: strings.TrimSpace(req.FormValue("brucheionusername")),
 		Host:      config.Host,
-		Title:     title,
+		Title:     "Brucheion Login Page", //set the title of the page
 		NoAuth:    *noAuth}
 
 	unameValidation := ValidateUserName(lp.BUserName) //checks if this username only has (latin) letters and (arabian) numbers
@@ -93,6 +95,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 
 		//save the BrucheionUserName in the session as well and set the Loggedin value to false
 		session.Values["BrucheionUserName"] = lp.BUserName
+		session.Values["Provider"] = req.FormValue("provider") //save the provider used for login in the session
 		session.Values["Loggedin"] = false
 		session.Save(req, res)
 
@@ -125,12 +128,12 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 						bucket := tx.Bucket([]byte("users"))
 						buffer, err := json.Marshal(brucheionUser) //Marshal user data
 						if err != nil {
-							fmt.Errorf("Failed marshalling user data for user %s: %s\n", brucheionUser.BUserName, err)
+							fmt.Errorf("failed marshalling user data for user %s: %s", brucheionUser.BUserName, err)
 							return err
 						}
 						err = bucket.Put([]byte(brucheionUser.BUserName), buffer) //put user into bucket
 						if err != nil {
-							fmt.Errorf("Failed saving user %s in users.db\n", brucheionUser.BUserName, err)
+							fmt.Errorf("failed saving user %s in users.db", brucheionUser.BUserName, err)
 							return err
 						}
 						log.Printf("Successfully saved new user %s in users.DB.\n", brucheionUser.BUserName)
@@ -145,49 +148,47 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 				lp.Message = validation.Message //The message to be replied in regard to the login scenario
 				renderAuthTemplate(res, "callback", lp)
 				return
-			} else { //if the username is not valid
-				InSituLogout(res, req)                //kill the session
-				lp.Message = validation.Message       //add the message to the loginpage
-				renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
-				return
 			}
-		} else { //if the noauth flag was not set, or set false: continue with authentification using a provider
+			//if the username is not valid
+			InSituLogout(res, req)                //kill the session
+			lp.Message = validation.Message       //add the message to the loginpage
+			renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
+			return
 
-			validation, err := ValidateUser(req) //validate if credentials match existing user
-			if err != nil {
-				fmt.Printf("\nAuthCallback error validating user: %s", err)
-				http.Error(res, err.Error(), http.StatusInternalServerError)
-			}
-
-			if validation.ErrorCode { //Login scenarios (1), (5)
-
-				authPath := "/auth/" + strings.ToLower(req.FormValue("provider")) + "/" //set up the path for redirect according to provider (needs to be lower case for gothic)
-				session.Values["Provider"] = req.FormValue("provider")                  //save the provider used for login in the session
-				session.Save(req, res)                                                  //always save the session after setting values
-				http.Redirect(res, req, authPath, http.StatusFound)                     //redirect to auth page with correct provider
-				return
-			} else { //Login scenarios (2), (3), (4)
-				if (validation.BUserInUse && !validation.SameProvider && validation.PUserInUse) ||
-					(!validation.BUserInUse && validation.SameProvider && validation.PUserInUse) ||
-					(!validation.BUserInUse && validation.SameProvider && !validation.PUserInUse) { //unknown login behavior
-					fmt.Errorf("Unknown login behavior. This should never happen")
-					//return errors.New("Unknown login behavior. This should never happen")
-					return
-				} else {
-					log.Println(validation.Message)
-					validation.Message = validation.Message + "\nPlease always use the same combination of username, provider, and provider account."
-					lp := &LoginPage{
-						Message: validation.Message}
-					renderLoginTemplate(res, "login", lp)
-					InSituLogout(res, req)
-					return
-				}
-			}
 		}
-	} else { //if the the user name was not valid
-		lp.Message = unameValidation.Message  //add the message to the loginpage
-		renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
+		//if the noauth flag was not set, or set false: continue with authentification using a provider
+		validation, err := ValidateUser(req) //validate if credentials match existing user
+		if err != nil {
+			fmt.Printf("\nLoginPost: error validating user: %s", err)
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
+
+		if validation.ErrorCode { //Login scenarios (1), (5)
+
+			authPath := "/auth/" + strings.ToLower(req.FormValue("provider")) + "/" //set up the path for redirect according to provider (needs to be lower case for gothic)
+			session.Save(req, res)                                                  //always save the session after setting values
+			http.Redirect(res, req, authPath, http.StatusFound)                     //redirect to auth page with correct provider
+			return
+		}
+
+		log.Println(validation.Message)
+		validation.Message = validation.Message + "\nPlease always use the same combination of username, provider, and provider account."
+		if (validation.BUserInUse && !validation.SameProvider && validation.PUserInUse) ||
+			(!validation.BUserInUse && validation.SameProvider && validation.PUserInUse) ||
+			(!validation.BUserInUse && validation.SameProvider && !validation.PUserInUse) { //unknown login behavior
+			log.Println("Unknown login behavior. This should never happen. Logging out.")
+			validation.Message = "Unknown login behavior. Please report this to the development team."
+		}
+		//Login scenarios (2), (3), (4)
+		lp := &LoginPage{
+			Message: validation.Message}
+		InSituLogout(res, req)
+		renderLoginTemplate(res, "login", lp)
+		return
 	}
+	//if the the user name was not valid
+	lp.Message = unameValidation.Message  //add the message to the loginpage
+	renderLoginTemplate(res, "login", lp) //and render the login template again, displaying said message.
 }
 
 //Auth redirects to provider for authentification using gothic.
@@ -209,9 +210,9 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 			log.Printf("func Auth: user %s is already logged in. Redirecting to main\n", user) //Log that session was already logged in
 			http.Redirect(res, req, "/main/", http.StatusFound)                                //redirect to main, as login is not necessary anymore
 			return
-		} else { //proceed with login process (gothic redirects to provider and redirects to callback)
-			gothic.BeginAuthHandler(res, req)
 		}
+		//proceed with login process (gothic redirects to provider and redirects to callback)
+		gothic.BeginAuthHandler(res, req)
 	} else { //kill the session and redirect to login
 		log.Println("func Auth: \"Loggedin\" was nil. Session was not initialized. Logging out")
 		Logout(res, req)
@@ -243,13 +244,6 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		Logout(res, req)
 		return
 	}
-
-	/* Can probably be omitted. UserDB is initialized in LoginPOST already.
-	err = InitializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}*/
 
 	//get the provider user from Gothic
 	gothUser, err := gothic.CompleteUserAuth(res, req) //authentificate user and get gothUser from gothic
@@ -286,6 +280,8 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 
+	//log.Println(validation)
+
 	//Save user in DB and/or login user if user is valid. Redirect back to login page is not
 
 	if validation.BUserInUse && validation.SameProvider && validation.PUserInUse { //Login scenario (1)
@@ -304,12 +300,12 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			bucket := tx.Bucket([]byte("users"))
 			buffer, err := json.Marshal(brucheionUser) //Marshal user data
 			if err != nil {
-				fmt.Errorf("Failed marshalling user data for user %s: %s\n", brucheionUserName, err)
+				fmt.Errorf("failed marshalling user data for user %s: %s", brucheionUserName, err)
 				return err
 			}
 			err = bucket.Put([]byte(brucheionUserName), buffer) //put user into bucket
 			if err != nil {
-				fmt.Errorf("Failed saving user %s in users.db\n", brucheionUserName, err)
+				fmt.Errorf("failed saving user %s in users.db", brucheionUserName, err)
 				return err
 			}
 			log.Printf("Successfully saved new user %s in users.DB.\n", brucheionUserName)
@@ -317,7 +313,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 			bucket = tx.Bucket([]byte(provider))
 			err = bucket.Put([]byte(brucheionUser.ProviderUserID), []byte(brucheionUserName))
 			if err != nil {
-				fmt.Errorf("Failed saving user ProviderUserID for user %s in Bucket %s.\n", brucheionUserName, provider, err)
+				fmt.Errorf("failed saving user ProviderUserID for user %s in Bucket %s", brucheionUserName, provider, err)
 				return err
 			}
 			log.Printf("Successfully saved ProviderUserID of BUser %s in Bucket %s.\n", brucheionUserName, provider)
@@ -329,9 +325,15 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		session.Values["Loggedin"] = true //To keep the user logged in
 		session.Save(req, res)
 
+	} else if !validation.BUserInUse && !validation.SameProvider && validation.PUserInUse {
+		log.Println(validation.Message)
+		InSituLogout(res, req)
+		lp := &LoginPage{Message: validation.Message} //add the message to the loginpage
+		renderLoginTemplate(res, "login", lp)         //and render the login template again, displaying said message.
+		return
 	} else { //unknown login behavior
-		fmt.Errorf("Unknown login behavior. This should never happen")
-		//return errors.New("Unknown login behavior. This should never happen")
+		log.Println("Unknown login behavior. This should never happen. Logging out.")
+		Logout(res, req)
 		return
 	}
 
@@ -355,7 +357,7 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 
 	bUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		log.Println("func InSituLogout: Session not initialized or type assertion failed.")
+		log.Println("Logout: BrucheionUserName could not be retrieved from session.")
 	}
 
 	session.Options.MaxAge = -1
@@ -367,15 +369,15 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if bUserName == "" {
-		log.Println("Empty session destroyed.")
+		log.Println("Logout: Empty session destroyed.")
 	} else {
-		log.Printf("User %s logged out\n", bUserName)
+		log.Printf("Logout: User %s logged out\n", bUserName)
 	}
 
 	http.Redirect(res, req, "/login/", http.StatusFound)
 }
 
-//This extra logout is necessary for custom redirects after killing the session
+//InSituLogout kills the session and does not redirects afterwards
 func InSituLogout(res http.ResponseWriter, req *http.Request) {
 
 	session, err := GetSession(req)
@@ -386,7 +388,7 @@ func InSituLogout(res http.ResponseWriter, req *http.Request) {
 
 	bUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		log.Println("func InSituLogout: Session not initialized or type assertion failed.")
+		log.Println("InSituLogout: BrucheionUserName could not be retrieved from session.")
 	}
 
 	session.Options.MaxAge = -1
@@ -397,9 +399,9 @@ func InSituLogout(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if bUserName == "" {
-		log.Println("Empty session destroyed.")
+		log.Println("InSituLogout: Empty session destroyed.")
 	} else {
-		log.Printf("User %s logged out\n", bUserName)
+		log.Printf("InSituLogout: User %s logged out\n", bUserName)
 	}
 }
 
