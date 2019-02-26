@@ -36,7 +36,7 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //Displays message when logged in successfully. Forwards to Main
 	router.HandleFunc("/logout/", Logout)                         //Logs out the User. Moved to helper.go
 	router.HandleFunc("/{urn}/treenode.json/", Treenode)          //Function at treeBank.go
-	router.HandleFunc("/main/", MainPage)                         //So far this is just the page, a user is redirected to after login
+	router.HandleFunc("/main/", LandingPage)                      //So far this is just the page, a user is redirected to after login
 	router.HandleFunc("/load/{cex}/", LoadCEX)
 	router.HandleFunc("/new/{key}/{updated}", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
