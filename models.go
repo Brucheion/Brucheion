@@ -124,10 +124,10 @@ type BrucheionUser struct {
 type Validation struct {
 	Message       string //Message according to outcome of validation
 	ErrorCode     bool   //Was an error encountered during validation (something did not match)?
-	BUserInUse    bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
-	SameProvider  bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
-	PUserInUse    bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
-	BPAssociation bool   //func ValidateNoAuthUser: Is the choosen NoAuthUser already in use with a provider login?
+	BUserInUse    bool   //func validateUser: Is the BrucheionUser to be found in the DB?
+	SameProvider  bool   //func validateUser: Is the chosen provider the same as the providersaved in DB?
+	PUserInUse    bool   //func validateUser: Is the ProviderUser to be found in the DB?
+	BPAssociation bool   //func validateNoAuthUser: Is the choosen NoAuthUser already in use with a provider login?
 }
 
 // multi alignment testing

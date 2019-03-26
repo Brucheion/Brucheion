@@ -21,7 +21,7 @@ import (
 func ViewPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -108,7 +108,7 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 func comparePage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -251,7 +251,7 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 func consolidatePage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -395,7 +395,7 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 func EditPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -460,7 +460,7 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 func Edit2Page(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -518,7 +518,7 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 func EditCatPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -577,7 +577,7 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 func MultiPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -617,7 +617,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	passageId := strings.Split(urn, ":")[4]
 
 	buckets := Buckets(dbname)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -803,7 +803,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 func TreePage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -833,7 +833,7 @@ func TreePage(res http.ResponseWriter, req *http.Request) {
 func CrudPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

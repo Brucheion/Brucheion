@@ -23,7 +23,7 @@ const SessionName = "brucheionSession"
 //If already logged in, the user will be redirected to main page.
 func LoginGET(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
-	session, err := GetSession(req) //Get a session
+	session, err := getSession(req) //Get a session
 	if err != nil {
 		fmt.Errorf("LoginGET: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -53,7 +53,7 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 func LoginPOST(res http.ResponseWriter, req *http.Request) {
 
 	//Make sure user is not logged in yet
-	session, err := GetSession(req) //get a session
+	session, err := getSession(req) //get a session
 	if err != nil {
 		fmt.Errorf("LoginPOST: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -83,10 +83,10 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 		Title:     "Brucheion Login Page", //set the title of the page
 		NoAuth:    *noAuth}
 
-	unameValidation := ValidateUserName(lp.BUserName) //checks if this username only has (latin) letters and (arabian) numbers
+	unameValidation := validateUserName(lp.BUserName) //checks if this username only has (latin) letters and (arabian) numbers
 
 	if unameValidation.ErrorCode { //if a valid username has been chosen
-		session, err = InitializeSession(req) //initialize a persisting session
+		session, err = initializeSession(req) //initialize a persisting session
 		if err != nil {
 			fmt.Println("LoginPOST: Error initializing the session.")
 			http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -99,7 +99,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 		session.Values["Loggedin"] = false
 		session.Save(req, res)
 
-		err = InitializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
+		err = initializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
@@ -108,7 +108,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 		if *noAuth { //if the noauth flag was set true: check if username is not in use for a login with a provider
 			//log.Println("noAuth flag was true")
 
-			validation, err := ValidateNoAuthUser(req) //validate if credentials match existing user and not in use with a provider login yet
+			validation, err := validateNoAuthUser(req) //validate if credentials match existing user and not in use with a provider login yet
 			if err != nil {
 				fmt.Printf("\nLoginPOST error validating user: %s", err)
 				http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -118,7 +118,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 					BUserName: lp.BUserName,
 					Provider:  "noAuth"}
 				if !validation.BUserInUse { // create new noAuth user if the username was not in use
-					db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
+					db, err := openBoltDB(config.UserDB) //open bolt DB using helper function
 					if err != nil {
 						log.Printf("Error opening userDB: %s", err)
 						http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -157,7 +157,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 
 		}
 		//if the noauth flag was not set, or set false: continue with authentification using a provider
-		validation, err := ValidateUser(req) //validate if credentials match existing user
+		validation, err := validateUser(req) //validate if credentials match existing user
 		if err != nil {
 			fmt.Printf("\nLoginPost: error validating user: %s", err)
 			http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -195,7 +195,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 //Provider redirects to callback page.
 func Auth(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
-	session, err := GetSession(req) //get a session
+	session, err := getSession(req) //get a session
 	if err != nil {
 		fmt.Errorf("Auth: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -223,7 +223,7 @@ func Auth(res http.ResponseWriter, req *http.Request) {
 //AuthCallback completes user authentification, sets session variables and DB entries.
 func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
-	session, err := GetSession(req) //get a session
+	session, err := getSession(req) //get a session
 	if err != nil {
 		fmt.Errorf("func AuthCallback: Error getting session: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -274,7 +274,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		PUserName:      gothUser.NickName,
 		ProviderUserID: gothUser.UserID}
 
-	validation, err := ValidateUser(req) //validate if credentials match existing user
+	validation, err := validateUser(req) //validate if credentials match existing user
 	if err != nil {
 		fmt.Printf("\nAuthCallback error validating user: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -290,7 +290,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 		log.Println(validation.Message) //Display validation.Message if all went well.
 	} else if !validation.BUserInUse && !validation.SameProvider && !validation.PUserInUse { //Login scenario (5)
 		//create new entry for new BUser
-		db, err := OpenBoltDB(config.UserDB) //open bolt DB using helper function
+		db, err := openBoltDB(config.UserDB) //open bolt DB using helper function
 		if err != nil {
 			fmt.Printf("Error opening userDB: %s", err)
 			http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -349,7 +349,7 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 //Logout kills the session (equivalent to logging out), logs the logout, and redirects to login page.
 func Logout(res http.ResponseWriter, req *http.Request) {
 
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		fmt.Errorf("No session, no logout")
 		return
@@ -380,7 +380,7 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 //InSituLogout kills the session and does not redirects afterwards
 func InSituLogout(res http.ResponseWriter, req *http.Request) {
 
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		fmt.Errorf("No session, no logout")
 		return

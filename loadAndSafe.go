@@ -22,9 +22,30 @@ import (
 	"github.com/ThomasK81/gocite"
 )
 
+//dataframe is the sort-matrix interface used in ExportCEX to sort integer Indices
+//and their string values using used by sort.Sort in ExportCEX
+type dataframe struct {
+	Indices []int
+	Values1 []string
+	Values2 []string
+}
+
+//Len returns the numer of Indices in a dataframe
+func (m dataframe) Len() int { return len(m.Indices) }
+
+//Less returns wether the in value of a dataframe index is smaller than the following index
+func (m dataframe) Less(i, j int) bool { return m.Indices[i] < m.Indices[j] }
+
+//Swap swaps the Indices and corresponding values withtin a dataframe
+func (m dataframe) Swap(i, j int) {
+	m.Indices[i], m.Indices[j] = m.Indices[j], m.Indices[i]
+	m.Values1[i], m.Values1[j] = m.Values1[j], m.Values1[i]
+	m.Values2[i], m.Values2[j] = m.Values2[j], m.Values2[i]
+}
+
 func newCITECollection(res http.ResponseWriter, req *http.Request) {
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -49,7 +70,7 @@ func newCITECollection(res http.ResponseWriter, req *http.Request) {
 func newCollection(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -108,7 +129,7 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 func newWork(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -156,7 +177,7 @@ func newWork(res http.ResponseWriter, req *http.Request) {
 func newText(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -179,7 +200,7 @@ func newText(res http.ResponseWriter, req *http.Request) {
 	retrievedjson := BoltURN{}
 	retrievedjson.URN = newkey
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -208,9 +229,11 @@ func newText(res http.ResponseWriter, req *http.Request) {
 	http.Redirect(res, req, "/view/"+newkey, http.StatusFound)
 }
 
+//addCITE adds a new CITE reference to the user database.
+//It extracts the reference from the the http.Request and passes it to addtoCITECollection
 func addCITE(res http.ResponseWriter, req *http.Request) {
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -226,7 +249,7 @@ func addCITE(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
+	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static"&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
 	name := req.URL.Query().Get("name")
 	name = strings.Replace(name, "\"", "", -1)
 	imageurn := req.URL.Query().Get("urn")
@@ -252,7 +275,7 @@ func addCITE(res http.ResponseWriter, req *http.Request) {
 func LoadCEX(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -445,7 +468,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	// write to database
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + user + ".db"
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -522,7 +545,7 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	// fmt.Println(r.FormValue("text"))
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -554,7 +577,7 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	retrievedjson.ImageRef = imageref
 	fmt.Println(imageref) //DEBUG
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -587,7 +610,7 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 func SaveTranscription(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -616,7 +639,7 @@ func SaveTranscription(res http.ResponseWriter, req *http.Request) {
 	retrievedjson.Text = text
 	retrievedjson.LineText = linetext
 	newnode, _ := json.Marshal(retrievedjson)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -648,7 +671,7 @@ func SaveTranscription(res http.ResponseWriter, req *http.Request) {
 func ExportCEX(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -670,7 +693,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	filename := vars["filename"]
 	dbname := user + ".db"
 	buckets := Buckets(dbname)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)

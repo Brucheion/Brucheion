@@ -16,7 +16,7 @@ import (
 func AddFirstNode(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -51,7 +51,7 @@ func AddFirstNode(res http.ResponseWriter, req *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -206,7 +206,7 @@ func AddFirstNode(res http.ResponseWriter, req *http.Request) {
 func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -238,7 +238,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 	if retrievednodejson.Last == retrievednodejson.URN {
 		lastnode = true
 	}
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)

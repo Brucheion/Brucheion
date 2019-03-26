@@ -15,17 +15,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//BoltData is the container for CITE data imported from CEX files and is used in LoadCEX
 type BoltData struct {
 	Bucket  []string // workurn
 	Data    []BoltWork
 	Catalog []BoltCatalog
 }
 
+//BoltWork is the container for BultURNs and their associated keys and is used in LoadCEX
 type BoltWork struct {
 	Key  []string // cts-node urn
 	Data []BoltURN
 }
 
+//BoltCatalog contains all metadata of a CITE URN and is used in LoadCEX and page functions
 type BoltCatalog struct {
 	URN           string `json:"urn"`
 	Citation      string `json:"citationScheme"`
@@ -37,6 +40,9 @@ type BoltCatalog struct {
 	Language      string `json:"language"`
 }
 
+//BoltURN is the container for a textpassage along with its URN, its image reference,
+//and some information on preceding and anteceding works.
+//Used for loading and saving CEX files, for pages, and for nodes
 type BoltURN struct {
 	URN      string   `json:"urn"`
 	Text     string   `json:"text"`
@@ -49,20 +55,25 @@ type BoltURN struct {
 	ImageRef []string `json:"imageref"`
 }
 
+//BoltJSON is a string representation of a JSON used in BoltRetrieve
 type BoltJSON struct {
 	JSON string
 }
 
+//cexMeta is the container for CEX metadata. Used for saving new URNs with newWork
+//or changing metatdata with updateWorkMeta
 type cexMeta struct {
 	URN, CitationScheme, GroupName, WorkTitle, VersionLabel, ExemplarLabel, Online, Language string
 }
 
+//imageCollection is the container for image collections along with their URN and name as strings
 type imageCollection struct {
 	URN        string  `json:"urn"`
 	Name       string  `json:"name"`
 	Collection []image `json:"location"`
 }
 
+//image is the container for image metadata
 type image struct {
 	URN      string `json:"urn"`
 	Name     string `json:"name"`
@@ -72,10 +83,11 @@ type image struct {
 	Location string `json:"location"`
 }
 
+//deleteCollection deletes the collection specified in the URL from the user database
 func deleteCollection(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -94,7 +106,7 @@ func deleteCollection(res http.ResponseWriter, req *http.Request) {
 	newkey := req.URL.Query().Get("name")
 	newkey = strings.Replace(newkey, "\"", "", -1)
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -111,6 +123,7 @@ func deleteCollection(res http.ResponseWriter, req *http.Request) {
 	})
 }
 
+//newCollectiontoDB saves a new collection in a user db. Called by endpoint newCollection
 func newCollectiontoDB(dbName, collectionName string, collection imageCollection) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
@@ -120,7 +133,7 @@ func newCollectiontoDB(dbName, collectionName string, collection imageCollection
 		fmt.Println(err)
 		return err
 	}
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		return err
@@ -149,6 +162,8 @@ func newCollectiontoDB(dbName, collectionName string, collection imageCollection
 	return nil
 }
 
+//newCITECollectionDB saves a new CITE collection with a specified name in the user database.
+//Called by newCITECollection
 func newCITECollectionDB(dbName, collectionName string) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
@@ -159,7 +174,7 @@ func newCITECollectionDB(dbName, collectionName string) error {
 		fmt.Println(err)
 		return err
 	}
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		return err
@@ -193,7 +208,7 @@ func addtoCITECollection(dbName, collectionName string, newImage image) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(collectionName)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		return err
@@ -244,7 +259,7 @@ func newWorktoDB(dbName string, meta cexMeta) error {
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(meta.URN)
 	dbvalue, err := gobEncode(&meta)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		return err
@@ -276,7 +291,7 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(meta.URN)
 	dbvalue, err := gobEncode(&meta)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		return err
@@ -303,6 +318,7 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 	return nil
 }
 
+//gobEncode encodes an interface to a byte slice
 func gobEncode(p interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
@@ -313,6 +329,7 @@ func gobEncode(p interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+//gobDecodeImgCol decodes a byte slice to an imageCollection
 func gobDecodeImgCol(data []byte) (imageCollection, error) {
 	var p *imageCollection
 	buf := bytes.NewBuffer(data)
@@ -324,6 +341,7 @@ func gobDecodeImgCol(data []byte) (imageCollection, error) {
 	return *p, nil
 }
 
+//gobDecodePassage decodes a byte slice to a gocite.Passage
 func gobDecodePassage(data []byte) (gocite.Passage, error) {
 	var p *gocite.Passage
 	buf := bytes.NewBuffer(data)
@@ -335,13 +353,15 @@ func gobDecodePassage(data []byte) (gocite.Passage, error) {
 	return *p, nil
 }
 
+//BoltRetrieveFirstKey returns the first key in a specified bucket of
+//a specified database as a string.
 func BoltRetrieveFirstKey(dbname, bucket string) string {
 	var result string
 	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
 		return result
 	}
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		return result
@@ -351,7 +371,7 @@ func BoltRetrieveFirstKey(dbname, bucket string) string {
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucket))
 		if bucket == nil {
-			return fmt.Errorf("Bucket %q not found!", bucket)
+			return fmt.Errorf("bucket %q not found", bucket)
 		}
 		c := bucket.Cursor()
 		key, _ := c.First()
@@ -361,13 +381,15 @@ func BoltRetrieveFirstKey(dbname, bucket string) string {
 	return result
 }
 
+//BoltRetrieve retrieves the string data for the specified key in a specified bucket of
+//a specified database as a string
 func BoltRetrieve(dbname, bucket, key string) BoltJSON {
 	var result BoltJSON
 	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
 		return result
 	}
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		return result
@@ -386,14 +408,14 @@ func BoltRetrieve(dbname, bucket, key string) BoltJSON {
 	return result
 }
 
-// Buckets returns a slice of strings with the names of all buckets in a BoltDB.
+//Buckets returns a slice of strings with the names of all buckets in a BoltDB.
 func Buckets(dbname string) []string {
 	var result []string
 	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
 		return result
 	}
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		return result
@@ -415,7 +437,7 @@ func Buckets(dbname string) []string {
 func deleteBucket(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -434,7 +456,7 @@ func deleteBucket(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	newbucket := vars["urn"]
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -454,7 +476,7 @@ func deleteBucket(res http.ResponseWriter, req *http.Request) {
 func deleteNode(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -474,7 +496,7 @@ func deleteNode(res http.ResponseWriter, req *http.Request) {
 	newkey := vars["urn"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)

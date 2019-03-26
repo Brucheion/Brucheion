@@ -16,18 +16,18 @@ func main() {
 
 	if *configLocation != "./config.json" {
 		log.Println("Loading configuration from: " + *configLocation)
-		config = LoadConfiguration(*configLocation)
+		config = loadConfiguration(*configLocation)
 	} else {
 		log.Println("Loading configuration from: ./config.json")
-		config = LoadConfiguration("./config.json")
+		config = loadConfiguration("./config.json")
 	}
 
 	//Create new Cookiestore instance for use with Brucheion
-	BrucheionStore = GetCookieStore(config.MaxAge)
+	BrucheionStore = getCookieStore(config.MaxAge)
 
 	if !*noAuth { //If Brucheion is NOT started in noAuth mode:
 		//Set up gothic for authentification using the helper function
-		SetUpGothic()
+		setUpGothic()
 	} else {
 		log.Println("Started in noAuth mode.")
 	}
@@ -42,7 +42,7 @@ func main() {
 //LandingPage is the first landing page for experimental testing
 func LandingPage(res http.ResponseWriter, req *http.Request) {
 
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
