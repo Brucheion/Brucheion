@@ -12,10 +12,12 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+//requestImgCollection prints a list of images contained in the image collection in a
+//user database.
 func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -33,7 +35,7 @@ func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 
 	response := JSONlist{}
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -61,10 +63,11 @@ func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 	fmt.Fprintln(res, string(resultJSON))
 }
 
+//getImageInfo prints the metadata of a specific image in the user database.
 func getImageInfo(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -86,7 +89,7 @@ func getImageInfo(res http.ResponseWriter, req *http.Request) {
 	imageurn := vars["imageurn"]
 	dbkey := []byte(collectionName)
 	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -113,7 +116,7 @@ func getImageInfo(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json; charset=utf-8")
 		fmt.Fprintln(res, string(resultJSON))
 	}
-	fmt.Println("request:", collectionName, collectionName)
+	fmt.Println("request:", collectionName, collectionName) //why twice?
 	fmt.Println("answer:", newImage)
 	resultJSON, _ := json.Marshal(newImage)
 	res.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -122,7 +125,7 @@ func getImageInfo(res http.ResponseWriter, req *http.Request) {
 
 func requestImgID(res http.ResponseWriter, req *http.Request) {
 	//First get the session..
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -144,7 +147,7 @@ func requestImgID(res http.ResponseWriter, req *http.Request) {
 	name := vars["name"]
 	dbname := user + ".db"
 	dbkey := []byte(name)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)

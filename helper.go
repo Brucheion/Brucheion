@@ -28,22 +28,6 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-// Sort-Matrix Interface
-
-type dataframe struct {
-	Indices []int
-	Values1 []string
-	Values2 []string
-}
-
-func (m dataframe) Len() int           { return len(m.Indices) }
-func (m dataframe) Less(i, j int) bool { return m.Indices[i] < m.Indices[j] }
-func (m dataframe) Swap(i, j int) {
-	m.Indices[i], m.Indices[j] = m.Indices[j], m.Indices[i]
-	m.Values1[i], m.Values1[j] = m.Values1[j], m.Values1[i]
-	m.Values2[i], m.Values2[j] = m.Values2[j], m.Values2[i]
-}
-
 //getContent returns the response data from a GET request using url from parameter as a byte slice.
 func getContent(url string) ([]byte, error) {
 	resp, err := http.Get(url)
@@ -80,16 +64,17 @@ func removeDuplicatesUnordered(elements []string) []string {
 	return result
 }
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
+//contains returns true if the needle string is found in the heystack string slice
+func contains(heystack []string, needle string) bool {
+	for _, straw := range heystack {
+		if straw == needle {
 			return true
 		}
 	}
 	return false
 }
 
-// Helper function to pull the href attribute from a Token
+//getHref pulls the href attribute from a html Token
 func getHref(t html.Token) (ok bool, href string) {
 	for _, a := range t.Attr {
 		if a.Key == "href" {
@@ -135,6 +120,7 @@ func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 	return links, nil
 }
 
+//maxfloat returns the index of the highest float64 in a float64 slice
 func maxfloat(floatslice []float64) int {
 	max := floatslice[0]
 	maxindex := 0
@@ -147,6 +133,7 @@ func maxfloat(floatslice []float64) int {
 	return maxindex
 }
 
+//testString does not seem to be in use anymore (?)
 func testString(str string, strsl1 []string, cursorIn int) (cursorOut int, sl []int, ok bool) {
 	calcStr1 := ""
 	if len([]rune(str)) > len([]rune(strings.Join(strsl1[cursorIn:], ""))) {
@@ -172,6 +159,7 @@ func testString(str string, strsl1 []string, cursorIn int) (cursorOut int, sl []
 	return 0, []int{}, false
 }
 
+//testStringSL is used for multipage alignment (?)
 func testStringSl(slsl [][]string) (slsl2 [][][]int, ok bool) {
 	if len(slsl) == 0 {
 		// fmt.Println("zero length")
@@ -230,6 +218,7 @@ func testStringSl(slsl [][]string) (slsl2 [][][]int, ok bool) {
 	return slsl2, ok
 }
 
+//testAllTheSame tests if all strings in a two-dimensional string-slice are the same
 func testAllTheSame(testset [][]string) bool {
 	teststr := strings.Join(testset[0], "")
 	for i := range testset {
@@ -243,13 +232,18 @@ func testAllTheSame(testset [][]string) bool {
 	return true
 }
 
+//findSpace returns a rune-slice exluding leading and trailing whitespaces
+//(Works like strings.TrimSpace but for rune-slices)
+//Additionally returns the count of trimmed leading and trailing whitespaces
+//Used in addSansHyphens
 func findSpace(runeSl []rune) (spBefore, spAfter int, newSl []rune) {
 	spAfter = 0
 	spBefore = 0
 	for i := 0; i < len(runeSl); i++ {
 		if runeSl[i] == rune(' ') {
-			spBefore++
+			spBefore++ //continue
 		} else {
+			//since i is incremented anyway, wouldn't it be enough to set spBefore = i-1 here?
 			break
 		}
 	}
@@ -263,6 +257,8 @@ func findSpace(runeSl []rune) (spBefore, spAfter int, newSl []rune) {
 	return spBefore, spAfter, runeSl[spBefore : len(runeSl)-spAfter]
 }
 
+//addSansHyphens adds Hyphens after certain sanscrit runes but not before
+//used for nwa and multipage alignment
 func addSansHyphens(s string) string {
 	hyphen := []rune(`&shy;`)
 	after := []rune{rune('a'), rune('ā'), rune('i'), rune('ī'), rune('u'), rune('ū'), rune('ṛ'), rune('ṝ'), rune('ḷ'), rune('ḹ'), rune('e'), rune('o'), rune('ṃ'), rune('ḥ')}
@@ -331,7 +327,7 @@ func addSansHyphens(s string) string {
 }
 
 //SetUpGothic sets up Gothic for login procedure
-func SetUpGothic() {
+func setUpGothic() {
 	//Build the authentification paths for the choosen providers
 	gitHubPath := (config.Host + "/auth/github/callback")
 	gitLabPath := (config.Host + "/auth/gitlab/callback")
@@ -341,11 +337,11 @@ func SetUpGothic() {
 		gitlab.New(config.GitLabKey, config.GitLabSecret, gitLabPath, config.GitLabScope))
 	//Create new Cookiestore for _gothic_session
 	loginTimeout := 60 //Time the _gothic_session cookie will be alive in seconds
-	gothic.Store = GetCookieStore(loginTimeout)
+	gothic.Store = getCookieStore(loginTimeout)
 }
 
 //LoadConfiguration loads and parses the JSON config file and returns Config.
-func LoadConfiguration(file string) Config {
+func loadConfiguration(file string) Config {
 	var newConfig Config                       //initialize config as Config
 	configFile, openFileError := os.Open(file) //attempt to open file
 	defer configFile.Close()                   //push closing on call list
@@ -357,8 +353,8 @@ func LoadConfiguration(file string) Config {
 	return newConfig                          //return ServerConfig config
 }
 
-//GetCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
-func GetCookieStore(maxAge int) sessions.Store {
+//getCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
+func getCookieStore(maxAge int) sessions.Store {
 	//Todo: research encryption key and if it can/should be used fot our use cases
 	key := securecookie.GenerateRandomKey(64) //Generate a random key for the session
 	if key == nil {
@@ -372,8 +368,8 @@ func GetCookieStore(maxAge int) sessions.Store {
 	return cookieStore
 }
 
-//InitializeSession will create and return the session and set the session options
-func InitializeSession(req *http.Request) (*sessions.Session, error) {
+//initializeSession will create and return the session and set the session options
+func initializeSession(req *http.Request) (*sessions.Session, error) {
 	log.Println("Initializing session: " + SessionName)
 	session, err := BrucheionStore.Get(req, SessionName)
 	if err != nil {
@@ -387,20 +383,19 @@ func InitializeSession(req *http.Request) (*sessions.Session, error) {
 	return session, nil
 }
 
-//GetSession will return an open session when there is a matching session by that name, and valid for the request.
+//getSession will return an open session when there is a matching session by that name, and valid for the request.
 //Note that it will also return a new session, if none was open by that name. -> Close the session after testing.
-func GetSession(req *http.Request) (*sessions.Session, error) {
+func getSession(req *http.Request) (*sessions.Session, error) {
 	session, err := BrucheionStore.Get(req, SessionName)
 	if err != nil {
-		fmt.Printf("GetSession: Error getting the session: %s\n", err)
+		fmt.Printf("getSession: Error getting the session: %s\n", err)
 		return nil, err
 	}
 	return session, nil
 }
 
-//OpenBoltDB returns an opened Bolt Database for dbName.
-func OpenBoltDB(dbName string) (*bolt.DB, error) {
-
+//openBoltDB returns an opened Bolt Database for given dbName.
+func openBoltDB(dbName string) (*bolt.DB, error) {
 	db, err := bolt.Open(dbName, 0600, &bolt.Options{Timeout: 30 * time.Second}) //open DB with - wr- --- ---
 	if err != nil {
 		return nil, err
@@ -409,10 +404,10 @@ func OpenBoltDB(dbName string) (*bolt.DB, error) {
 	return db, nil
 }
 
-//InitializeUserDB should be called once during login attempt to make sure that all buckets are in place.
-func InitializeUserDB() error {
+//initializeUserDB should be called once during login attempt to make sure that all buckets are in place.
+func initializeUserDB() error {
 	log.Println("Initializing UserDB")
-	db, err := OpenBoltDB(config.UserDB)
+	db, err := openBoltDB(config.UserDB)
 	if err != nil {
 		return err
 	}
@@ -444,9 +439,9 @@ func InitializeUserDB() error {
 	return nil
 }
 
-//ValidateUserName guarantees that a user name was entered (not left blank)
+//validateUserName guarantees that a user name was entered (not left blank)
 //and that only numbers and letters were used.
-func ValidateUserName(username string) *Validation {
+func validateUserName(username string) *Validation {
 
 	unameValidation := &Validation{ //create a validation object by reference
 		ErrorCode: false}
@@ -456,7 +451,7 @@ func ValidateUserName(username string) *Validation {
 		fmt.Println("Wrong regex pattern.")
 	}
 
-	log.Println("func ValidateUserName: Validating: " + username)
+	log.Println("func validateUserName: Validating: " + username)
 	if strings.TrimSpace(username) == "" { //form was left blank
 		log.Println("Username was left blank")
 		unameValidation.Message = "Please enter a username." //the message will be displayed on the login page
@@ -472,9 +467,9 @@ func ValidateUserName(username string) *Validation {
 	}
 }
 
-//ValidateNoAuthUser checks whether the Brucheion username is already in use and
+//validateNoAuthUser checks whether the Brucheion username is already in use and
 //whether it is already associated with a provider login.
-func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
+func validateNoAuthUser(req *http.Request) (*Validation, error) {
 	//prepares the noAuthUserValidation
 	bUserValidation := &Validation{
 		Message:       "An internal error occured. (This should never happen.)",
@@ -483,7 +478,7 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 		BPAssociation: false}
 
 	//get the session to retrieve session/cookie values
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		return nil, err
 	}
@@ -491,11 +486,11 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 	//get user data from session
 	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Errorf("func ValidateNoAuthUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
+		fmt.Errorf("func validateNoAuthUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
 	}
 
 	//open the user database
-	userDB, err := OpenBoltDB(config.UserDB)
+	userDB, err := openBoltDB(config.UserDB)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +524,7 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 				//buffer := bucket.Get([]byte(brucheionUserName)) //get the brucheionUser as []byte buffer
 				//err := json.Unmarshal(buffer, &brucheionUser)   //unmarshal the buffer and save the brucheionUser in its variable
 				//if err != nil {
-				//	fmt.Println("Func ValidateNoAuthUser: Error unmarshalling brucheionUser: ", err) //this should never happen
+				//	fmt.Println("Func validateNoAuthUser: Error unmarshalling brucheionUser: ", err) //this should never happen
 				//}
 				//BUPointer = &brucheionUser //set the pointer to the brucheionuser
 				bUserValidation.BUserInUse = true
@@ -555,10 +550,10 @@ func ValidateNoAuthUser(req *http.Request) (*Validation, error) {
 	return bUserValidation, nil
 }
 
-//ValidateUser checks whether the Brucheion username is already in use,
+//validateUser checks whether the Brucheion username is already in use,
 //whether that username is associated with the same provider login (as chosen at the login screen),
 //and whether that provider login is already in use with another Brucheion user.
-func ValidateUser(req *http.Request) (*Validation, error) {
+func validateUser(req *http.Request) (*Validation, error) {
 
 	bUserValidation := &Validation{
 		Message:      "An internal error occured. (This should never happen.)",
@@ -568,7 +563,7 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 		PUserInUse:   false}
 
 	//get the session to retrieve session/cookie values
-	session, err := GetSession(req)
+	session, err := getSession(req)
 	if err != nil {
 		return nil, err
 	}
@@ -576,21 +571,21 @@ func ValidateUser(req *http.Request) (*Validation, error) {
 	//get user data from session
 	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Errorf("func ValidateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
+		fmt.Errorf("func validateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
 	}
 	log.Println("Debug: brucheionUserName = " + brucheionUserName)
 	provider, ok := session.Values["Provider"].(string)
 	if !ok {
-		fmt.Errorf("func ValidateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved")
+		fmt.Errorf("func validateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved")
 	}
 	log.Println("Debug: Provider = " + provider)
 	providerUserID, ok := session.Values["ProviderUserID"].(string)
 	if !ok {
-		fmt.Errorf("func ValidateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved")
+		fmt.Errorf("func validateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved")
 	}
 	log.Println("Debug: providerUserID = \"" + providerUserID + "\"")
 
-	userDB, err := OpenBoltDB(config.UserDB)
+	userDB, err := openBoltDB(config.UserDB)
 	if err != nil {
 		return nil, err
 	}
