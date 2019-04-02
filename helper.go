@@ -1,32 +1,29 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"os"
-	"regexp"
-
 	//"strconv"
 	"strings"
-	"time"
 
 	"golang.org/x/net/html"
 
 	"github.com/ThomasK81/gocite"
 
-	"github.com/markbates/goth" //for login using external providers
-	"github.com/markbates/goth/gothic"
-	"github.com/markbates/goth/providers/github"
-	"github.com/markbates/goth/providers/gitlab"
-
-	"github.com/gorilla/securecookie" //for generating the cookieStore key
-	"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
-
-	"github.com/boltdb/bolt"
+	"github.com/gorilla/sessions" //for Cookiestore and other session functionality
 )
+
+//getSession will return an open session when there is a matching session by that name, and valid for the request.
+//Note that it will also return a new session, if none was open by that name. -> Close the session after testing.
+func getSession(req *http.Request) (*sessions.Session, error) {
+	session, err := BrucheionStore.Get(req, SessionName)
+	if err != nil {
+		fmt.Printf("getSession: Error getting the session: %s\n", err)
+		return nil, err
+	}
+	return session, nil
+}
 
 //getContent returns the response data from a GET request using url from parameter as a byte slice.
 func getContent(url string) ([]byte, error) {
@@ -48,6 +45,28 @@ func getContent(url string) ([]byte, error) {
 	return data, nil
 }
 
+//getHref pulls the href attribute from a html Token
+func getHref(token html.Token) (ok bool, href string) {
+	for _, attribute := range token.Attr {
+		if attribute.Key == "href" {
+			href = attribute.Val
+			ok = true
+		}
+	}
+	return
+}
+
+//contains returns true if the 'needle' string is found in the 'heystack' string slice
+func contains(heystack []string, needle string) bool {
+	for _, straw := range heystack {
+		if straw == needle {
+			return true
+		}
+	}
+	return false
+}
+
+//removeDuplicatesUnordered takes a string slice and returns it without any duplicates.
 func removeDuplicatesUnordered(elements []string) []string {
 	encountered := map[string]bool{}
 
@@ -64,27 +83,8 @@ func removeDuplicatesUnordered(elements []string) []string {
 	return result
 }
 
-//contains returns true if the needle string is found in the heystack string slice
-func contains(heystack []string, needle string) bool {
-	for _, straw := range heystack {
-		if straw == needle {
-			return true
-		}
-	}
-	return false
-}
-
-//getHref pulls the href attribute from a html Token
-func getHref(t html.Token) (ok bool, href string) {
-	for _, a := range t.Attr {
-		if a.Key == "href" {
-			href = a.Val
-			ok = true
-		}
-	}
-	return
-}
-
+//extractLinks extracts tje links from a gocite.Citr2Urn and returns them as a string slice
+//called by newCollection
 func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 	urnLink := urn.Namespace + "/" + strings.Replace(urn.Collection, ".", "/", -1) + "/"
 	url := config.Host + "/static/image_archive/" + urnLink
@@ -131,6 +131,45 @@ func maxfloat(floatslice []float64) int {
 		}
 	}
 	return maxindex
+}
+
+//testAllTheSame tests if all strings in a two-dimensional string-slice are the same (?)
+func testAllTheSame(testset [][]string) bool {
+	teststr := strings.Join(testset[0], "")
+	for i := range testset {
+		if i == 0 {
+			continue
+		}
+		if teststr != strings.Join(testset[i], "") {
+			return false
+		}
+	}
+	return true
+}
+
+//findSpace returns a rune-slice exluding leading and trailing whitespaces
+//(Works like strings.TrimSpace but for rune-slices)
+//Additionally returns the count of trimmed leading and trailing whitespaces
+//Used in addSansHyphens
+func findSpace(runeSl []rune) (spBefore, spAfter int, newSl []rune) {
+	spAfter = 0
+	spBefore = 0
+	for i := 0; i < len(runeSl); i++ {
+		if runeSl[i] == rune(' ') {
+			spBefore++ //continue
+		} else {
+			//since i is incremented anyway, wouldn't it be enough to set spBefore = i-1 here?
+			break
+		}
+	}
+	for i := len(runeSl) - 1; i >= 0; i-- {
+		if runeSl[i] == rune(' ') {
+			spAfter++
+		} else {
+			break
+		}
+	}
+	return spBefore, spAfter, runeSl[spBefore : len(runeSl)-spAfter]
 }
 
 //testString does not seem to be in use anymore (?)
@@ -218,45 +257,6 @@ func testStringSl(slsl [][]string) (slsl2 [][][]int, ok bool) {
 	return slsl2, ok
 }
 
-//testAllTheSame tests if all strings in a two-dimensional string-slice are the same
-func testAllTheSame(testset [][]string) bool {
-	teststr := strings.Join(testset[0], "")
-	for i := range testset {
-		if i == 0 {
-			continue
-		}
-		if teststr != strings.Join(testset[i], "") {
-			return false
-		}
-	}
-	return true
-}
-
-//findSpace returns a rune-slice exluding leading and trailing whitespaces
-//(Works like strings.TrimSpace but for rune-slices)
-//Additionally returns the count of trimmed leading and trailing whitespaces
-//Used in addSansHyphens
-func findSpace(runeSl []rune) (spBefore, spAfter int, newSl []rune) {
-	spAfter = 0
-	spBefore = 0
-	for i := 0; i < len(runeSl); i++ {
-		if runeSl[i] == rune(' ') {
-			spBefore++ //continue
-		} else {
-			//since i is incremented anyway, wouldn't it be enough to set spBefore = i-1 here?
-			break
-		}
-	}
-	for i := len(runeSl) - 1; i >= 0; i-- {
-		if runeSl[i] == rune(' ') {
-			spAfter++
-		} else {
-			break
-		}
-	}
-	return spBefore, spAfter, runeSl[spBefore : len(runeSl)-spAfter]
-}
-
 //addSansHyphens adds Hyphens after certain sanscrit runes but not before
 //used for nwa and multipage alignment
 func addSansHyphens(s string) string {
@@ -324,351 +324,4 @@ func addSansHyphens(s string) string {
 	newSl = append(newSl, SpAfter...)
 	newSl = append(SpBefore, newSl...)
 	return string(newSl)
-}
-
-//SetUpGothic sets up Gothic for login procedure
-func setUpGothic() {
-	//Build the authentification paths for the choosen providers
-	gitHubPath := (config.Host + "/auth/github/callback")
-	gitLabPath := (config.Host + "/auth/gitlab/callback")
-	//Tell gothic which login providers to use
-	goth.UseProviders(
-		github.New(config.GitHubKey, config.GitHubSecret, gitHubPath),
-		gitlab.New(config.GitLabKey, config.GitLabSecret, gitLabPath, config.GitLabScope))
-	//Create new Cookiestore for _gothic_session
-	loginTimeout := 60 //Time the _gothic_session cookie will be alive in seconds
-	gothic.Store = getCookieStore(loginTimeout)
-}
-
-//LoadConfiguration loads and parses the JSON config file and returns Config.
-func loadConfiguration(file string) Config {
-	var newConfig Config                       //initialize config as Config
-	configFile, openFileError := os.Open(file) //attempt to open file
-	defer configFile.Close()                   //push closing on call list
-	if openFileError != nil {                  //error handling
-		fmt.Println("Open file error: " + openFileError.Error())
-	}
-	jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
-	jsonParser.Decode(&newConfig)             //parse configFile to config
-	return newConfig                          //return ServerConfig config
-}
-
-//getCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
-func getCookieStore(maxAge int) sessions.Store {
-	//Todo: research encryption key and if it can/should be used fot our use cases
-	key := securecookie.GenerateRandomKey(64) //Generate a random key for the session
-	if key == nil {
-		fmt.Println("Error generating random session key.")
-	}
-
-	cookieStore := sessions.NewCookieStore([]byte(key)) //Get CookieStore from sessions package
-	cookieStore.Options.HttpOnly = true                 //Ensures that Cookie can not be accessed by scripts
-	cookieStore.MaxAge(maxAge)                          //Sets the maxAge of the session/cookie
-
-	return cookieStore
-}
-
-//initializeSession will create and return the session and set the session options
-func initializeSession(req *http.Request) (*sessions.Session, error) {
-	log.Println("Initializing session: " + SessionName)
-	session, err := BrucheionStore.Get(req, SessionName)
-	if err != nil {
-		fmt.Printf("InitializeSession: Error getting the session: %s\n", err)
-		return nil, err
-	}
-	session.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   config.MaxAge,
-		HttpOnly: true}
-	return session, nil
-}
-
-//getSession will return an open session when there is a matching session by that name, and valid for the request.
-//Note that it will also return a new session, if none was open by that name. -> Close the session after testing.
-func getSession(req *http.Request) (*sessions.Session, error) {
-	session, err := BrucheionStore.Get(req, SessionName)
-	if err != nil {
-		fmt.Printf("getSession: Error getting the session: %s\n", err)
-		return nil, err
-	}
-	return session, nil
-}
-
-//openBoltDB returns an opened Bolt Database for given dbName.
-func openBoltDB(dbName string) (*bolt.DB, error) {
-	db, err := bolt.Open(dbName, 0600, &bolt.Options{Timeout: 30 * time.Second}) //open DB with - wr- --- ---
-	if err != nil {
-		return nil, err
-	}
-	//fmt.Println("DB opened")
-	return db, nil
-}
-
-//initializeUserDB should be called once during login attempt to make sure that all buckets are in place.
-func initializeUserDB() error {
-	log.Println("Initializing UserDB")
-	db, err := openBoltDB(config.UserDB)
-	if err != nil {
-		return err
-	}
-
-	//create the three buckets needed: users, GitHub, GitLab
-	db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("users")) //create a new bucket to store new user
-		if err != nil {
-			fmt.Errorf("Failed creating bucket users: %s", err)
-			return err
-		}
-		bucket, err = tx.CreateBucketIfNotExists([]byte("GitHub"))
-		if err != nil {
-			fmt.Errorf("Failed creating bucket GitHub: %s", err)
-			return err
-		}
-		bucket, err = tx.CreateBucketIfNotExists([]byte("GitLab"))
-		if err != nil {
-			fmt.Errorf("Failed creating bucket GitLab: %s", err)
-			return err
-		}
-
-		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error)
-
-		return nil //if all went well, error can be returned with <nil>
-	})
-	db.Close() //always remember to close the db
-	//fmt.Println("DB closed")
-	return nil
-}
-
-//validateUserName guarantees that a user name was entered (not left blank)
-//and that only numbers and letters were used.
-func validateUserName(username string) *Validation {
-
-	unameValidation := &Validation{ //create a validation object by reference
-		ErrorCode: false}
-
-	matched, err := regexp.MatchString("^[0-9a-zA-Z]*$", username) //create a regexp object to hold the regular expression to be tested
-	if err != nil {
-		fmt.Println("Wrong regex pattern.")
-	}
-
-	log.Println("func validateUserName: Validating: " + username)
-	if strings.TrimSpace(username) == "" { //form was left blank
-		log.Println("Username was left blank")
-		unameValidation.Message = "Please enter a username." //the message will be displayed on the login page
-		return unameValidation
-	} else if !matched { //illegal characters were used
-		log.Println("Username contained illegal characters")
-		unameValidation.Message = "Please only use letters and numbers."
-		return unameValidation
-	} else { //a username only made of numbers and letters was used
-		log.Println("Username valid")
-		unameValidation.ErrorCode = true //the username was successfully validated
-		return unameValidation
-	}
-}
-
-//validateNoAuthUser checks whether the Brucheion username is already in use and
-//whether it is already associated with a provider login.
-func validateNoAuthUser(req *http.Request) (*Validation, error) {
-	//prepares the noAuthUserValidation
-	bUserValidation := &Validation{
-		Message:       "An internal error occured. (This should never happen.)",
-		ErrorCode:     false,
-		BUserInUse:    false,
-		BPAssociation: false}
-
-	//get the session to retrieve session/cookie values
-	session, err := getSession(req)
-	if err != nil {
-		return nil, err
-	}
-
-	//get user data from session
-	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
-	if !ok {
-		fmt.Errorf("func validateNoAuthUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
-	}
-
-	//open the user database
-	userDB, err := openBoltDB(config.UserDB)
-	if err != nil {
-		return nil, err
-	}
-	defer userDB.Close()
-
-	userDB.View(func(tx *bolt.Tx) error {
-
-		//check if Username was used for Providerlogin (if a ProviderUser with that name exists)
-		bucket := tx.Bucket([]byte("GitHub")) //open the GitHub Bucket and test whether there was an entry by this name. There should not be one though. (This is performed to ensure database integrity.)
-		cursor := bucket.Cursor()
-		for userID, PUserName := cursor.First(); userID != nil; userID, PUserName = cursor.Next() { //go through the users bucket and check for BUserName already in use
-			if string(PUserName) == brucheionUserName { //if this Username is associated with an ID in the provider bucket than the database is corrupt in some way..
-				bUserValidation.ErrorCode = false    //Error encountered (PUser in use, but not for this BUser)
-				bUserValidation.BPAssociation = true //brucheionUserName was found in a provider bucket
-			}
-		}
-
-		bucket = tx.Bucket([]byte("GitLab")) //open the GitLab Bucket and test whether there was an entry by this name. There should not be one though. (This is performed to ensure database integrity.)
-		cursor = bucket.Cursor()
-		for userID, PUserName := cursor.First(); userID != nil; userID, PUserName = cursor.Next() { //go through the users bucket and check for BUserName already in use
-			if string(PUserName) == brucheionUserName { //if this Username is associated with an ID in the provider bucket than the database is corrupt in some way..
-				bUserValidation.ErrorCode = false    //Error encountered (PUser in use, but not for this BUser)
-				bUserValidation.BPAssociation = true //brucheionUserName was found in a provider bucket
-			}
-		}
-
-		bucket = tx.Bucket([]byte("users"))                                                  //open the user bucket
-		cursor = bucket.Cursor()                                                             //create a cursor object that will be used to iterate over database entries
-		for BUserName, _ := cursor.First(); BUserName != nil; BUserName, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
-			if string(BUserName) == brucheionUserName { //if this username was found in the users Bucket
-				//buffer := bucket.Get([]byte(brucheionUserName)) //get the brucheionUser as []byte buffer
-				//err := json.Unmarshal(buffer, &brucheionUser)   //unmarshal the buffer and save the brucheionUser in its variable
-				//if err != nil {
-				//	fmt.Println("Func validateNoAuthUser: Error unmarshalling brucheionUser: ", err) //this should never happen
-				//}
-				//BUPointer = &brucheionUser //set the pointer to the brucheionuser
-				bUserValidation.BUserInUse = true
-			}
-		}
-
-		if bUserValidation.BUserInUse && bUserValidation.BPAssociation { //if the user was found in the user bucket and a provider bucket (!bUserValidation.ErrorCode) Scenario (1)
-			//log.Println("Scenario (1)")
-			log.Println("Username already in use with a provider login")
-			bUserValidation.Message = "Username " + brucheionUserName + " is already in use with a provider login. Please choose a different username."
-		} else if bUserValidation.BUserInUse && !bUserValidation.BPAssociation { //if the user was found in the user bucket but not in a provider bucket Scenario (2)
-			//log.Println("Scenario (2)")
-			bUserValidation.ErrorCode = true
-			bUserValidation.Message = "NoAuth user " + brucheionUserName + " found. Logged in."
-		} else if !bUserValidation.BUserInUse && !bUserValidation.BPAssociation { //if the user was not found in the user bucket and neither in a provider bucket Scenario (3)
-			//log.Println("Scenario (3)")
-			bUserValidation.ErrorCode = true
-			bUserValidation.Message = "New noAuth user " + brucheionUserName + " created. Logged in."
-		}
-
-		return nil //close DB view without an error
-	})
-	return bUserValidation, nil
-}
-
-//validateUser checks whether the Brucheion username is already in use,
-//whether that username is associated with the same provider login (as chosen at the login screen),
-//and whether that provider login is already in use with another Brucheion user.
-func validateUser(req *http.Request) (*Validation, error) {
-
-	bUserValidation := &Validation{
-		Message:      "An internal error occured. (This should never happen.)",
-		ErrorCode:    false,
-		BUserInUse:   false,
-		SameProvider: false,
-		PUserInUse:   false}
-
-	//get the session to retrieve session/cookie values
-	session, err := getSession(req)
-	if err != nil {
-		return nil, err
-	}
-
-	//get user data from session
-	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
-	if !ok {
-		fmt.Errorf("func validateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
-	}
-	log.Println("Debug: brucheionUserName = " + brucheionUserName)
-	provider, ok := session.Values["Provider"].(string)
-	if !ok {
-		fmt.Errorf("func validateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved")
-	}
-	log.Println("Debug: Provider = " + provider)
-	providerUserID, ok := session.Values["ProviderUserID"].(string)
-	if !ok {
-		fmt.Errorf("func validateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved")
-	}
-	log.Println("Debug: providerUserID = \"" + providerUserID + "\"")
-
-	userDB, err := openBoltDB(config.UserDB)
-	if err != nil {
-		return nil, err
-	}
-	defer userDB.Close() //always remember to close the DB
-
-	userDB.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("users")) //try to open the user bucket
-
-		var brucheionUser BrucheionUser //create a BrucheionUser variable
-		BUPointer := new(BrucheionUser) //create a pointer that will later be used to check if BrucheionUser is still empty
-		BUPointer = nil                 //and make sure that it is empty
-		cursor := bucket.Cursor()       //create a cursor object that will be used to iterate over database entries
-
-		for BUserName, _ := cursor.First(); BUserName != nil; BUserName, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
-			if string(BUserName) == brucheionUserName { //if this username was found in the users Bucket
-				buffer := bucket.Get([]byte(brucheionUserName)) //get the brucheionUser as []byte buffer
-				err := json.Unmarshal(buffer, &brucheionUser)   //unmarshal the buffer and save the brucheionUser in its variable
-				if err != nil {
-					fmt.Println("Error unmarshalling brucheionUser: ", err)
-				}
-				log.Println("Found BrucheionUser " + brucheionUserName + " in usersDB.")
-				BUPointer = &brucheionUser //set the pointer to the brucheionuser
-			}
-		}
-
-		//check if ProviderUser was used for other BUser
-		if BUPointer == nil { //Login scenarios (4), (5)
-			bUserValidation.BUserInUse = false   //This BUsername was not in use yet
-			bUserValidation.SameProvider = false //No BUser -> No provider chosen
-			bucket = tx.Bucket([]byte(provider)) //open the provider Bucket
-			cursor := bucket.Cursor()
-			for userID, _ := cursor.First(); userID != nil; userID, _ = cursor.Next() { //go through the provider bucket and check for BUserName already in use
-
-				//Login scenario (4)
-				if string(userID) == providerUserID { //if this userID was in the Bucket
-					bUserValidation.Message = "This " + provider + " account is already in use for authentificating another login."
-					bUserValidation.ErrorCode = false //Error encountered (PUser in use, but not for this BUser)
-					bUserValidation.PUserInUse = true //ProviderUser from session already in use
-				}
-			}
-			cursor = nil //necessary?
-			//Login scenario (5)
-			//TO DO: test alternative if statement:
-			//if bUserValidation.BUserInUse == false
-			//&& bUserValidation.SameProvider == false
-			//&& bUserValidation.PUserInUse == false{
-			//or if statement obsolete?
-			if bUserValidation.Message == "An internal error occured. (This should never happen.)" { //If userID was not found in DB, message will be unaltered.
-				bUserValidation.Message = "User " + brucheionUserName + " created for login with provider " + provider + ". Login successfull."
-				bUserValidation.ErrorCode = true   //New BUser and new PUser -> Creating a new user is not an error
-				bUserValidation.PUserInUse = false //ProviderUser not in use yet (could be omitted)
-			}
-		} else { //Login Scenarios (1), (2), (3)
-			bUserValidation.BUserInUse = true       //The BrucheionUser has a representation in users.DB
-			if provider == brucheionUser.Provider { //Login Scenarios (1), (2)
-				bUserValidation.SameProvider = true                 //Provider from session and BrucheionUser match
-				if providerUserID == brucheionUser.ProviderUserID { //if there was a user bucket and the session values match the DB values; Login Scenarios (1)
-					bUserValidation.Message = "User " + brucheionUserName + " logged in successfully."
-					bUserValidation.ErrorCode = true  //No error encountereddia
-					bUserValidation.PUserInUse = true //ProviderUser from session and BrucheionUser match
-				} else { //brucheionUser.ProviderUserID != providerUserID; Login Scenario (2)
-					if providerUserID == "" {
-						bUserValidation.Message = "Username " + brucheionUserName + " found in userDB. Redirecting to provider authentification."
-						bUserValidation.ErrorCode = true     //Error encountered
-						bUserValidation.SameProvider = false //The BUser is in Use with another Provider
-						bUserValidation.PUserInUse = false   //ProviderUser from session and BrucheionUser don't match
-					} else {
-						bUserValidation.Message = "Username " + brucheionUserName + " is already registered with another account. Choose another username."
-						bUserValidation.ErrorCode = false  //Error encountered
-						bUserValidation.PUserInUse = false //ProviderUser from session and BrucheionUser don't match
-					}
-				}
-			} else { //brucheionUser.Provider != provider; Login Scenario (3)
-				log.Println("providerUserID =\"" + providerUserID + "\".")
-				bUserValidation.Message = "Username " + brucheionUserName + " already in use with another provider."
-				bUserValidation.ErrorCode = false    //Error encountered
-				bUserValidation.SameProvider = false //The BUser is in Use with another Provider
-				bUserValidation.PUserInUse = false   //ProviderUser from session and BrucheionUser don't match
-			}
-		}
-
-		return nil //close DB view without an error
-	})
-
-	return bUserValidation, nil
 }

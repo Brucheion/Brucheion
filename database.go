@@ -9,9 +9,12 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ThomasK81/gocite"
+
 	"github.com/boltdb/bolt"
+
 	"github.com/gorilla/mux"
 )
 
@@ -26,18 +29,6 @@ type BoltData struct {
 type BoltWork struct {
 	Key  []string // cts-node urn
 	Data []BoltURN
-}
-
-//BoltCatalog contains all metadata of a CITE URN and is used in LoadCEX and page functions
-type BoltCatalog struct {
-	URN           string `json:"urn"`
-	Citation      string `json:"citationScheme"`
-	GroupName     string `json:"groupName"`
-	WorkTitle     string `json:"workTitle"`
-	VersionLabel  string `json:"versionLabel"`
-	ExemplarLabel string `json:"exemplarLabel"`
-	Online        string `json:"online"`
-	Language      string `json:"language"`
 }
 
 //BoltURN is the container for a textpassage along with its URN, its image reference,
@@ -60,111 +51,80 @@ type BoltJSON struct {
 	JSON string
 }
 
-//cexMeta is the container for CEX metadata. Used for saving new URNs with newWork
-//or changing metatdata with updateWorkMeta
-type cexMeta struct {
-	URN, CitationScheme, GroupName, WorkTitle, VersionLabel, ExemplarLabel, Online, Language string
-}
-
-//imageCollection is the container for image collections along with their URN and name as strings
-type imageCollection struct {
-	URN        string  `json:"urn"`
-	Name       string  `json:"name"`
-	Collection []image `json:"location"`
-}
-
-//image is the container for image metadata
-type image struct {
-	URN      string `json:"urn"`
-	Name     string `json:"name"`
-	Protocol string `json:"protocol"`
-	License  string `json:"license"`
-	External bool   `json:"external"`
-	Location string `json:"location"`
-}
-
-//deleteCollection deletes the collection specified in the URL from the user database
-func deleteCollection(res http.ResponseWriter, req *http.Request) {
-
-	//First get the session..
-	session, err := getSession(req)
+//gobEncode encodes an interface to a byte slice, to be saved in the database
+func gobEncode(p interface{}) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	enc := gob.NewEncoder(buf)
+	err := enc.Encode(p)
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("deleteCollection", session)
-	if loggedin {
-		log.Println(message)
-	} else {
-		log.Println(message)
-		Logout(res, req)
-		return
-	}
-
-	newkey := req.URL.Query().Get("name")
-	newkey = strings.Replace(newkey, "\"", "", -1)
-	dbname := user + ".db"
-	db, err := openBoltDB(dbname) //open bolt DB using helper function
-	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer db.Close()
-	db.Update(func(tx *bolt.Tx) error {
-		err := tx.Bucket([]byte("imgCollection")).Delete([]byte(newkey))
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
-		return nil
-	})
+	return buf.Bytes(), nil
 }
 
-//newCollectiontoDB saves a new collection in a user db. Called by endpoint newCollection
-func newCollectiontoDB(dbName, collectionName string, collection imageCollection) error {
-	pwd, _ := os.Getwd()
-	dbname := pwd + "/" + dbName + ".db"
-	dbkey := []byte(collectionName)
-	dbvalue, err := gobEncode(&collection)
+//gobDecodeImgCol decodes a byte slice from the database to an imageCollection,
+func gobDecodeImgCol(data []byte) (imageCollection, error) {
+	var p *imageCollection
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&p)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return imageCollection{}, err
+	}
+	return *p, nil
+}
+
+//gobDecodePassage decodes a byte slice from the database to a gocite.Passage
+func gobDecodePassage(data []byte) (gocite.Passage, error) {
+	var p *gocite.Passage
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&p)
+	if err != nil {
+		return gocite.Passage{}, err
+	}
+	return *p, nil
+}
+
+//openBoltDB returns an opened Bolt Database for given dbName.
+func openBoltDB(dbName string) (*bolt.DB, error) {
+	db, err := bolt.Open(dbName, 0600, &bolt.Options{Timeout: 30 * time.Second}) //open DB with - wr- --- ---
+	if err != nil {
+		return nil, err
+	}
+	//fmt.Println("DB opened")
+	return db, nil
+}
+
+//Buckets returns a slice of strings with the names of all buckets in a BoltDB.
+func Buckets(dbname string) []string {
+	var result []string
+	if _, err := os.Stat(dbname); os.IsNotExist(err) {
+		log.Println(err)
+		return result
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		fmt.Printf("Error opening userDB: %s", err)
-		return err
+		return result
 	}
 	defer db.Close()
-	err = db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("imgCollection"))
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
-		val := bucket.Get(dbkey)
-		if val != nil {
-			fmt.Println("collection exists already")
-			return errors.New("collection exists already")
-		}
-		err = bucket.Put(dbkey, dbvalue)
-		if err != nil {
-			return err
-		}
-		return nil
+	err = db.View(func(tx *bolt.Tx) error {
+		return tx.ForEach(func(name []byte, _ *bolt.Bucket) error {
+			result = append(result, string(name))
+			return nil
+		})
 	})
 	if err != nil {
-		return err
+		log.Println(err)
+		return result
 	}
-	return nil
+	return result
 }
 
-//newCITECollectionDB saves a new CITE collection with a specified name in the user database.
+// newCITECollectionToDB saves a new CITE collection with a specified name in the user database.
 //Called by newCITECollection
-func newCITECollectionDB(dbName, collectionName string) error {
+func newCITECollectionToDB(dbName, collectionName string) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(collectionName)
@@ -203,7 +163,9 @@ func newCITECollectionDB(dbName, collectionName string) error {
 	return nil
 }
 
-func addtoCITECollection(dbName, collectionName string, newImage image) error {
+// addImageToCITECollection adds image metadata to the specified collection
+//in the bucket imgCollection in a user database. Called by addCITE
+func addImageToCITECollection(dbName, collectionName string, newImage image) error {
 	collection := imageCollection{}
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
@@ -220,7 +182,7 @@ func addtoCITECollection(dbName, collectionName string, newImage image) error {
 			fmt.Println(err)
 			return err
 		}
-		val := bucket.Get(dbkey)
+		val := bucket.Get(dbkey) //search for collection in bucket
 		// fmt.Println("got", string(dbkey))
 
 		if val != nil {
@@ -254,7 +216,9 @@ func addtoCITECollection(dbName, collectionName string, newImage image) error {
 	return nil
 }
 
-func newWorktoDB(dbName string, meta cexMeta) error {
+//newWorkToDB saves cexMeta data to the meta bucket in the user database
+//called by newWork
+func newWorkToDB(dbName string, meta cexMeta) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(meta.URN)
@@ -272,7 +236,7 @@ func newWorktoDB(dbName string, meta cexMeta) error {
 		}
 		val := bucket.Get(dbkey)
 		if val != nil {
-			return errors.New("work exists already")
+			return errors.New("work already exists")
 		}
 		err = bucket.Put(dbkey, dbvalue)
 		if err != nil {
@@ -286,6 +250,8 @@ func newWorktoDB(dbName string, meta cexMeta) error {
 	return nil
 }
 
+//updateWorkMeta saves cexMeta data for an already existing key in the meta bucket
+//in the user database. Seems not to be called yet.
 func updateWorkMeta(dbName string, meta cexMeta) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
@@ -304,7 +270,7 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 		}
 		val := bucket.Get(dbkey)
 		if val == nil {
-			return errors.New("work does not exist")
+			return errors.New("work does not exist yet")
 		}
 		err = bucket.Put(dbkey, dbvalue)
 		if err != nil {
@@ -316,41 +282,6 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 		return err
 	}
 	return nil
-}
-
-//gobEncode encodes an interface to a byte slice
-func gobEncode(p interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	enc := gob.NewEncoder(buf)
-	err := enc.Encode(p)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-//gobDecodeImgCol decodes a byte slice to an imageCollection
-func gobDecodeImgCol(data []byte) (imageCollection, error) {
-	var p *imageCollection
-	buf := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(buf)
-	err := dec.Decode(&p)
-	if err != nil {
-		return imageCollection{}, err
-	}
-	return *p, nil
-}
-
-//gobDecodePassage decodes a byte slice to a gocite.Passage
-func gobDecodePassage(data []byte) (gocite.Passage, error) {
-	var p *gocite.Passage
-	buf := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(buf)
-	err := dec.Decode(&p)
-	if err != nil {
-		return gocite.Passage{}, err
-	}
-	return *p, nil
 }
 
 //BoltRetrieveFirstKey returns the first key in a specified bucket of
@@ -408,32 +339,7 @@ func BoltRetrieve(dbname, bucket, key string) BoltJSON {
 	return result
 }
 
-//Buckets returns a slice of strings with the names of all buckets in a BoltDB.
-func Buckets(dbname string) []string {
-	var result []string
-	if _, err := os.Stat(dbname); os.IsNotExist(err) {
-		log.Println(err)
-		return result
-	}
-	db, err := openBoltDB(dbname) //open bolt DB using helper function
-	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
-		return result
-	}
-	defer db.Close()
-	err = db.View(func(tx *bolt.Tx) error {
-		return tx.ForEach(func(name []byte, _ *bolt.Bucket) error {
-			result = append(result, string(name))
-			return nil
-		})
-	})
-	if err != nil {
-		log.Println(err)
-		return result
-	}
-	return result
-}
-
+//deleteBucket deletes a bucket with the name of a specified URN
 func deleteBucket(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -473,6 +379,7 @@ func deleteBucket(res http.ResponseWriter, req *http.Request) {
 	})
 }
 
+//deleteNode deletes the specified bucket (that is related to a certain node?)
 func deleteNode(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..

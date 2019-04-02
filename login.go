@@ -7,10 +7,15 @@ import (
 	"net/http"
 	"strings"
 
+	//for using external login providers
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/github"
+	"github.com/markbates/goth/providers/gitlab"
+
 	"github.com/boltdb/bolt"
 
 	"github.com/gorilla/sessions" //for Cookiestore and other session functionality
-	"github.com/markbates/goth/gothic"
 )
 
 //BrucheionStore represents the session on the server side
@@ -18,6 +23,20 @@ var BrucheionStore sessions.Store
 
 //SessionName saves the name of the Brucheion session
 const SessionName = "brucheionSession"
+
+//SetUpGothic sets up Gothic for login procedure
+func setUpGothic() {
+	//Build the authentification paths for the choosen providers
+	gitHubPath := (config.Host + "/auth/github/callback")
+	gitLabPath := (config.Host + "/auth/gitlab/callback")
+	//Tell gothic which login providers to use
+	goth.UseProviders(
+		github.New(config.GitHubKey, config.GitHubSecret, gitHubPath),
+		gitlab.New(config.GitLabKey, config.GitLabSecret, gitLabPath, config.GitLabScope))
+	//Create new Cookiestore for _gothic_session
+	loginTimeout := 60 //Time the _gothic_session cookie will be alive in seconds
+	gothic.Store = getCookieStore(loginTimeout)
+}
 
 //LoginGET renders the login page. The user can enter the login Credentials into the form.
 //If already logged in, the user will be redirected to main page.
@@ -43,10 +62,10 @@ func LoginGET(res http.ResponseWriter, req *http.Request) {
 	} //Destroy the session we just got (proceed with login process)
 	InSituLogout(res, req)
 
-	lp := &LoginPage{
+	loginPage := &LoginPage{
 		Title:  "Brucheion Login Page",
 		NoAuth: *noAuth}
-	renderLoginTemplate(res, "login", lp)
+	renderLoginTemplate(res, "login", loginPage)
 }
 
 //LoginPOST logs in the user using the form values and gothic.
@@ -99,7 +118,7 @@ func LoginPOST(res http.ResponseWriter, req *http.Request) {
 		session.Values["Loggedin"] = false
 		session.Save(req, res)
 
-		err = initializeUserDB() //Make sure the userDB file is there and has the necessary buckets.
+		err = initializeUsersDB() //Make sure the users.db file is there and has the necessary buckets.
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
@@ -405,7 +424,7 @@ func InSituLogout(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-//TestLoginStatus returns the tests if a user is logged in.
+// TestLoginStatus tests if a brucheion user is logged in.
 //It takes the name of the function to build an appropriate message and the session to extract the user from
 //and returns the name of the user, the message according to the test, and a boolean representing the login status.
 func TestLoginStatus(function string, session *sessions.Session) (user string, message string, loggedin bool) {
