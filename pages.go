@@ -101,8 +101,8 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 		CatLan:        catlan}
 
 	kind := "/view/"
-	p, _ := loadPage(transcription, kind)
-	renderTemplate(res, "view", p)
+	page, _ := loadPage(transcription, kind)
+	renderTemplate(res, "view", page)
 }
 
 func comparePage(res http.ResponseWriter, req *http.Request) {
@@ -244,8 +244,8 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	p, _ := loadCompPage(transcription, transcription2)
-	renderCompTemplate(res, "compare", p)
+	compPage, _ := loadCompPage(transcription, transcription2)
+	renderCompTemplate(res, "compare", compPage)
 }
 
 func consolidatePage(res http.ResponseWriter, req *http.Request) {
@@ -387,8 +387,8 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 		CatOn:         caton,
 		CatLan:        catlan}
 
-	p, _ := loadCompPage(transcription, transcription2)
-	renderCompTemplate(res, "consolidate", p)
+	compPage, _ := loadCompPage(transcription, transcription2)
+	renderCompTemplate(res, "consolidate", compPage)
 }
 
 //EditPage loads and renders the Transcription Desk
@@ -452,8 +452,8 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
 	kind := "/edit/"
-	p, _ := loadPage(transcription, kind)
-	renderTemplate(res, "edit", p)
+	page, _ := loadPage(transcription, kind)
+	renderTemplate(res, "edit", page)
 }
 
 //Edit2Page loads and renders the Image Citation Editor
@@ -510,8 +510,8 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
 	kind := "/edit2/"
-	p, _ := loadPage(transcription, kind)
-	renderTemplate(res, "edit2", p)
+	page, _ := loadPage(transcription, kind)
+	renderTemplate(res, "edit2", page)
 }
 
 //EditCatPage loads and renders the Edit Metadata page
@@ -570,8 +570,8 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 		Last:        last,
 		CatID:       catid, CatCit: catcit, CatGroup: catgroup, CatWork: catwork, CatVers: catversion, CatExmpl: catexpl, CatOn: caton, CatLan: catlan}
 	kind := "/editcat/"
-	p, _ := loadPage(transcription, kind)
-	renderTemplate(res, "editcat", p)
+	page, _ := loadPage(transcription, kind)
+	renderTemplate(res, "editcat", page)
 }
 
 func MultiPage(res http.ResponseWriter, req *http.Request) {
@@ -795,8 +795,8 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 		First:         first1,
 		Last:          last1,
 		Transcription: tmpstr}
-	p, _ := loadMultiPage(transcription)
-	renderTemplate(res, "multicompare", p)
+	page, _ := loadMultiPage(transcription)
+	renderTemplate(res, "multicompare", page)
 }
 
 //TreePage loads and renders the Morpho-syntactic Treebank page
@@ -826,8 +826,8 @@ func TreePage(res http.ResponseWriter, req *http.Request) {
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
-	p, _ := loadCrudPage(transcription)
-	renderTemplate(res, "tree", p)
+	page, _ := loadCrudPage(transcription)
+	renderTemplate(res, "tree", page)
 }
 
 func CrudPage(res http.ResponseWriter, req *http.Request) {
@@ -856,6 +856,6 @@ func CrudPage(res http.ResponseWriter, req *http.Request) {
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
-	p, _ := loadCrudPage(transcription)
-	renderTemplate(res, "crud", p)
+	page, _ := loadCrudPage(transcription)
+	renderTemplate(res, "crud", page)
 }

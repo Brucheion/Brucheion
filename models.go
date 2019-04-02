@@ -4,11 +4,9 @@ import (
 	"html/template"
 )
 
-//The Config stores Host/Port Information, where the user DB is and settings for the cookiestores
-//
-//Host and Port are used throughout brucheion for parsing and delivering the pages
-//
-//The Key/Secret pairs are obtained from the provider when registering the application.
+//Config stores Host/Port Information, the location of the user DB and settings for the cookiestores
+//and is loaded from a config file using loadConfiguration
+//Host and Port are used for parsing and delivering pages, Key/Secret pairs are obtained from the provider when registering the application.
 type Config struct {
 	Host         string `json:"host"`
 	Port         string `json:"port"`
@@ -17,16 +15,13 @@ type Config struct {
 	GitLabKey    string `json:"gitLabKey"`
 	GitLabSecret string `json:"gitLabSecret"`
 	GitLabScope  string `json:"gitLabScope"` //for accessing GitLab user information this has to be "read_user"
-	MaxAge       int    `json:"maxAge"`      //defines the lifetime of the brucheion session
+	MaxAge       int    `json:"maxAge"`      //sets the lifetime of the brucheion session
 	UserDB       string `json:"userDB"`
 	//	GoogleKey	  string `json:"googleKey"`
 	//	GoogleSecret  string `json:"googleSecret"`
 }
 
-type JSONlist struct {
-	Item []string `json:"item"`
-}
-
+//Transcription is the container for a transcription and context metadata
 type Transcription struct {
 	CTSURN        string
 	Transcriber   string
@@ -48,6 +43,9 @@ type Transcription struct {
 	CatLan        string
 }
 
+// CompPage stores Information necessary to parse and display a compare page
+// used in comparePage and consolidatePage
+// and corresponding pageloaders
 type CompPage struct {
 	User      string
 	Title     string
@@ -74,6 +72,9 @@ type CompPage struct {
 	CatLan2   string
 }
 
+// Page stores Information necessary to parse and display a general purpose page
+// used in CrudPage, Edit2Page, EditCatPage,  EditPage, Multipage, TreePage, ViewPage
+// and corresponding pageloaders
 type Page struct {
 	User         string
 	Title        string
@@ -101,7 +102,8 @@ type Page struct {
 	CatLan       string
 }
 
-//LoginPage stores Information necessary to parse and display /login/ and /auth/{provider}/callback pages
+// LoginPage stores Information necessary to parse and display a login page
+// Used in LoginGET, LoginPOST, AuthCallback
 type LoginPage struct {
 	BUserName    string //The username that the user chooses to work with within Brucheion
 	Provider     string //The login provider
@@ -112,7 +114,7 @@ type LoginPage struct {
 	NoAuth       bool   //representation of the noAuth flag
 }
 
-//BrucheionUser stores Information about the logged in Brucheion-user
+//BrucheionUser stores Information about the logged in Brucheion user
 type BrucheionUser struct {
 	BUserName      string //The username choosen by user to use Brucheion with
 	Provider       string //The provider used for authentification
@@ -120,7 +122,7 @@ type BrucheionUser struct {
 	ProviderUserID string //The UserID issued by Provider
 }
 
-//Validation stores the result of the validation
+//Validation stores the result of a user or username validation
 type Validation struct {
 	Message       string //Message according to outcome of validation
 	ErrorCode     bool   //Was an error encountered during validation (something did not match)?
@@ -132,13 +134,29 @@ type Validation struct {
 
 // multi alignment testing
 
+// Alignments is a named container for Aligment structs
+//Used in MultiPage and nwa2
 type Alignments struct {
 	Alignment []Alignment
 	Name      []string
 }
 
+//Alignment is a container for alignment results
 type Alignment struct {
 	Source []string
 	Target []string
 	Score  []float32
+}
+
+// BoltCatalog contains all metadata of a CITE URN and is
+//used in LoadCEX and page functions
+type BoltCatalog struct {
+	URN           string `json:"urn"`
+	Citation      string `json:"citationScheme"`
+	GroupName     string `json:"groupName"`
+	WorkTitle     string `json:"workTitle"`
+	VersionLabel  string `json:"versionLabel"`
+	ExemplarLabel string `json:"exemplarLabel"`
+	Online        string `json:"online"`
+	Language      string `json:"language"`
 }

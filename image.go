@@ -6,14 +6,30 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 
 	"github.com/boltdb/bolt"
 )
 
-//requestImgCollection prints a list of images contained in the image collection in a
-//user database.
+//image is the container for image metadata
+type image struct {
+	URN      string `json:"urn"`
+	Name     string `json:"name"`
+	Protocol string `json:"protocol"`
+	License  string `json:"license"`
+	External bool   `json:"external"`
+	Location string `json:"location"`
+}
+
+//JSONlist is a container for JSON items used for requests
+type JSONlist struct {
+	Item []string `json:"item"`
+}
+
+//requestImgCollection prints a list of the images contained in the image collection bucket
+//in the user database.
 func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -180,4 +196,84 @@ func requestImgID(res http.ResponseWriter, req *http.Request) {
 	resultJSON, _ := json.Marshal(response)
 	res.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintln(res, string(resultJSON))
+}
+
+// SaveImageRef parses an updated image reference from the http.Request
+//and saves it to the corresponding URN bucket in the user database
+func SaveImageRef(res http.ResponseWriter, req *http.Request) {
+
+	//DEBUGGING
+	// fmt.Println(r.Method)
+	// if r.Method != "POST" {
+	// 	vars := mux.Vars(r)
+	// 	newkey := vars["key"]
+	// 	imagerefstr := r.FormValue("text")
+	// 	fmt.Println(newkey, imagerefstr)
+	// 	io.WriteString(w, "Only POST is supported!")
+	// 	return
+	// }
+	// fmt.Println(r.ParseForm())
+	// fmt.Println(r.FormValue("text"))
+
+	//First get the session..
+	session, err := getSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//..and check if user is logged in.
+	user, message, loggedin := TestLoginStatus("SaveImageRef", session)
+	if loggedin {
+		log.Println(message)
+	} else {
+		log.Println(message)
+		Logout(res, req)
+		return
+	}
+
+	vars := mux.Vars(req)
+	newkey := vars["key"]
+	imagerefstr := vars["updated"]
+	fmt.Println("debug1", imagerefstr) //DEBUG
+	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
+	// imagerefstr := r.FormValue("text")
+	imageref := strings.Split(imagerefstr, "+")
+	fmt.Println("debug2", imageref) //DEBUG
+	dbname := user + ".db"
+	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
+	retrievedjson := BoltURN{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	fmt.Println(retrievedjson.ImageRef) //DEBUG
+	retrievedjson.ImageRef = imageref
+	fmt.Println(imageref) //DEBUG
+	newnode, _ := json.Marshal(retrievedjson)
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
+	if err != nil {
+		fmt.Printf("Error opening userDB: %s", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+	key := []byte(newkey)    //
+	value := []byte(newnode) //
+	// store some data
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(newbucket))
+		if err != nil {
+			return err
+		}
+
+		err = bucket.Put(key, value)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	http.Redirect(res, req, "/view/"+newkey, http.StatusFound)
 }
