@@ -24,7 +24,7 @@ func SaveTranscription(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("SaveTranscription", session)
+	user, message, loggedin := testLoginStatus("SaveTranscription", session)
 	if loggedin {
 		log.Println(message)
 	} else {

@@ -50,7 +50,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("ExportCEX", session)
+	user, message, loggedin := testLoginStatus("ExportCEX", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -141,7 +141,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("LoadCEX", session)
+	user, message, loggedin := testLoginStatus("LoadCEX", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -220,7 +220,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 					languages = append(languages, line[7])
 				}
 			case len(line) != 8:
-				fmt.Println("Catalogue Data not well formatted")
+				log.Println("Catalogue Data not well formatted")
 			}
 		}
 		for j := range caturns {

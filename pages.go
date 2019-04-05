@@ -17,7 +17,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ViewPage generates the web page based on the sent request
+// ViewPage
 func ViewPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -28,7 +28,7 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("ViewPage", session)
+	user, message, loggedin := testLoginStatus("ViewPage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -115,7 +115,7 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("comparePage", session)
+	user, message, loggedin := testLoginStatus("comparePage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -258,7 +258,7 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("consolidatePage", session)
+	user, message, loggedin := testLoginStatus("consolidatePage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -391,7 +391,7 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	renderCompTemplate(res, "consolidate", compPage)
 }
 
-//EditPage loads and renders the Transcription Desk
+//EditPage prepares, loads, and renders the Transcription Desk
 func EditPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -402,7 +402,7 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("EditPage", session)
+	user, message, loggedin := testLoginStatus("EditPage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -456,7 +456,7 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "edit", page)
 }
 
-//Edit2Page loads and renders the Image Citation Editor
+//Edit2Page prepares, loads, and renders the Image Citation Editor
 func Edit2Page(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -467,7 +467,7 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("Edit2Page", session)
+	user, message, loggedin := testLoginStatus("Edit2Page", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -514,7 +514,7 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "edit2", page)
 }
 
-//EditCatPage loads and renders the Edit Metadata page
+//EditCatPage prepares, loads, and renders the Edit Metadata page
 func EditCatPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -525,7 +525,7 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("EditCatPage", session)
+	user, message, loggedin := testLoginStatus("EditCatPage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -584,7 +584,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("MultiPage", session)
+	user, message, loggedin := testLoginStatus("MultiPage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -614,7 +614,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	text1 = strings.Replace(text1, "-NEWLINE-", "", -1)
 	ids := []string{}
 	texts := []string{}
-	passageId := strings.Split(urn, ":")[4]
+	passageID := strings.Split(urn, ":")[4]
 
 	buckets := Buckets(dbname)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
@@ -644,7 +644,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 				json.Unmarshal([]byte(v), &retrievedjson)
 				ctsurn := retrievedjson.URN
 				text := strings.Replace(retrievedjson.Text, "-NEWLINE-", "", -1)
-				if passageId != strings.Split(ctsurn, ":")[4] {
+				if passageID != strings.Split(ctsurn, ":")[4] {
 					continue
 				}
 				// make sure only witness that contain text are included
@@ -799,7 +799,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "multicompare", page)
 }
 
-//TreePage loads and renders the Morpho-syntactic Treebank page
+//TreePage prepares, loads, and renders a Morpho-syntactic Treebank page
 func TreePage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -810,7 +810,7 @@ func TreePage(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("TreePage", session)
+	user, message, loggedin := testLoginStatus("TreePage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -832,6 +832,7 @@ func TreePage(res http.ResponseWriter, req *http.Request) {
 
 func CrudPage(res http.ResponseWriter, req *http.Request) {
 
+	log.Println("Breakpoint 1: Before getting the session")
 	//First get the session..
 	session, err := getSession(req)
 	if err != nil {
@@ -839,8 +840,10 @@ func CrudPage(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	log.Println("Breakpoint 2: Before getting the user")
+
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("CrudPage", session)
+	user, message, loggedin := testLoginStatus("CrudPage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -849,13 +852,21 @@ func CrudPage(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	log.Println("Breakpoint 3: Before getting the dbname")
+
 	dbname := user + ".db"
 
+	log.Println("Breakpoint 4: In the middle")
+
 	textref := Buckets(dbname)
+
+	log.Println("Breakpoint 5: Before loading the CrudPage")
 
 	transcription := Transcription{
 		Transcriber: user,
 		TextRef:     textref}
 	page, _ := loadCrudPage(transcription)
+	log.Println("Breakpoint 6: Before rendering the template")
 	renderTemplate(res, "crud", page)
+	log.Println("Breakpoint 7: after rendering the template")
 }

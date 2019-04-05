@@ -49,8 +49,8 @@ func main() {
 	log.Fatal(http.ListenAndServe(config.Port, router))
 }
 
-//LandingPage is the first landing page for experimental testing
-func LandingPage(res http.ResponseWriter, req *http.Request) {
+//landingPage is the first landing page for experimental testing
+func landingPage(res http.ResponseWriter, req *http.Request) {
 
 	session, err := getSession(req)
 	if err != nil {
@@ -58,7 +58,7 @@ func LandingPage(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user, message, loggedin := TestLoginStatus("MainPage", session)
+	user, message, loggedin := testLoginStatus("MainPage", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -108,13 +108,13 @@ func setUpRouter() *mux.Router {
 	router.PathPrefix("/cex/").Handler(cexHandler)
 
 	//Set up HandleFunc routes
-	router.HandleFunc("/login/", LoginGET).Methods("GET")         //The initial page. Idially the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.
-	router.HandleFunc("/login/", LoginPOST).Methods("POST")       //This is where users are redirected to when credentials habe been entered.
-	router.HandleFunc("/auth/{provider}/", Auth)                  //Initializes the authentication, redirects to callback.
-	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //Displays message when logged in successfully. Forwards to Main
+	router.HandleFunc("/login/", loginGET).Methods("GET")         //The initial page. Idially the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.
+	router.HandleFunc("/login/", loginPOST).Methods("POST")       //This is where users are redirected to when credentials habe been entered.
+	router.HandleFunc("/auth/{provider}/", auth)                  //Initializes the authentication, redirects to callback.
+	router.HandleFunc("/auth/{provider}/callback/", authCallback) //Displays message when logged in successfully. Forwards to Main
 	router.HandleFunc("/logout/", Logout)                         //Logs out the User. Moved to helper.go
 	router.HandleFunc("/{urn}/treenode.json/", Treenode)          //Function at treeBank.go
-	router.HandleFunc("/main/", LandingPage)                      //So far this is just the page, a user is redirected to after login
+	router.HandleFunc("/main/", landingPage)                      //So far this is just the page, a user is redirected to after login
 	router.HandleFunc("/load/{cex}/", LoadCEX)
 	router.HandleFunc("/new/{key}/{updated}", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
@@ -139,8 +139,9 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/getImageInfo/{name}/{imageurn}", getImageInfo)
 	router.HandleFunc("/addtoCITE/", addCITE)
 	router.HandleFunc("/requestImgID/{name}", requestImgID)
-	router.HandleFunc("/deleteCollection", deleteCollection)
-	router.HandleFunc("/requestImgCollection", requestImgCollection)
+	router.HandleFunc("/deleteCollection/", deleteCollection)
+	router.HandleFunc("/requestImgCollection/", requestImgCollection)
+	router.HandleFunc("/favicon.ico", FaviconHandler)
 	router.NotFoundHandler = http.HandlerFunc(NotFoundRedirect)
 
 	return router
@@ -150,4 +151,9 @@ func setUpRouter() *mux.Router {
 func NotFoundRedirect(res http.ResponseWriter, req *http.Request) {
 	newLink := config.Host + "/login/"
 	http.Redirect(res, req, newLink, 301)
+}
+
+//FaviconHandler returns the favicon to browsers
+func FaviconHandler(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, "static/img/favicon.png")
 }
