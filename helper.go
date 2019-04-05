@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	//"strconv"
+	"log"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -19,7 +20,7 @@ import (
 func getSession(req *http.Request) (*sessions.Session, error) {
 	session, err := BrucheionStore.Get(req, SessionName)
 	if err != nil {
-		fmt.Printf("getSession: Error getting the session: %s\n", err)
+		log.Printf("getSession: Error getting the session: %s\n", err)
 		return nil, err
 	}
 	return session, nil

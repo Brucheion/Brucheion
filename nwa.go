@@ -9,6 +9,13 @@ import (
 	"github.com/ThomasK81/gonwr"
 )
 
+type Word struct {
+	Appearance string
+	ID         int
+	Alignment  int
+	Highlight  float32
+}
+
 func nwa(text, text2 string) []string {
 	hashreg := regexp.MustCompile(`#+`)
 	punctreg := regexp.MustCompile(`[^\p{L}\s#]+`)
@@ -49,14 +56,14 @@ func nwa(text, text2 string) []string {
 		default:
 			highlight = 1.0 - float32(score)/float32(base)
 		}
-		basetext = append(basetext, Word{Appearance: tmpA, Id: i + 1, Alignment: i + 1, Highlight: highlight})
-		comparetext = append(comparetext, Word{Appearance: tmpB, Id: i + 1, Alignment: i + 1, Highlight: highlight})
+		basetext = append(basetext, Word{Appearance: tmpA, ID: i + 1, Alignment: i + 1, Highlight: highlight})
+		comparetext = append(comparetext, Word{Appearance: tmpB, ID: i + 1, Alignment: i + 1, Highlight: highlight})
 
 	}
 	text2 = start2
 	for i := range comparetext {
 		s := fmt.Sprintf("%.2f", comparetext[i].Highlight)
-		switch comparetext[i].Id {
+		switch comparetext[i].ID {
 		case 0:
 			text2 = text2 + "<span hyphens=\"manual\" style=\"background: rgba(255, 221, 87, " + s + ");\" id=\"" + strconv.Itoa(i+1) + "\" alignment=\"" + strconv.Itoa(comparetext[i].Alignment) + "\">" + addSansHyphens(comparetext[i].Appearance) + "</span>" + " "
 		default:
@@ -69,11 +76,11 @@ func nwa(text, text2 string) []string {
 	for i := range basetext {
 		s := fmt.Sprintf("%.2f", basetext[i].Highlight)
 		for j := range comparetext {
-			if comparetext[j].Alignment == basetext[i].Id {
-				basetext[i].Alignment = comparetext[j].Id
+			if comparetext[j].Alignment == basetext[i].ID {
+				basetext[i].Alignment = comparetext[j].ID
 			}
 		}
-		text = text + "<span hyphens=\"manual\" style=\"background: rgba(255, 221, 87, " + s + ");\" + id=\"" + strconv.Itoa(basetext[i].Id) + "\" alignment=\"" + strconv.Itoa(basetext[i].Alignment) + "\">" + addSansHyphens(basetext[i].Appearance) + "</span>" + " "
+		text = text + "<span hyphens=\"manual\" style=\"background: rgba(255, 221, 87, " + s + ");\" + id=\"" + strconv.Itoa(basetext[i].ID) + "\" alignment=\"" + strconv.Itoa(basetext[i].Alignment) + "\">" + addSansHyphens(basetext[i].Appearance) + "</span>" + " "
 	}
 	text = text + end
 

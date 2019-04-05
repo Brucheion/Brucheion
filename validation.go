@@ -193,7 +193,7 @@ func validateUser(req *http.Request) (*Validation, error) {
 
 				//Login scenario (4)
 				if string(userID) == providerUserID { //if this userID was in the Bucket
-					bUserValidation.Message = "This " + provider + " account is already in use for authentificating another login."
+					bUserValidation.Message = "The " + provider + " account you are trying to login with is already in use for authentificating another user."
 					bUserValidation.ErrorCode = false //Error encountered (PUser in use, but not for this BUser)
 					bUserValidation.PUserInUse = true //ProviderUser from session already in use
 				}

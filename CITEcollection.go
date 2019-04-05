@@ -18,7 +18,7 @@ func newCITECollection(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("newCITECollection", session)
+	user, message, loggedin := testLoginStatus("newCITECollection", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -44,7 +44,7 @@ func addCITE(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("addCITE", session)
+	user, message, loggedin := testLoginStatus("addCITE", session)
 	if loggedin {
 		log.Println(message)
 	} else {

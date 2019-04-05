@@ -103,7 +103,7 @@ type Page struct {
 }
 
 // LoginPage stores Information necessary to parse and display a login page
-// Used in LoginGET, LoginPOST, AuthCallback
+// Used in loginGET, loginPOST, authCallback
 type LoginPage struct {
 	BUserName    string //The username that the user chooses to work with within Brucheion
 	Provider     string //The login provider

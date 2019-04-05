@@ -28,7 +28,7 @@ type JSONlist struct {
 	Item []string `json:"item"`
 }
 
-//requestImgCollection prints a list of the images contained in the image collection bucket
+// requestImgCollection prints a list of the images contained in the image collection bucket
 //in the user database.
 func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 
@@ -40,7 +40,7 @@ func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("requestImgCollection", session)
+	user, message, loggedin := testLoginStatus("requestImgCollection", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -90,7 +90,7 @@ func getImageInfo(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("getImageInfo", session)
+	user, message, loggedin := testLoginStatus("getImageInfo", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -148,7 +148,7 @@ func requestImgID(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("requestImgID", session)
+	user, message, loggedin := testLoginStatus("requestImgID", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -223,7 +223,7 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("SaveImageRef", session)
+	user, message, loggedin := testLoginStatus("SaveImageRef", session)
 	if loggedin {
 		log.Println(message)
 	} else {

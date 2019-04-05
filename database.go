@@ -62,7 +62,7 @@ func gobEncode(p interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-//gobDecodeImgCol decodes a byte slice from the database to an imageCollection,
+//gobDecodeImgCol decodes a byte slice from the database to an imageCollection
 func gobDecodeImgCol(data []byte) (imageCollection, error) {
 	var p *imageCollection
 	buf := bytes.NewBuffer(data)
@@ -312,8 +312,8 @@ func BoltRetrieveFirstKey(dbname, bucket string) string {
 	return result
 }
 
-//BoltRetrieve retrieves the string data for the specified key in a specified bucket of
-//a specified database as a string
+// BoltRetrieve retrieves the string data (as BoltJSON) for the specified key
+//in the specified bucket of the specified database as a BoltJSON
 func BoltRetrieve(dbname, bucket, key string) BoltJSON {
 	var result BoltJSON
 	if _, err := os.Stat(dbname); os.IsNotExist(err) {
@@ -350,7 +350,7 @@ func deleteBucket(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("deleteBucket", session)
+	user, message, loggedin := testLoginStatus("deleteBucket", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -390,7 +390,7 @@ func deleteNode(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("deleteNode", session)
+	user, message, loggedin := testLoginStatus("deleteNode", session)
 	if loggedin {
 		log.Println(message)
 	} else {

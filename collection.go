@@ -34,7 +34,7 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("newCollection", session)
+	user, message, loggedin := testLoginStatus("newCollection", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -133,7 +133,7 @@ func deleteCollection(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("deleteCollection", session)
+	user, message, loggedin := testLoginStatus("deleteCollection", session)
 	if loggedin {
 		log.Println(message)
 	} else {

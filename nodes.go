@@ -23,7 +23,7 @@ func AddFirstNode(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("AddFirstNode", session)
+	user, message, loggedin := testLoginStatus("AddFirstNode", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -213,7 +213,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("AddNodeAfter", session)
+	user, message, loggedin := testLoginStatus("AddNodeAfter", session)
 	if loggedin {
 		log.Println(message)
 	} else {

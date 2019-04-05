@@ -24,7 +24,7 @@ func newText(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("newText", session)
+	user, message, loggedin := testLoginStatus("newText", session)
 	if loggedin {
 		log.Println(message)
 	} else {

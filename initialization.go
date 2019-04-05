@@ -15,7 +15,7 @@ import (
 
 //LoadConfiguration loads and parses the JSON config file and returns Config.
 func loadConfiguration(file string) Config {
-	var newConfig Config                       //initialize config as Config
+	var newConfig Config                       //initialize Config variable newConfig
 	configFile, openFileError := os.Open(file) //attempt to open file
 	defer configFile.Close()                   //push closing on call list
 	if openFileError != nil {                  //error handling
