@@ -44,25 +44,23 @@ func loginGET(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
 	session, err := getSession(req) //Get a session
 	if err != nil {
-		fmt.Errorf("loginGET: Error getting session: %s", err)
+		log.Println(fmt.Errorf("loginGET: Error getting session: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has already been set
-		//log.Println("Debug: loginGET: loggedin != nil")
 		//if session.Values["Loggedin"].(bool) { //"Loggedin" will be true if user is already logged in
 		user, ok := session.Values["BrucheionUserName"].(string) //if there is a session get the username
 		if !ok {
 			log.Println("func loginGET: Type assertion to string failed for session value BrucheionUser or session value could not be retrieved.")
 		}
-		log.Printf("loginGET: user %s is already logged in. Redirecting to main\n", user) //output for debugging
+		log.Printf("loginGET: user %s is already logged in. Redirecting to main\n", user)
 		http.Redirect(res, req, "/main/", http.StatusFound)
 		return
 		//}
 	} //Destroy the session we just got (proceed with login process)
-	log.Println("Debug: Before built in inSituLogout")
+	log.Println("loginGET: Session seems empty. Destroying session.")
 	inSituLogout(res, req)
-	log.Println("Debug: After built in inSituLogout")
 
 	loginPage := &LoginPage{
 		Title:  "Brucheion Login Page",
@@ -76,7 +74,7 @@ func loginPOST(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
 	session, err := getSession(req) //get a session
 	if err != nil {
-		fmt.Errorf("loginPOST: Error getting session: %s", err)
+		log.Println(fmt.Errorf("loginPOST: Error getting session: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -94,6 +92,7 @@ func loginPOST(res http.ResponseWriter, req *http.Request) {
 		Logout(res, req)
 		return
 	}
+	log.Println("loginPOST: Session seems empty. Destroying session.")
 	//if user was not logged in yet then destroy the session we just got (and proceed with login process)
 	inSituLogout(res, req)
 
@@ -149,13 +148,11 @@ func loginPOST(res http.ResponseWriter, req *http.Request) {
 						bucket := tx.Bucket([]byte("users"))
 						buffer, err := json.Marshal(brucheionUser) //Marshal user data
 						if err != nil {
-							fmt.Errorf("failed marshalling user data for user %s: %s", brucheionUser.BUserName, err)
-							return err
+							return fmt.Errorf("failed marshalling user data for user %s: %s", brucheionUser.BUserName, err)
 						}
 						err = bucket.Put([]byte(brucheionUser.BUserName), buffer) //put user into bucket
 						if err != nil {
-							fmt.Errorf("failed saving user %s in users.db", brucheionUser.BUserName, err)
-							return err
+							return fmt.Errorf("failed saving user %s in users.db: %s", brucheionUser.BUserName, err)
 						}
 						log.Printf("Successfully saved new user %s in users.DB.\n", brucheionUser.BUserName)
 
@@ -178,6 +175,7 @@ func loginPOST(res http.ResponseWriter, req *http.Request) {
 
 		}
 		//if the noauth flag was not set, or set false: continue with authentification using a provider
+		log.Println("loginPost: validating if credentials match existing user. validateUser will display a message starting with: \"type assertion...\". This is normal behavior.")
 		validation, err := validateUser(req) //validate if credentials match existing user
 		if err != nil {
 			fmt.Printf("\nLoginPost: error validating user: %s", err)
@@ -218,7 +216,7 @@ func auth(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
 	session, err := getSession(req) //get a session
 	if err != nil {
-		fmt.Errorf("Auth: Error getting session: %s", err)
+		log.Println(fmt.Errorf("Auth: Error getting session: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -246,7 +244,7 @@ func authCallback(res http.ResponseWriter, req *http.Request) {
 	//Make sure user is not logged in yet
 	session, err := getSession(req) //get a session
 	if err != nil {
-		fmt.Errorf("func authCallback: Error getting session: %s", err)
+		log.Println(fmt.Errorf("func authCallback: Error getting session: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -301,10 +299,7 @@ func authCallback(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 
-	//log.Println(validation)
-
-	//Save user in DB and/or login user if user is valid. Redirect back to login page is not
-
+	//Save user in DB and/or login user if user is valid. Redirect back to login page if not
 	if validation.BUserInUse && validation.SameProvider && validation.PUserInUse { //Login scenario (1)
 		session.Values["Loggedin"] = true
 		session.Save(req, res)
@@ -321,28 +316,24 @@ func authCallback(res http.ResponseWriter, req *http.Request) {
 			bucket := tx.Bucket([]byte("users"))
 			buffer, err := json.Marshal(brucheionUser) //Marshal user data
 			if err != nil {
-				fmt.Errorf("failed marshalling user data for user %s: %s", brucheionUserName, err)
-				return err
+				return fmt.Errorf("failed marshalling user data for user %s: %s", brucheionUserName, err)
 			}
 			err = bucket.Put([]byte(brucheionUserName), buffer) //put user into bucket
 			if err != nil {
-				fmt.Errorf("failed saving user %s in users.db", brucheionUserName, err)
-				return err
+				return fmt.Errorf("failed saving user %s in users.db: %s", brucheionUserName, err)
 			}
 			log.Printf("Successfully saved new user %s in users.DB.\n", brucheionUserName)
 
 			bucket = tx.Bucket([]byte(provider))
 			err = bucket.Put([]byte(brucheionUser.ProviderUserID), []byte(brucheionUserName))
 			if err != nil {
-				fmt.Errorf("failed saving user ProviderUserID for user %s in Bucket %s", brucheionUserName, provider, err)
-				return err
+				return fmt.Errorf("failed saving user ProviderUserID for user %s in Bucket %s: %s", brucheionUserName, provider, err)
 			}
 			log.Printf("Successfully saved ProviderUserID of BUser %s in Bucket %s.\n", brucheionUserName, provider)
 			log.Println(validation.Message) //Display validation.Message if all went well.
 			return nil
 		})
-		db.Close() //always remember to close the db
-		//fmt.Println("DB closed")
+		db.Close()                        //always remember to close the db
 		session.Values["Loggedin"] = true //To keep the user logged in
 		session.Save(req, res)
 
@@ -372,7 +363,7 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 
 	session, err := getSession(req)
 	if err != nil {
-		fmt.Errorf("No session, no logout")
+		log.Println("No session, no logout")
 		return
 	}
 
@@ -403,13 +394,13 @@ func inSituLogout(res http.ResponseWriter, req *http.Request) {
 
 	session, err := getSession(req)
 	if err != nil {
-		fmt.Errorf("No session, no logout")
+		log.Println("Did not get a session, nothing to logout from")
 		return
 	}
 
 	bUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		log.Println("inSituLogout: BrucheionUserName could not be retrieved from session.")
+		log.Println("inSituLogout: No BrucheionUserName retrieved from session.")
 	}
 
 	session.Options.MaxAge = -1

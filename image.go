@@ -198,7 +198,7 @@ func requestImgID(res http.ResponseWriter, req *http.Request) {
 	fmt.Fprintln(res, string(resultJSON))
 }
 
-// SaveImageRef parses an updated image reference from the http.Request
+// SaveImageRef parses and updated image references from the http.Request
 //and saves it to the corresponding URN bucket in the user database
 func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 

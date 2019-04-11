@@ -58,7 +58,7 @@ func validateNoAuthUser(req *http.Request) (*Validation, error) {
 	//get user data from session
 	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Errorf("func validateNoAuthUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
+		log.Println("func validateNoAuthUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
 	}
 
 	//open the user database
@@ -143,19 +143,16 @@ func validateUser(req *http.Request) (*Validation, error) {
 	//get user data from session
 	brucheionUserName, ok := session.Values["BrucheionUserName"].(string)
 	if !ok {
-		fmt.Errorf("func validateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
+		log.Println("func validateUser: Type assertion of brucheionUserName cookie value to string failed or session value could not be retrieved")
 	}
-	log.Println("Debug: brucheionUserName = " + brucheionUserName)
 	provider, ok := session.Values["Provider"].(string)
 	if !ok {
-		fmt.Errorf("func validateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved")
+		log.Println("func validateUser: Type assertion of provider cookie value to string failed or session value could not be retrieved")
 	}
-	log.Println("Debug: Provider = " + provider)
 	providerUserID, ok := session.Values["ProviderUserID"].(string)
 	if !ok {
-		fmt.Errorf("func validateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved")
+		log.Println("func validateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved")
 	}
-	log.Println("Debug: providerUserID = \"" + providerUserID + "\"")
 
 	userDB, err := openBoltDB(config.UserDB)
 	if err != nil {
