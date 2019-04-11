@@ -53,18 +53,15 @@ func initializeUsersDB() error {
 	db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("users")) //create a new bucket to store new user
 		if err != nil {
-			fmt.Errorf("Failed creating bucket users: %s", err)
-			return err
+			return fmt.Errorf("Failed creating bucket users: %s", err)
 		}
 		bucket, err = tx.CreateBucketIfNotExists([]byte("GitHub"))
 		if err != nil {
-			fmt.Errorf("Failed creating bucket GitHub: %s", err)
-			return err
+			return fmt.Errorf("Failed creating bucket GitHub: %s", err)
 		}
 		bucket, err = tx.CreateBucketIfNotExists([]byte("GitLab"))
 		if err != nil {
-			fmt.Errorf("Failed creating bucket GitLab: %s", err)
-			return err
+			return fmt.Errorf("Failed creating bucket GitLab: %s", err)
 		}
 
 		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error)
