@@ -61,9 +61,13 @@ JSON is a common data format used for asynchronous browser–server communicatio
 
 ### Login
 
-To login you need a GitHub or a GitLab account. 
+Users can login with or without verification. It is recommended to login with verification using a login provider. 
 
-1. If the server is running navigate to /login/ (with the standard configuration navigate to http://localhost:7000/login/)
+#### The ordinary login process using a login provider
+
+For logging in with a provider start Brucheion normally (without the noauth flag). Brucheion supports authentification with GitHub and GitLab. Accordingly, the user needs a GitHub or a GitLab account. 
+
+1. When the server is running navigate to /login/ (with the standard configuration navigate to http://localhost:7000/login/)
 
 ![loginPage](static/img/tutorial/loginBlank.png)
 
@@ -83,7 +87,16 @@ To login you need a GitHub or a GitLab account.
 
 ![loginUsernameInUse](static/img/tutorial/loginUsernameInUse.png)
 
-6. Likewise, a new user can not be registered with an GitHub or GitLab account that is already in use.
+6. Likewise, a new user can not be registered with a GitHub or GitLab account that is already in use.
+
+#### The login process without a login provider
+
+For logging in without authentification start Brucheion with setting the noauth flag. 
+
+![startWithNoauthFlag](static/img/tutorial/startWithNoauthFlag.png)
+
+###
+
 
 ### View
 

@@ -1,198 +1,100 @@
 package main
 
 import (
-	"bytes"
-	"encoding/csv"
-	"encoding/json"
-	"errors"
-	"flag"
-	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
-	"os"
-	"regexp"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 
-	"github.com/ThomasK81/gocite"
-	"github.com/ThomasK81/gonwr"
-	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
-
-	"github.com/gorilla/sessions" //for Cookiestore and other session functionality
-
-	"github.com/markbates/goth/gothic"
 )
 
-//The Config stores Host/Port Information, where the user DB is and settings for the cookiestores
-//
-//Host and Port are used throughout brucheion for parsing and delivering the pages
-//
-//The Key/Secret pairs are obtained from the provider when registering the application.
-type Config struct {
-	Host         string `json:"host"`
-	Port         string `json:"port"`
-	GitHubKey    string `json:"gitHubKey"`
-	GitHubSecret string `json:"githHubSecret"`
-	GitLabKey    string `json:"gitLabKey"`
-	GitLabSecret string `json:"gitLabSecret"`
-	GitLabScope  string `json:"gitLabScope"` //for accessing GitLab user information this has to be "read_user"
-	MaxAge       int    `json:"maxAge"`      //defines the lifetime of the brucheion session
-	UserDB       string `json:"userDB"`
-	//	GoogleKey	  string `json:"googleKey"`
-	//	GoogleSecret  string `json:"googleSecret"`
-}
-
-type JSONlist struct {
-	Item []string `json:"item"`
-}
-
-type Transcription struct {
-	CTSURN        string
-	Transcriber   string
-	Transcription string
-	Previous      string
-	Next          string
-	First         string
-	Last          string
-	ImageRef      []string
-	TextRef       []string
-	ImageJS       string
-	CatID         string
-	CatCit        string
-	CatGroup      string
-	CatWork       string
-	CatVers       string
-	CatExmpl      string
-	CatOn         string
-	CatLan        string
-}
-
-type CompPage struct {
-	User      string
-	Title     string
-	Text      template.HTML
-	Host      string
-	CatID     string
-	CatCit    string
-	CatGroup  string
-	CatWork   string
-	CatVers   string
-	CatExmpl  string
-	CatOn     string
-	CatLan    string
-	User2     string
-	Title2    string
-	Text2     template.HTML
-	CatID2    string
-	CatCit2   string
-	CatGroup2 string
-	CatWork2  string
-	CatVers2  string
-	CatExmpl2 string
-	CatOn2    string
-	CatLan2   string
-}
-
-type Page struct {
-	User         string
-	Title        string
-	ImageJS      string
-	ImageScript  template.HTML
-	ImageHTML    template.HTML
-	TextHTML     template.HTML
-	InTextHTML   template.HTML
-	Text         template.HTML
-	Previous     string
-	Next         string
-	PreviousLink template.HTML
-	NextLink     template.HTML
-	First        string
-	Last         string
-	Host         string
-	ImageRef     string
-	CatID        string
-	CatCit       string
-	CatGroup     string
-	CatWork      string
-	CatVers      string
-	CatExmpl     string
-	CatOn        string
-	CatLan       string
-}
-
-//LoginPage stores Information necessary to parse and display /login/ and /auth/{provider}/callback pages
-type LoginPage struct {
-	BUserName    string //The username that the user chooses to work with within Brucheion
-	Provider     string //The login provider
-	HrefUserName string //Combination {user}_{provider} as displayed in link
-	Message      string //Message to be displayed according to login scenario
-	Host         string //Port of the Link
-	Title        string //Title of the website
-	NoAuth       bool   //representation of the noAuth flag
-}
-
-//BrucheionUser stores Information about the logged in Brucheion-user
-type BrucheionUser struct {
-	BUserName      string //The username choosen by user to use Brucheion with
-	Provider       string //The provider used for authentification
-	PUserName      string //The username used for login with the provider
-	ProviderUserID string //The UserID issued by Provider
-}
-
-//Validation stores the result of the validation
-type Validation struct {
-	Message       string //Message according to outcome of validation
-	ErrorCode     bool   //Was an error encountered during validation (something did not match)?
-	BUserInUse    bool   //func ValidateUser: Is the BrucheionUser to be found in the DB?
-	SameProvider  bool   //func ValidateUser: Is the chosen provider the same as the providersaved in DB?
-	PUserInUse    bool   //func ValidateUser: Is the ProviderUser to be found in the DB?
-	BPAssociation bool   // func ValidateNoAuthUser: Is the choosen NoAuthUser already in use with a provider login?
-}
-
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
-var config = LoadConfiguration("./config.json")
+var config Config
 
 var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html",
 	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
 	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html",
 	"tmpl/main.html"))
+
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
-//The sessionName of the Brucheion Session
-const SessionName = "brucheionSession"
-
-//
-var BrucheionStore sessions.Store
-
-var noAuth *bool
-var configLocation *string
-
-//Main initializes the mux server
+//Main starts the program the mux server
 func main() {
 
-	noAuth = flag.Bool("noauth", false, "Start Brucheion without authentificating with a provider (default: false)")
-	configLocation = flag.String("config", "./config.json", "Specify where to load the JSON config from. (defalult: ./config.json")
-	flag.Parse()
+	//evaluates flags and sets variables accordingly
+	initializeFlags()
 
 	if *configLocation != "./config.json" {
-		log.Println("loading configuration from: " + *configLocation)
-		config = LoadConfiguration(*configLocation)
+		log.Println("Loading configuration from: " + *configLocation)
+		config = loadConfiguration(*configLocation)
+	} else {
+		log.Println("Loading configuration from: ./config.json")
+		config = loadConfiguration("./config.json")
 	}
+
+	//Create new Cookiestore instance for use with Brucheion
+	BrucheionStore = getCookieStore(config.MaxAge)
 
 	if !*noAuth { //If Brucheion is NOT started in noAuth mode:
 		//Set up gothic for authentification using the helper function
-		SetUpGothic()
+		setUpGothic()
+	} else {
+		log.Println("Started in noAuth mode.")
 	}
 
-	//Create new Cookiestore for Brucheion
-	BrucheionStore = GetCookieStore(config.MaxAge)
+	//Create new router instance with associated routes
+	router := setUpRouter()
 
-	//Set up the router
+	log.Println("Listening at " + config.Host + "...")
+	log.Fatal(http.ListenAndServe(config.Port, router))
+}
+
+//landingPage is the first landing page for experimental testing
+func landingPage(res http.ResponseWriter, req *http.Request) {
+
+	session, err := getSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user, message, loggedin := testLoginStatus("MainPage", session)
+	if loggedin {
+		log.Println(message)
+	} else {
+		log.Println(message)
+		Logout(res, req)
+		return
+	}
+
+	//log.Printf("func MainPage: User still known? Should be: %s\n", user)
+
+	dbname := config.UserDB
+
+	buckets := Buckets(dbname)
+	log.Println()
+	log.Printf("func MainPage. Printing buckets of %s:\n", dbname)
+	log.Println()
+	log.Println(buckets)
+
+	//test := BoltRetrieve(dbname, "users", "test")
+	adri := BoltRetrieve(dbname, "users", "adri")
+
+	log.Println("User test:")
+	log.Println(BoltRetrieve(dbname, "users", "test"))
+	log.Println("User adri:")
+	log.Println(adri)
+	//log.Println("user adri: " + BoltRetrieve(dbname, users, adri) + "\n")
+
+	page := &Page{
+		User: user,
+		Host: config.Host}
+	renderTemplate(res, "main", page)
+}
+
+func setUpRouter() *mux.Router {
+
+	//Start the router
 	router := mux.NewRouter().StrictSlash(true)
 
 	//Set up handlers for serving static files
@@ -206,15 +108,15 @@ func main() {
 	router.PathPrefix("/cex/").Handler(cexHandler)
 
 	//Set up HandleFunc routes
-	router.HandleFunc("/login/", LoginGET).Methods("GET")         //The initial page. Idially the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.
-	router.HandleFunc("/login/", LoginPOST).Methods("POST")       //This is where users are redirected to when credentials habe been entered.
-	router.HandleFunc("/auth/{provider}/", Auth)                  //Initializes the authentication, redirects to callback.
-	router.HandleFunc("/auth/{provider}/callback/", AuthCallback) //Displays message when logged in successfully. Forwards to Main
+	router.HandleFunc("/login/", loginGET).Methods("GET")         //The initial page. Idially the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.
+	router.HandleFunc("/login/", loginPOST).Methods("POST")       //This is where users are redirected to when credentials habe been entered.
+	router.HandleFunc("/auth/{provider}/", auth)                  //Initializes the authentication, redirects to callback.
+	router.HandleFunc("/auth/{provider}/callback/", authCallback) //Displays message when logged in successfully. Forwards to Main
 	router.HandleFunc("/logout/", Logout)                         //Logs out the User. Moved to helper.go
 	router.HandleFunc("/{urn}/treenode.json/", Treenode)          //Function at treeBank.go
-	router.HandleFunc("/main/", MainPage)                         //So far this is just the page, a user is redirected to after login
-	router.HandleFunc("/load/{cex}/", LoadDB)
-	router.HandleFunc("/new/{key}/", newText)
+	router.HandleFunc("/main/", landingPage)                      //So far this is just the page, a user is redirected to after login
+	router.HandleFunc("/load/{cex}/", LoadCEX)
+	router.HandleFunc("/new/{key}/{updated}", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
 	router.HandleFunc("/multicompare/{urn}/", MultiPage)
@@ -237,6 +139,12 @@ func main() {
 	router.HandleFunc("/getImageInfo/{name}/{imageurn}", getImageInfo)
 	router.HandleFunc("/addtoCITE/", addCITE)
 	router.HandleFunc("/requestImgID/{name}", requestImgID)
+<<<<<<< HEAD
+	router.HandleFunc("/deleteCollection/", deleteCollection)
+	router.HandleFunc("/requestImgCollection/", requestImgCollection)
+	router.HandleFunc("/favicon.ico", FaviconHandler)
+	router.NotFoundHandler = http.HandlerFunc(NotFoundRedirect)
+=======
 	router.HandleFunc("/deleteCollection", deleteCollection)
 	router.HandleFunc("/requestImgCollection", requestImgCollection)
 	router.NotFoundHandler = http.HandlerFunc(redirect)
@@ -575,399 +483,23 @@ func AuthCallback(res http.ResponseWriter, req *http.Request) {
 	renderAuthTemplate(res, "callback", lp)
 
 }
+>>>>>>> master
 
-func MainPage(res http.ResponseWriter, req *http.Request) {
-
-	session, err := GetSession(req)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	user, message, loggedin := TestLoginStatus("MainPage", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(res, req)
-	}
-
-	//log.Printf("func MainPage: User still known? Should be: %s\n", user)
-
-	dbname := config.UserDB
-
-	buckets := Buckets(dbname)
-	fmt.Println()
-	fmt.Printf("func MainPage. Printing buckets of %s:\n", dbname)
-	fmt.Println()
-	fmt.Println(buckets)
-
-	page := &Page{
-		User: user,
-		Host: config.Host}
-	renderTemplate(res, "main", page)
+	return router
 }
 
-func requestImgCollection(w http.ResponseWriter, r *http.Request) {
-
-	//First get the session..
-	session, err := GetSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("requestImgCollection", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(w, r)
-	}
-
-	response := JSONlist{}
-	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
-	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer db.Close()
-	err = db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("imgCollection"))
-		if b == nil {
-			return errors.New("failed to get bucket")
-		}
-		c := b.Cursor()
-		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			response.Item = append(response.Item, string(k))
-		}
-		return nil
-	})
-	if err != nil {
-		resultJSON, _ := json.Marshal(response)
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		fmt.Fprintln(w, string(resultJSON))
-	}
-	resultJSON, _ := json.Marshal(response)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintln(w, string(resultJSON))
+//NotFoundRedirect redirects user to login in case an invalid request was issued.
+func NotFoundRedirect(res http.ResponseWriter, req *http.Request) {
+	newLink := config.Host + "/login/"
+	http.Redirect(res, req, newLink, 301)
 }
 
-func getImageInfo(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	//First get the session..
-	session, err := GetSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("getImageInfo", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(w, r)
-	}
-
-	retImage := imageCollection{}
-	newImage := image{}
-	collectionName := vars["name"]
-	imageurn := vars["imageurn"]
-	dbkey := []byte(collectionName)
-	dbname := user + ".db"
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
-	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer db.Close()
-	err = db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("imgCollection"))
-		if b == nil {
-			return errors.New("failed to get bucket")
-		}
-		val := b.Get(dbkey)
-		// fmt.Println("got", string(dbkey))
-		retImage, _ = gobDecodeImgCol(val)
-		for _, v := range retImage.Collection {
-			if v.URN == imageurn {
-				newImage = v
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		resultJSON, _ := json.Marshal(newImage)
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		fmt.Fprintln(w, string(resultJSON))
-	}
-	fmt.Println("request:", collectionName, collectionName)
-	fmt.Println("answer:", newImage)
-	resultJSON, _ := json.Marshal(newImage)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintln(w, string(resultJSON))
+//FaviconHandler returns the favicon to browsers
+func FaviconHandler(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, "static/img/favicon.png")
 }
-
-func requestImgID(w http.ResponseWriter, r *http.Request) {
-	//First get the session..
-	session, err := GetSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("requestImgID", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(w, r)
-	}
-
-	response := JSONlist{}
-	collection := imageCollection{}
-	vars := mux.Vars(r)
-	name := vars["name"]
-	dbname := user + ".db"
-	dbkey := []byte(name)
-	db, err := OpenBoltDB(dbname) //open bolt DB using helper function
-	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer db.Close()
-	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("imgCollection"))
-		if bucket == nil {
-			return errors.New("failed to get bucket")
-		}
-		val := bucket.Get(dbkey)
-		if val == nil {
-			return errors.New("failed to retrieve value")
-		}
-		collection, err = gobDecodeImgCol(val)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		resultJSON, _ := json.Marshal(response)
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		fmt.Fprintln(w, string(resultJSON))
-	}
-	for i := range collection.Collection {
-		response.Item = append(response.Item, collection.Collection[i].URN)
-	}
-	resultJSON, _ := json.Marshal(response)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintln(w, string(resultJSON))
-}
-
-func newCITECollection(w http.ResponseWriter, r *http.Request) {
-	//First get the session..
-	session, err := GetSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("newCITECollection", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(w, r)
-	}
-
-	vars := mux.Vars(r)
-	name := vars["name"] //the name of the new CITE collection
-	newCITECollectionDB(user, name)
-	io.WriteString(w, "success")
-}
-
-func addCITE(w http.ResponseWriter, r *http.Request) {
-	//First get the session..
-	session, err := GetSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("addCITE", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(w, r)
-	}
-
-	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
-	name := r.URL.Query().Get("name")
-	name = strings.Replace(name, "\"", "", -1)
-	imageurn := r.URL.Query().Get("urn")
-	imageurn = strings.Replace(imageurn, "\"", "", -1)
-	location := r.URL.Query().Get("location")
-	location = strings.Replace(location, "\"", "", -1)
-	// fmt.Println(location)
-	protocol := r.URL.Query().Get("protocol")
-	protocol = strings.Replace(protocol, "\"", "", -1)
-	externalstr := r.URL.Query().Get("external")
-	externalstr = strings.Replace(externalstr, "\"", "", -1)
-	external := false
-	if externalstr == "true" {
-		external = true
-	}
-	newimage := image{URN: imageurn, External: external, Protocol: protocol, Location: location}
-	// fmt.Println(user, name, newimage)
-	addtoCITECollection(user, name, newimage)
-	io.WriteString(w, "success")
-}
-
-func newCollection(w http.ResponseWriter, r *http.Request) {
-
-	//First get the session..
-	session, err := GetSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("newCollection", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(w, r)
-	}
-
-	vars := mux.Vars(r)
-	name := vars["name"]
-	imageIDs := strings.Split(vars["urns"], ",")
-	var collection imageCollection
-	switch len(imageIDs) {
-	case 0:
-		io.WriteString(w, "failed")
-		return
-	case 1:
-		urn := gocite.SplitCITE(imageIDs[0])
-		switch {
-		case urn.InValid:
-			io.WriteString(w, "failed")
-			return
-		case urn.Object == "*":
-			links, err := extractLinks(urn)
-			if err != nil {
-				io.WriteString(w, "failed")
-			}
-			for i := range links {
-				collection.Collection = append(collection.Collection, image{External: false, Location: links[i]})
-			}
-		default:
-			collection.Collection = append(collection.Collection, image{External: false, Location: imageIDs[0]})
-		}
-	default:
-		for i := range imageIDs {
-			urn := gocite.SplitCITE(imageIDs[i])
-			switch {
-			case urn.InValid:
-				continue
-			default:
-				collection.Collection = append(collection.Collection, image{External: false, Location: imageIDs[i]})
-			}
-		}
-	}
-	newCollectiontoDB(user, name, collection)
-	io.WriteString(w, "success")
-}
-
-func newWork(w http.ResponseWriter, r *http.Request) {
-
-	//First get the session..
-	session, err := GetSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("newWork", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(w, r)
-	}
-
-	if r.Method == "GET" {
-		varmap := map[string]interface{}{
-			"user": user,
-			"port": config.Port,
-		}
-		t, _ := template.ParseFiles("tmpl/newWork.html")
-		t.Execute(w, varmap)
-	} else {
-		r.ParseForm()
-		// logic part of log in
-		workurn := r.Form["workurn"][0]
-		scheme := r.Form["scheme"][0]
-		group := r.Form["workgroup"][0]
-		title := r.Form["title"][0]
-		version := r.Form["version"][0]
-		exemplar := r.Form["exemplar"][0]
-		online := r.Form["online"][0]
-		language := r.Form["language"][0]
-		newWork := cexMeta{URN: workurn, CitationScheme: scheme, GroupName: group, WorkTitle: title, VersionLabel: version, ExemplarLabel: exemplar, Online: online, Language: language}
-		fmt.Println(newWork)
-		err := newWorktoDB(user, newWork)
-		if err != nil {
-			io.WriteString(w, "failed")
-		} else {
-			io.WriteString(w, "Success")
-		}
-	}
-}
-
-//TreePage loads and renders the Morpho-syntactic Treebank page
-func TreePage(w http.ResponseWriter, r *http.Request) {
-
-	//First get the session..
-	session, err := GetSession(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//..and check if user is logged in.
-	user, message, loggedin := TestLoginStatus("TreePage", session)
-	if loggedin {
-		fmt.Println(message)
-	} else {
-		fmt.Println(message)
-		Logout(w, r)
-	}
-
-	dbname := user + ".db"
-
-	textref := Buckets(dbname)
-
-	transcription := Transcription{
-		Transcriber: user,
-		TextRef:     textref}
-	p, _ := loadCrudPage(transcription)
-	renderTemplate(w, "tree", p)
-}
+<<<<<<< HEAD
+=======
 
 func CrudPage(w http.ResponseWriter, r *http.Request) {
 
@@ -3246,3 +2778,4 @@ func testStringSl(slsl [][]string) (slsl2 [][][]int, ok bool) {
 // 	}
 // 	return slsl2, ok
 // }
+>>>>>>> master
