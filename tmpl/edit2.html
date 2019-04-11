@@ -163,8 +163,9 @@
 			</div>
 		</section>
 		<footer>
-			<br/>
-			<p>Brucheion is ©2017–2018 Thomas Koentges. CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. Brucheion is
+			<br />
+			<p>Brucheion is ©2017–2018 Thomas Koentges. CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. Brucheion
+				is
 				available for use, modification, and distribution under the terms of the
 				<a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion's image citation tool <a href="">BrIC</a>
 				is ©2018 Thomas Koentges and based on Christopher Blackwell's and Mees Gelein's
@@ -211,6 +212,17 @@
 			});
 		}
 	</script>	
+	<script>
+		function manualPost() {
+			var xhttp = new XMLHttpRequest();
+			var imageArea = document.getElementById('imageTextArea').value.replace("#", "+");
+			var actualPost = "{{.Host}}/saveImage/{{.Title}}/" + imageArea;
+			console.log(actualPost);
+			xhttp.open("GET", actualPost, true);
+			xhttp.send();
+			// window.location = "{{.Host}}/view/{{.Title}}";
+		};
+	</script>
 	<script>
 		function manualPost() {
 			var xhttp = new XMLHttpRequest();
