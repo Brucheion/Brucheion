@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"strconv"
 	"strings"
+
+	"github.com/ThomasK81/gocite"
 )
 
 func loadCrudPage(transcription Transcription) (*Page, error) {
@@ -64,10 +66,10 @@ func loadPage(transcription Transcription, kind string) (*Page, error) {
 		if retrieveddata.JSON == "" {
 			continue
 		}
-		retrievedjson := BoltURN{}
+		retrievedjson := gocite.Passage{}
 		json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
-		ctsurn := retrievedjson.URN
+		ctsurn := retrievedjson.PassageID
 		var htmllink string
 		switch {
 		case ctsurn == title:
@@ -208,10 +210,10 @@ func loadMultiPage(transcription Transcription) (*Page, error) {
 		if retrieveddata.JSON == "" {
 			continue
 		}
-		retrievedjson := BoltURN{}
+		retrievedjson := gocite.Passage{}
 		json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
-		ctsurn := retrievedjson.URN
+		ctsurn := retrievedjson.PassageID
 
 		var htmllink string
 		switch {

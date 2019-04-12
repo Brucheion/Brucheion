@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ThomasK81/gocite"
 	"github.com/boltdb/bolt"
 
 	"github.com/gorilla/mux"
@@ -151,10 +152,10 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	}
 
 	vars := mux.Vars(req)
-	cex := vars["cex"]                               //get the name of the CEX file from URL
-	http_req := config.Host + "/cex/" + cex + ".cex" //build the URL to pass to cexHandler
-	data, _ := getContent(http_req)                  //get response data using getContent and cexHandler
-	str := string(data)                              //make the response data a string
+	cex := vars["cex"]                              //get the name of the CEX file from URL
+	httpReq := config.Host + "/cex/" + cex + ".cex" //build the URL to pass to cexHandler
+	data, _ := getContent(httpReq)                  //get response data using getContent and cexHandler
+	str := string(data)                             //make the response data a string
 	var urns, areas []string
 	var catalog []BoltCatalog
 
@@ -270,7 +271,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 		works[i] = strings.Join(strings.Split(texturns[i], ":")[0:4], ":") + ":"
 	}
 	works = removeDuplicatesUnordered(works)
-	var boltworks []BoltWork
+	var boltworks []gocite.Work
 	var sortedcatalog []BoltCatalog
 	for i := range works {
 		work := works[i]
@@ -286,41 +287,45 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 			sortedcatalog = append(sortedcatalog, BoltCatalog{})
 		}
 
-		var bolturns []BoltURN
-		var boltkeys []string
+		var bolturns []gocite.Passage
 		for j := range texturns {
 			if strings.Contains(texturns[j], work) {
-				var textareas []string
+				var textareas []gocite.Triple
 				if contains(urns, texturns[j]) {
 					for k := range urns {
 						if urns[k] == texturns[j] {
-							textareas = append(textareas, areas[k])
+							textareas = append(textareas, gocite.Triple{Subject: texturns[j],
+								Verb:   "urn:cite2:dse:verbs.v1:appears_on",
+								Object: areas[k]})
 						}
 					}
 				}
-				linetext := strings.Split(text[j], "-NEWLINE-")
-				bolturns = append(bolturns, BoltURN{URN: texturns[j], Text: text[j], LineText: linetext, ImageRef: textareas})
-				boltkeys = append(boltkeys, texturns[j])
+				linetext := strings.Replace(text[j], "-NEWLINE-", "\r\n", -1)
+				bolturns = append(bolturns, gocite.Passage{PassageID: texturns[j],
+					Range: false,
+					Text: gocite.EncText{Brucheion: text[j],
+						TXT: linetext},
+					ImageLinks: textareas})
 			}
 		}
 		for j := range bolturns {
 			bolturns[j].Index = j + 1
 			switch {
 			case j+1 == len(bolturns):
-				bolturns[j].Next = ""
+				bolturns[j].Next = gocite.PassLoc{Exists: false}
 			default:
-				bolturns[j].Next = bolturns[j+1].URN
+				bolturns[j].Next = gocite.PassLoc{Exists: true, PassageID: bolturns[j+1].PassageID, Index: j + 1}
 			}
 			switch {
 			case j == 0:
-				bolturns[j].Previous = ""
+				bolturns[j].Prev = gocite.PassLoc{Exists: false}
 			default:
-				bolturns[j].Previous = bolturns[j-1].URN
+				bolturns[j].Prev = gocite.PassLoc{Exists: true, PassageID: bolturns[j-1].PassageID, Index: j - 1}
 			}
-			bolturns[j].Last = bolturns[len(bolturns)-1].URN
-			bolturns[j].First = bolturns[0].URN
+			bolturns[j].Last = gocite.PassLoc{Exists: true, PassageID: bolturns[len(bolturns)-1].PassageID, Index: len(bolturns) - 1}
+			bolturns[j].First = gocite.PassLoc{Exists: true, PassageID: bolturns[0].PassageID, Index: 0}
 		}
-		boltworks = append(boltworks, BoltWork{Key: boltkeys, Data: bolturns})
+		boltworks = append(boltworks, gocite.Work{WorkID: work, Passages: bolturns, Ordered: true})
 	}
 	boltdata := BoltData{Bucket: works, Data: boltworks, Catalog: sortedcatalog}
 
@@ -359,9 +364,9 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 		}
 		/// end stuff
 
-		for j := range boltdata.Data[i].Key {
-			newkey := boltdata.Data[i].Key[j]
-			newnode, _ := json.Marshal(boltdata.Data[i].Data[j])
+		for j := range boltdata.Data[i].Passages {
+			newkey := boltdata.Data[i].Passages[j].PassageID
+			newnode, _ := json.Marshal(boltdata.Data[i].Passages[j])
 			key := []byte(newkey)
 			value := []byte(newnode)
 			// store some data

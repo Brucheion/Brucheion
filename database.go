@@ -21,7 +21,7 @@ import (
 //BoltData is the container for CITE data imported from CEX files and is used in LoadCEX
 type BoltData struct {
 	Bucket  []string // workurn
-	Data    []BoltWork
+	Data    []gocite.Work
 	Catalog []BoltCatalog
 }
 
