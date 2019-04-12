@@ -20,7 +20,7 @@ import (
 type imageCollection struct {
 	URN        string  `json:"urn"`
 	Name       string  `json:"name"`
-	Collection []image `json:"location"`
+	Collection []image `json:"images"`
 }
 
 //newCITECollection extracts images from the mux variables in the *http.Request, joins them together
@@ -63,7 +63,10 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 				io.WriteString(res, "failed")
 			}
 			for i := range links {
-				collection.Collection = append(collection.Collection, image{External: false, Location: links[i]})
+				collection.Collection = append(collection.Collection, image{URN: links[i],
+					Name:     links[i],
+					Protocol: "localDZ",
+					Location: links[i]})
 			}
 		default:
 			collection.Collection = append(collection.Collection, image{External: false, Location: imageIDs[0]})
@@ -123,6 +126,7 @@ func newCollectionToDB(dbName, collectionName string, collection imageCollection
 }
 
 //deleteCollection deletes the collection specified in the URL from the user database
+// localhost:7000/deleteCollection/?name=urn:cite2:nyaya:Awimg.positive:
 func deleteCollection(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
