@@ -48,25 +48,22 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
-	retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
-	ctsurn := retrievedjson.URN
-	text := "<p>"
-	linetext := retrievedjson.LineText
-	for i := range linetext {
-		text = text + linetext[i]
-		if i < len(linetext)-1 {
-			text = text + "<br>"
-		}
+	ctsurn := retrievedjson.PassageID
+	text := retrievedjson.Text.TXT
+	text = strings.Replace(text, "\r\n", "<br>", -1)
+	text = "</p>" + text + "</p>"
+	previous := retrievedjson.Prev.PassageID
+	next := retrievedjson.Next.PassageID
+	imageref := []string{}
+	for _, tmp := range retrievedjson.ImageLinks {
+		imageref = append(imageref, tmp.Object)
 	}
-	text = text + "</p>"
-	previous := retrievedjson.Previous
-	next := retrievedjson.Next
-	imageref := retrievedjson.ImageRef
-	first := retrievedjson.First
-	last := retrievedjson.Last
+	first := retrievedjson.First.PassageID
+	last := retrievedjson.Last.PassageID
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -601,14 +598,14 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 	work := strings.Join(strings.Split(strings.Split(requestedbucket, ":")[3], ".")[0:1], ".")
 	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
-	id1 := retrievedjson.URN
-	text1 := retrievedjson.Text
-	next1 := retrievedjson.Next
-	first1 := retrievedjson.First
-	last1 := retrievedjson.Last
-	previous1 := retrievedjson.Previous
+	id1 := retrievedjson.PassageID
+	text1 := retrievedjson.Text.Brucheion
+	next1 := retrievedjson.Next.PassageID
+	first1 := retrievedjson.First.PassageID
+	last1 := retrievedjson.Last.PassageID
+	previous1 := retrievedjson.Prev.PassageID
 	swirlreg := regexp.MustCompile(`{[^}]*}`)
 	text1 = swirlreg.ReplaceAllString(text1, "")
 	text1 = strings.Replace(text1, "-NEWLINE-", "", -1)
@@ -640,13 +637,16 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 			c := b.Cursor()
 
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				retrievedjson := BoltURN{}
+				retrievedjson := gocite.Passage{}
 				json.Unmarshal([]byte(v), &retrievedjson)
-				ctsurn := retrievedjson.URN
-				text := strings.Replace(retrievedjson.Text, "-NEWLINE-", "", -1)
+				ctsurn := retrievedjson.PassageID
+				if ctsurn == "" {
+					continue
+				}
 				if passageID != strings.Split(ctsurn, ":")[4] {
 					continue
 				}
+				text := strings.Replace(retrievedjson.Text.Brucheion, "-NEWLINE-", "", -1)
 				// make sure only witness that contain text are included
 				if len(strings.Replace(text, " ", "", -1)) > 5 {
 					ids = append(ids, ctsurn)
