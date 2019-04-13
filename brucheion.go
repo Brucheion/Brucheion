@@ -133,7 +133,7 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/edit2/{urn}/", Edit2Page)
 	router.HandleFunc("/compare/{urn}+{urn2}/", comparePage)
 	router.HandleFunc("/consolidate/{urn}+{urn2}/", consolidatePage)
-	router.HandleFunc("/saveImage/{key}/", SaveImageRef)
+	router.HandleFunc("/saveImage/{key}/{updated}", SaveImageRef)
 	router.HandleFunc("/newWork/", newWork)
 	router.HandleFunc("/newCollection/{name}/{urns}/", newCollection)
 	router.HandleFunc("/newCITECollection/{name}/", newCITECollection)
