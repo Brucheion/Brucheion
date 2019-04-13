@@ -147,7 +147,9 @@ func deleteCollection(res http.ResponseWriter, req *http.Request) {
 	}
 
 	newkey := req.URL.Query().Get("name")
+	log.Println(newkey)
 	newkey = strings.Replace(newkey, "\"", "", -1)
+	log.Println(newkey)
 	dbname := user + ".db"
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
