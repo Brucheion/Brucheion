@@ -103,7 +103,7 @@ func newCollectionToDB(dbName, collectionName string, collection imageCollection
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("newCollectionToDB: error opening userDB: %s", err))
 		return err
 	}
 	defer db.Close()
@@ -154,7 +154,7 @@ func deleteCollection(res http.ResponseWriter, req *http.Request) {
 	dbname := user + ".db"
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("deleteCollection: error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}

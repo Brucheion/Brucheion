@@ -105,7 +105,7 @@ func Buckets(dbname string) []string {
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("Buckets: error opening userDB: %s", err))
 		return result
 	}
 	defer db.Close()
@@ -136,7 +136,7 @@ func newCITECollectionToDB(dbName, collectionName string) error {
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("Error opening userDB: %s", err))
 		return err
 	}
 	defer db.Close()
@@ -172,7 +172,7 @@ func addImageToCITECollection(dbName, collectionName string, newImage image) err
 	dbkey := []byte(collectionName)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("addImageToCITECollection: error opening userDB: %s", err))
 		return err
 	}
 	defer db.Close()
@@ -225,7 +225,7 @@ func newWorkToDB(dbName string, meta cexMeta) error {
 	dbvalue, err := gobEncode(&meta)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("newWorkToDB: error opening userDB: %s", err))
 		return err
 	}
 	defer db.Close()
@@ -259,7 +259,7 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 	dbvalue, err := gobEncode(&meta)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("updateWorkMeta: error opening userDB: %s", err))
 		return err
 	}
 	defer db.Close()
@@ -294,7 +294,7 @@ func BoltRetrieveFirstKey(dbname, bucket string) string {
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("BoltRetrieveFirstKey: error opening userDB: %s", err))
 		return result
 	}
 	defer db.Close()
@@ -322,7 +322,7 @@ func BoltRetrieve(dbname, bucket, key string) BoltJSON {
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("BoltRetrieve: error opening userDB: %s", err))
 		return result
 	}
 	defer db.Close()
@@ -364,7 +364,7 @@ func deleteBucket(res http.ResponseWriter, req *http.Request) {
 	dbname := user + ".db"
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("deleteBucket: error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}

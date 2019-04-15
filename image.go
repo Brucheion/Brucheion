@@ -53,7 +53,7 @@ func requestImgCollection(res http.ResponseWriter, req *http.Request) {
 	dbname := user + ".db"
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("requestImgCollection: error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -107,7 +107,7 @@ func getImageInfo(res http.ResponseWriter, req *http.Request) {
 	dbname := user + ".db"
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("getImageInfo: error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -165,7 +165,7 @@ func requestImgID(res http.ResponseWriter, req *http.Request) {
 	dbkey := []byte(name)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("requestImgID: error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -250,7 +250,7 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	newnode, _ := json.Marshal(retrievedjson)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("SaveImageRef: error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -254,7 +254,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("AddNodeAfter: error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
