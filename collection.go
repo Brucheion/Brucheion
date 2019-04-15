@@ -55,12 +55,14 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 		urn := gocite.SplitCITE(imageIDs[0])
 		switch {
 		case urn.InValid:
-			io.WriteString(res, "failed")
+			log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: URN invalid"), name, user)
+			io.WriteString(res, "Import of image collection "+name+" failed: URN invalid.")
 			return
 		case urn.Object == "*":
 			links, err := extractLinks(urn)
 			if err != nil {
-				io.WriteString(res, "failed")
+				log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: %s"), name, user, err)
+				io.WriteString(res, "Import of image collection "+name+" failed: extracting links failed.")
 			}
 			for i := range links {
 				collection.Collection = append(collection.Collection, image{External: false, Location: links[i]})
@@ -79,8 +81,14 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 	}
-	newCollectionToDB(user, name, collection)
-	io.WriteString(res, "success")
+	err = newCollectionToDB(user, name, collection)
+
+	if err != nil {
+		log.Println(fmt.Errorf("newCollectionToDB: Error saving Image collection %s in %s.db: %s"), name, user, err)
+		io.WriteString(res, "Import of image collection "+name+" failed")
+	}
+	log.Println("newCollection: Image collection " + name + "saved in " + user + ".db successfully.")
+	io.WriteString(res, "Image collection "+name+" imported successfully.")
 }
 
 //newCollectiontoDB saves a new collection in a user database. Called by endpoint newCollection.
@@ -107,8 +115,7 @@ func newCollectionToDB(dbName, collectionName string, collection imageCollection
 		}
 		val := bucket.Get(dbkey)
 		if val != nil {
-			fmt.Println("collection exists already")
-			return errors.New("collection exists already")
+			return errors.New("collection already exists")
 		}
 		err = bucket.Put(dbkey, dbvalue)
 		if err != nil {

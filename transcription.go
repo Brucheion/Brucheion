@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ThomasK81/gocite"
+
 	"github.com/gorilla/mux"
 
 	"github.com/boltdb/bolt"
@@ -37,14 +39,16 @@ func SaveTranscription(res http.ResponseWriter, req *http.Request) {
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
 	text := req.FormValue("text")
-	linetext := strings.Split(text, "\r\n")
+	linetext := text
+	//linetext := strings.Split(text, "\r\n")
 	text = strings.Replace(text, "\r\n", "", -1)
 	dbname := user + ".db"
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
-	retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
-	retrievedjson.Text = text
-	retrievedjson.LineText = linetext
+	retrievedjson.Text.Brucheion = text //assuming that gocite.Passage.Text.Brucheion is meant to be the representation without newlines
+	//this is the CEX version? So what is gocite.Passage.CEX meant to be?
+	retrievedjson.Text.TXT = linetext //gocite.Passage.Text.TXT is meant to be the representation with newlines
 	newnode, _ := json.Marshal(retrievedjson)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
