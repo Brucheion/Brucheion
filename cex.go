@@ -41,6 +41,7 @@ func (m dataframe) Swap(i, j int) {
 	m.Values2[i], m.Values2[j] = m.Values2[j], m.Values2[i]
 }
 
+//ExportCEX exports saved CEX data to a CEX file
 func ExportCEX(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -68,7 +69,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	buckets := Buckets(dbname)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Errorf("Error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -159,6 +160,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	var urns, areas []string
 	var catalog []BoltCatalog
 
+	log.Println("LoadCEX: loading " + cex + ".cex")
 	//read in the relations of the CEX file cutting away all unnecessary signs
 	if strings.Contains(str, "#!relations") {
 		relations := strings.Split(str, "#!relations")[1]
@@ -388,7 +390,9 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 	}
-	io.WriteString(res, "Success")
+	message = ("CEX file " + cex + " loaded into Brucheion successfully.")
+	log.Println(message)
+	io.WriteString(res, message)
 	//This function should load a page using a template and display a propper success flash.
 	//Alternatively it could become a helper function alltogether.
 }
