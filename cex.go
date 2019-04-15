@@ -41,7 +41,7 @@ func (m dataframe) Swap(i, j int) {
 	m.Values2[i], m.Values2[j] = m.Values2[j], m.Values2[i]
 }
 
-//ExportCEX exports saved CEX data to a CEX file
+//ExportCEX exports CEX data to a CEX file
 func ExportCEX(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -69,7 +69,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	buckets := Buckets(dbname)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Println(fmt.Errorf("Error opening userDB: %s", err))
+		log.Println(fmt.Errorf("ExportCEX: Error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -336,7 +336,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	dbname := pwd + "/" + user + ".db"
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
+		log.Println(fmt.Printf("LoadCEX: error opening userDB: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}

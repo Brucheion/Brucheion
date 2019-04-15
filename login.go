@@ -140,7 +140,7 @@ func loginPOST(res http.ResponseWriter, req *http.Request) {
 				if !validation.BUserInUse { // create new noAuth user if the username was not in use
 					db, err := openBoltDB(config.UserDB) //open bolt DB using helper function
 					if err != nil {
-						log.Printf("Error opening userDB: %s", err)
+						log.Println(fmt.Printf("loginPOST: error opening userDB: %s", err))
 						http.Error(res, err.Error(), http.StatusInternalServerError)
 						return
 					}
@@ -308,7 +308,7 @@ func authCallback(res http.ResponseWriter, req *http.Request) {
 		//create new entry for new BUser
 		db, err := openBoltDB(config.UserDB) //open bolt DB using helper function
 		if err != nil {
-			fmt.Printf("Error opening userDB: %s", err)
+			log.Println(fmt.Printf("authCallback: error opening userDB: %s", err))
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
