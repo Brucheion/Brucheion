@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ThomasK81/gocite"
 	"github.com/gorilla/mux"
 
 	"github.com/boltdb/bolt"
@@ -235,18 +236,20 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	newkey := vars["key"]
 	imagerefstr := vars["updated"]
-	fmt.Println("debug1", imagerefstr) //DEBUG
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
 	// imagerefstr := r.FormValue("text")
 	imageref := strings.Split(imagerefstr, "+")
-	fmt.Println("debug2", imageref) //DEBUG
 	dbname := user + ".db"
 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
-	retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
-	fmt.Println(retrievedjson.ImageRef) //DEBUG
-	retrievedjson.ImageRef = imageref
-	fmt.Println(imageref) //DEBUG
+	var textareas []gocite.Triple
+	for i := range imageref {
+		textareas = append(textareas, gocite.Triple{Subject: newkey,
+			Verb:   "urn:cite2:dse:verbs.v1:appears_on",
+			Object: imageref[i]})
+	}
+	retrievedjson.ImageLinks = textareas
 	newnode, _ := json.Marshal(retrievedjson)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
@@ -275,5 +278,6 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	http.Redirect(res, req, "/view/"+newkey, http.StatusFound)
+	reDir := "/view/" + newkey
+	http.Redirect(res, req, reDir, http.StatusFound)
 }

@@ -481,16 +481,19 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 
 	// adding testing if requestedbucket exists...
 	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
-	ctsurn := retrievedjson.URN
-	text := retrievedjson.Text
-	previous := retrievedjson.Previous
-	next := retrievedjson.Next
-	imageref := retrievedjson.ImageRef
-	first := retrievedjson.First
-	last := retrievedjson.Last
+	ctsurn := retrievedjson.PassageID
+	text := retrievedjson.Text.TXT
+	previous := retrievedjson.Prev.PassageID
+	next := retrievedjson.Next.PassageID
+	imageref := []string{}
+	for _, tmp := range retrievedjson.ImageLinks {
+		imageref = append(imageref, tmp.Object)
+	}
+	first := retrievedjson.First.PassageID
+	last := retrievedjson.Last.PassageID
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
