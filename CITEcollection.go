@@ -35,6 +35,13 @@ func newCITECollection(res http.ResponseWriter, req *http.Request) {
 
 //addCITE adds a new CITE reference to the user database.
 //It extracts the reference from the the http.Request and passes it to addtoCITECollection
+// Examples:
+// localhost:7000/addtoCITE?name="urn:cite2:iiifimages:test:"&urn="urn:cite2:iiifimages:test:1"&external="true"&protocol="iiif"&location="https://libimages1.princeton.edu/loris/pudl0001%2F4609321%2Fs42%2F00000004.jp2/info.json"
+// localhost:7000/addtoCITE?name="urn:cite2:staticimages:test:"&urn="urn:cite2:staticimages:test:1"&external="true"&protocol="static"&location="https://upload.wikimedia.org/wikipedia/commons/8/81/Rembrandt_The_Three_Crosses_1653.jpg"
+// localhost:7000/addtoCITE?name="urn:cite2:dzi:test:"&urn="urn:cite2:nyaya:M3img.positive:m3_098"&external="false"&protocol="localDZ"&location="urn:cite2:nyaya:M3img.positive:m3_098"
+// localhost:7000/addtoCITE?name="urn:cite2:mixedimages:test:"&urn="urn:cite2:iiifimages:test:1"&external="true"&protocol="iiif"&location="https://libimages1.princeton.edu/loris/pudl0001%2F4609321%2Fs42%2F00000004.jp2/info.json"
+// localhost:7000/addtoCITE?name="urn:cite2:mixedimages:test:"&urn="urn:cite2:staticimages:test:1"&external="true"&protocol="static"&location="https://upload.wikimedia.org/wikipedia/commons/8/81/Rembrandt_The_Three_Crosses_1653.jpg"
+// localhost:7000/addtoCITE?name="urn:cite2:mixedimages:test:"&urn="urn:cite2:nyaya:M3img.positive:m3_098"&external="false"&protocol="localDZ"&location="urn:cite2:nyaya:M3img.positive:m3_098"
 func addCITE(res http.ResponseWriter, req *http.Request) {
 	//First get the session..
 	session, err := getSession(req)
@@ -53,7 +60,6 @@ func addCITE(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// /thomas/addtoCITE?name="test"&urn="test"&internal="false"&protocol="static"&location="https://digi.vatlib.it/iiifimage/MSS_Barb.lat.4/Barb.lat.4_0015.jp2/full/full/0/native.jpg"
 	name := req.URL.Query().Get("name")
 	name = strings.Replace(name, "\"", "", -1)
 	imageurn := req.URL.Query().Get("urn")
