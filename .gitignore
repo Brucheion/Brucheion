@@ -15,3 +15,9 @@ cex/*
 #Goland imls and xmls
 .idea/*
 
+#sublime project files
+Brucheion.sublime-project
+Brucheion.sublime-workspace
+
+#logs
+*.log
