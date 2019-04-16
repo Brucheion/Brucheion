@@ -416,38 +416,33 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 
 	// adding testing if requestedbucket exists...
 	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
-	ctsurn := retrievedjson.URN
-	linetext := retrievedjson.LineText
-	previous := retrievedjson.Previous
-	next := retrievedjson.Next
-	imageref := retrievedjson.ImageRef
-	first := retrievedjson.First
-	last := retrievedjson.Last
+	text := retrievedjson.Text.TXT
+	imageref := []string{}
+	for _, tmp := range retrievedjson.ImageLinks {
+		imageref = append(imageref, tmp.Object)
+	}
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
+
 	switch len(imageref) > 0 {
 	case true:
 		imagejs = imageref[0]
 	}
-	text := ""
-	for i := range linetext {
-		text = text + linetext[i]
-		if i < len(linetext)-1 {
-			text = text + "\r\n"
-		}
-	}
-	transcription := Transcription{CTSURN: ctsurn,
+
+	transcription := Transcription{
+		CTSURN:        retrievedjson.PassageID,
 		Transcriber:   user,
 		Transcription: text,
-		Previous:      previous,
-		Next:          next,
-		First:         first,
-		Last:          last,
+		Previous:      retrievedjson.Prev.PassageID,
+		Next:          retrievedjson.Next.PassageID,
+		First:         retrievedjson.First.PassageID,
+		Last:          retrievedjson.Last.PassageID,
 		TextRef:       textref,
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
+
 	kind := "/edit/"
 	page, _ := loadPage(transcription, kind)
 	renderTemplate(res, "edit", page)
