@@ -69,7 +69,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	buckets := Buckets(dbname)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Println(fmt.Errorf("ExportCEX: Error opening userDB: %s", err))
+		log.Println(fmt.Errorf("ExportCEX: Error opening userDB for reading: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -160,7 +160,8 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	var urns, areas []string
 	var catalog []BoltCatalog
 
-	log.Println("LoadCEX: loading " + cex + ".cex")
+	message = "LoadCEX: loading " + cex + ".cex"
+	log.Println(message)
 	//read in the relations of the CEX file cutting away all unnecessary signs
 	if strings.Contains(str, "#!relations") {
 		relations := strings.Split(str, "#!relations")[1]
@@ -187,6 +188,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	//read in the ctscatalog (if exists)
 	if strings.Contains(str, "#!ctscatalog") {
 		ctsCatalog := strings.Split(str, "#!ctscatalog")[1]
 		ctsCatalog = strings.Split(ctsCatalog, "#!")[0]
@@ -231,6 +233,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	//read in the cts data
 	ctsdata := strings.Split(str, "#!ctsdata")[1]
 	ctsdata = strings.Split(ctsdata, "#!")[0]
 	re := regexp.MustCompile("(?m)[\r\n]*^//.*$")
@@ -285,7 +288,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 		if testexist == false {
-			fmt.Println(works[i], " has not catalog entry")
+			log.Println(fmt.Println(works[i], " has no catalog entry"))
 			sortedcatalog = append(sortedcatalog, BoltCatalog{})
 		}
 
@@ -336,7 +339,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	dbname := pwd + "/" + user + ".db"
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Println(fmt.Printf("LoadCEX: error opening userDB: %s", err))
+		log.Println(fmt.Printf("LoadCEX: error opening userDB for writing: %s", err))
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
