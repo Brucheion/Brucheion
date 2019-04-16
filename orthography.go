@@ -7,7 +7,7 @@ import (
   "encoding/json"
 )
 
-type OrthNormConfig struct {
+type OrthographyNormalisationConfig struct {
   ReplacementsToUse      []RegexReplacement `json:"replacements_to_use"`
   ReplacementsToIgnore   []RegexReplacement `json:"replacements_to_ignore"`
 }
@@ -19,10 +19,10 @@ type RegexReplacement struct {
 }
 
 // Very slightly modified version of LoadConfiguration(), to accomodate different struct
-func loadOrthNormConfig(lang string) OrthNormConfig {
-  file = config.OrthNormFiles[lang]
-  var newConfig OrthNormConfig               //initialize config as OrthNormConfig
-  configFile, openFileError := os.Open(file) //attempt to open file
+func loadOrthographyNormalisationConfig(language_code string) OrthographyNormalisationConfig {
+  configFilename = config.OrthographyNormalisationFilenames[language_code]
+  var newConfig OrthographyNormalisationConfig  //initialize config as OrthographyNormalisationConfig
+  configFile, openFileError := os.Open(configFilename) //attempt to open file
   defer configFile.Close()                   //push closing on call list
   if openFileError != nil {                  //error handling
     fmt.Println("Open file error: " + openFileError.Error())
@@ -32,12 +32,12 @@ func loadOrthNormConfig(lang string) OrthNormConfig {
   return newConfig
 }
 
-func LookupLangInCatalog(work_urn, dbname string) {
-  lang := "san"
-  return lang
+func GetLangFromCatalog(work_urn, dbname string) {
+  language_code := "san" // ultimately will fetch catalog info out of work bucket, etc.
+  return language_code
 }
 
-func PerformReplacements(text string, orthNormConfig OrthNormConfig) string {
+func PerformReplacements(text string, orthNormConfig OrthographyNormalisationConfig) string {
   var replacements []RegexReplacement
   replacements = append(replacements, orthNormConfig.ReplacementsToUse...)
   for i := range replacements {
@@ -48,13 +48,14 @@ func PerformReplacements(text string, orthNormConfig OrthNormConfig) string {
 }
 
 func orthographyNormalization(text string, dbname string) {
-  work_urn := "DOG" + text
-  lang = LookupLangInCatalog(work_urn, dbname)
-  orthNormConfig := loadOrthNormConfig(lang)
-  normalized_text = PerformReplacements(text, orthNormConfig)
-  return normalized_text
+  work_urn := "DOG" + text // ultimately will receive JSON request with passage_urn(s), derive work_urn(s) from that
+  language_code = GetLangFromCatalog(work_urn, dbname)
+  orthographyNormalisationConfig := loadOrthographyNormalisationConfig(language_code)
+  normalized_text = PerformReplacements(text, orthographyNormalisationConfig)
+  return normalized_text // ultimately will return JSON response with ...
 }
 
+// WORKING SCRATCH
 //
 // // Applies regular expression replacements listed in JSON file to text string.
 // func orthographyNormalization(res http.ResponseWriter, req *http.Request) string {

@@ -17,9 +17,9 @@ type Config struct {
 	GitLabScope   string `json:"gitLabScope"` //for accessing GitLab user information this has to be "read_user"
 	MaxAge        int    `json:"maxAge"`      //sets the lifetime of the brucheion session
 	UserDB        string `json:"userDB"`
-	OrthNormFiles string `json:"orthNormFiles"`
 	//	GoogleKey	    string `json:"googleKey"`
 	//	GoogleSecret  string `json:"googleSecret"`
+	OrthographyNormalisationFilenames string `json:"orthographyNormalisationFilenames"`
 }
 
 //Transcription is the container for a transcription and context metadata
