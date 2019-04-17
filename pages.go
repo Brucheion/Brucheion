@@ -697,7 +697,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 			case score >= base:
 				highlight = 0.0
 			default:
-				highlight = 1.0 - float32(score)/float32(base)
+				highlight = 1.0 - float32(score)/(3*float32(base))
 			}
 			newscore = append(newscore, highlight)
 		}
