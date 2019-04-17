@@ -2,58 +2,68 @@
 
   "replacements_to_use": [
 
-    {"name": "newline_flag",         "pattern": "-NEWLINE-",                      "replacement": ""},
-    {"name": "folio_identifiers",    "pattern": "{([^}]*?)}",                     "replacement": ""},
+    {"description": "newline_flag",           "pattern": "-NEWLINE-",                        "replacement": ""},
 
-    {"name": "keep_unclear",         "pattern": "\\(([^\\)]*?)\\)",               "replacement": "$1"},
-    {"name": "discard_deletions",    "pattern": "\\[[^\\]]*?\\]",                 "replacement": ""},
-    {"name": "keep_additions",       "pattern": "〈([^〉]*?)〉",                    "replacement": "$1"},
+    {"description": "keep_unclear",           "pattern": "\\(([^\\)]*?)\\)",                 "replacement": "$1"},
+    {"description": "discard_deletions",      "pattern": "\\[[^\\]]*?\\]",                   "replacement": ""},
+    {"description": "keep_additions",         "pattern": "〈([^〉]*?)〉",                      "replacement": "$1"},
 
-    {"name": "punctuation",          "pattern": "[\\|\\^,\\?!—\"-;]+",            "replacement": ""},
-    {"name": "numerals",             "pattern": "[\\d²]",                         "replacement": ""},
-    {"name": "extra_whitespace",     "pattern": "(\\s){2,}",                      "replacement": "$1"},
+    {"description": "remove_punctuation",     "pattern": "[\\|\\^,\\?!—\"-;¤]",              "replacement": ""},
+    {"description": "remove_numerals",        "pattern": "[\\d²]",                           "replacement": ""},
 
-    {"name": "alternation_b_v",      "pattern": "b([^h])",                        "replacement": "v$1"},
-    {"name": "degemination_cch",     "pattern": "cch",                            "replacement": "ch"},
+    {"description": "excess_whitespace",      "pattern": "(\\s){2,}",                        "replacement": "$1"},
 
-    {"name": "midword_nasals_1_kg",  "pattern": "ṃ([kg][^\\s])",                  "replacement": "ṅ$1"},
-    {"name": "midword_nasals_1_cj",  "pattern": "ṃ([cj][^\\s])",                  "replacement": "ñ$1"},
-    {"name": "midword_nasals_1_ṭḍ",  "pattern": "ṃ([ṭḍ][^\\s])",                  "replacement": "ṇ$1"},
-    {"name": "midword_nasals_1_tdn", "pattern": "ṃ([tdn][^\\s])",                 "replacement": "n$1"},
-    {"name": "midword_nasals_1_pbm", "pattern": "ṃ([pbm][^\\s])",                 "replacement": "m$1"},
-    {"name": "midword_nasals_2_kg",  "pattern": "(s[aā])ṅ([kg])",                 "replacement": "${1}ṃ${2}"},
-    {"name": "midword_nasals_2_cj",  "pattern": "(s[aā])ñ([cj])",                 "replacement": "${1}ṃ${2}"},
-    {"name": "midword_nasals_2_ṭḍ",  "pattern": "(s[aā])ṇ([ṭḍ])",                 "replacement": "${1}ṃ${2}"},
-    {"name": "midword_nasals_2_tdn", "pattern": "(s[aā])n([tdn])",                "replacement": "${1}ṃ${2}"},
-    {"name": "midword_nasals_2_pbm", "pattern": "(s[aā])m([pbm])",                "replacement": "${1}ṃ${2}"},
+    {"description": "level_all_b_to_v",       "pattern": "b([^h])",                          "replacement": "v$1"},
+    {"description": "degeminate_all_cch",     "pattern": "cch",                              "replacement": "ch"},
 
-    {"name": "wordfinal_nasals",     "pattern": "[ṅñṇm](\\s[kgcjṭḍpb])",          "replacement": "ṃ$1"},
-    {"name": "wordfinal_n",          "pattern": "[n](\\s[t])",                    "replacement": "ṃ$1"},
-    {"name": "preconsonant_m",       "pattern": "m(\\s[kgcjṭḍtdnpbmyrlvśṣsh])",   "replacement": "ṃ$1"},
-    {"name": "prevowel_m",           "pattern": "m(\\s[aiuṛāīūeo])",              "replacement": "ṃ$1"},
+    {"description": "midword_nasals_kg",      "pattern": "ṃ([kg][^\\s])",                    "replacement": "ṅ$1"},
+    {"description": "midword_nasals_cj",      "pattern": "ṃ([cj][^\\s])",                    "replacement": "ñ$1"},
+    {"description": "midword_nasals_ṭḍ",      "pattern": "ṃ([ṭḍ][^\\s])",                    "replacement": "ṇ$1"},
+    {"description": "midword_nasals_tdn",     "pattern": "ṃ([tdn][^\\s])",                   "replacement": "n$1"},
+    {"description": "midword_nasals_pbm",     "pattern": "ṃ([pbm][^\\s])",                   "replacement": "m$1"},
+    {"description": "saṃ_exception_kg",       "pattern": "(s[aā])ṅ([kg])",                   "replacement": "${1}ṃ${2}"},
+    {"description": "saṃ_exception_cj",       "pattern": "(s[aā])ñ([cj])",                   "replacement": "${1}ṃ${2}"},
+    {"description": "saṃ_exception_ṭḍ",       "pattern": "(s[aā])ṇ([ṭḍ])",                   "replacement": "${1}ṃ${2}"},
+    {"description": "saṃ_exception_tdn",      "pattern": "(s[aā])n([tdn])",                  "replacement": "${1}ṃ${2}"},
+    {"description": "saṃ_exception_pbm",      "pattern": "(s[aā])m([pbm])",                  "replacement": "${1}ṃ${2}"},
 
-    {"name": "midword_sibilants",    "pattern": "[śṣs]([śṣs][^\\s])",             "replacement": "ḥ$1"},
-    {"name": "wordfinal_fricatives", "pattern": "[śṣsẖḫ](\\s[kcṭtpśṣs])",         "replacement": "ḥ$1"},
-    {"name": "wordfinal_r",          "pattern": "r(\\s[aiuṛāīūeogjḍdnbmyrlvh])",  "replacement": "ḥ$1"},
+    {"description": "post_r_ṇ_gemination",    "pattern": "rṇṇ",                              "replacement": "rṇ"},
+    {"description": "post_r_t_gemination",    "pattern": "rtt",                              "replacement": "rt"},
+    {"description": "post_r_p_gemination",    "pattern": "rpp",                              "replacement": "rp"},
+    {"description": "post_r_m_gemination",    "pattern": "rmm",                              "replacement": "rm"},
+    {"description": "post_r_y_gemination",    "pattern": "ryy",                              "replacement": "ry"},
 
-    {"name": "prevowel_au",          "pattern": "āv(\\s)",                        "replacement": "au$1"},
-    {"name": "prevowel_y",           "pattern": "y(\\s[aiuṛāīūeo])",              "replacement": "i$1"},
-    {"name": "prevowel_v",           "pattern": "v(\\s[aiuṛāīūeo])",              "replacement": "u$1"},
+    {"description": "wordfinal_nasals",       "pattern": "[ṅñṇm](\\s[kgcjṭḍpb])",            "replacement": "ṃ$1"},
+    {"description": "wordfinal_n_before_t",   "pattern": "n(\\s[t])",                        "replacement": "ṃ$1"},
+    {"description": "preconsonant_mṃ",        "pattern": "[ṃm]+(\\s[kgcjṭḍtdnpbmyrlvśṣsh])", "replacement": "ṃ$1"},
+    {"description": "prevowel_mṃ",            "pattern": "[ṃm]+(\\s[aiuṛāīūeo])",            "replacement": "ṃ$1"},
 
-    {"name": "wordfinal_dcjl",       "pattern": "[dcjl](\\s)",                    "replacement": "t$1"},
-    {"name": "wordfinal_g",          "pattern": "[g](\\s)",                       "replacement": "k$1"},
-    {"name": "wordfinal_ḍ",          "pattern": "[ḍ](\\s)",                       "replacement": "ṭ$1"},
-    {"name": "wordfinal_b",          "pattern": "[b](\\s)",                       "replacement": "p$1"},
+    {"description": "midword_sibilants",      "pattern": "[śṣs]([śṣs][^\\s])",               "replacement": "ḥ$1"},
+    {"description": "wordfinal_fricatives",   "pattern": "([^ṃ])[śṣsẖḫ](\\s[kcṭtpśṣs])",     "replacement": "${1}ḥ${2}"},
+    {"description": "wordfinal_r",            "pattern": "r(\\s)",                           "replacement": "ḥ$1"},
 
-    {"name": "post_r_gemination_BACKREFERENCE_DOES_NOT_WORK",    "pattern": "r([kgcjṭḍṇtdnpbmyv])$1",         "replacement": "r$1"},
-    {"name": "preglide_gemination_BACKREFERENCE_DOES_NOT_WORK",  "pattern": "([kgcjṭḍṇtdnpbmyv])$1([yv])",    "replacement": "$1$2"}
+    {"description": "prevowel_au",            "pattern": "āv(\\s)",                          "replacement": "au$1"},
+    {"description": "prevowel_y",             "pattern": "y(\\s[aiuṛāīūeo])",                "replacement": "i$1"},
+    {"description": "prevowel_v",             "pattern": "v(\\s[aiuṛāīūeo])",                "replacement": "u$1"},
+
+    {"description": "wordfinal_dcjl",         "pattern": "[dcjl](\\s)",                      "replacement": "t$1"},
+    {"description": "wordfinal_g",            "pattern": "g(\\s)",                           "replacement": "k$1"},
+    {"description": "wordfinal_ḍ",            "pattern": "ḍ(\\s)",                           "replacement": "ṭ$1"},
+    {"description": "wordfinal_b",            "pattern": "b(\\s)",                           "replacement": "p$1"}
 
   ],
 
   "replacements_to_ignore": [
 
-    {"name": "discard_additions",    "pattern": "〈([^〉]*?)〉",                    "replacement": ""},
-    {"name": "keep_deletions",       "pattern": "\\[([^\\]]*?)\\]",               "replacement": "$1"}
+    {"description": "discard_additions",      "pattern": "〈([^〉]*?)〉",                      "replacement": ""},
+    {"description": "keep_deletions",         "pattern": "\\[([^\\]]*?)\\]",                 "replacement": "$1"},
+
+    {"description": "wordfinal_n_before_n",   "pattern": "[n](\\s[n])",                      "replacement": "t$1"},
+
+    {"description": "folio_identifiers",      "pattern": "{([^}]*?)}",                       "replacement": ""},
+
+    {"description": "post_r_gem_BACKREF_ø",   "pattern": "r([kgcjṭḍṇtdnpbmyv])$1",           "replacement": "r$1"},
+    {"description": "preglide_gem_BACKREF_ø", "pattern": "([kgcjṭḍṇtdnpbmyv])$1([yv])",      "replacement": "$1$2"}
 
   ]
 
