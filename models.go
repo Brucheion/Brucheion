@@ -19,7 +19,7 @@ type Config struct {
 	UserDB        string `json:"userDB"`
 	//	GoogleKey	    string `json:"googleKey"`
 	//	GoogleSecret  string `json:"googleSecret"`
-	OrthographyNormalisationFilenames string `json:"orthographyNormalisationFilenames"`
+	OrthographyNormalisationFilenames map[string]string `json:"orthographyNormalisationFilenames"`
 }
 
 //Transcription is the container for a transcription and context metadata
