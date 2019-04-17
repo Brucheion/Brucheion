@@ -23,6 +23,17 @@ type RegexReplacement struct {
   Replacement     string `json:"replacement"`
 }
 
+// results are pairs, with the latter ultimately to be stored in Normalised field of Passage.Text object (type EncText)
+type NormalizationResult struct {
+  PassageURN      string `json:"passageURN"`
+  NormalizedText  string `json:"normalizedText"`
+}
+
+// cp. image.go, where items are single strings
+type ResultJSONlist struct {
+	Items []NormalizationResult `json:"items"`
+}
+
 // modified version of initialization.go, loadConfiguration()
 func loadOrthographyNormalisationConfig(language_code string) OrthographyNormalisationConfig {
   configFilename := config.OrthographyNormalisationFilenames[language_code]
@@ -37,18 +48,7 @@ func loadOrthographyNormalisationConfig(language_code string) OrthographyNormali
   return newConfig
 }
 
-//
-// // would be nice to add to work.go
-// func GetAllWorks(dbname string) []gocite.Work {
-//   // will implement later...
-// }
-//
-// // would be nice to add to work.go
-// func GetWorkByID(id string) Work {
-//   // will implement later...
-// }
-
-// would be nice to add to work.go
+// might be nice to add to work.go
 func GetWorkLangFromCatalog(work_urn, dbname string) string {
 
   // adjust urn slightly to serve as bucket_id
@@ -61,6 +61,17 @@ func GetWorkLangFromCatalog(work_urn, dbname string) string {
   work_language_code := retrieved_cat_json.Language
 
   return work_language_code
+}
+
+func GetWorkURNFromPassageURN(passage_urn string) string {
+  passage_urn_object := gocite.SplitCTS(passage_urn)
+  work_urn := strings.Join([]string{
+    passage_urn_object.Base,
+    passage_urn_object.Protocol,
+    passage_urn_object.Namespace,
+    passage_urn_object.Work},
+    ":")
+  return work_urn
 }
 
 // needed since gocite func GetPassageByID(id string, w Work) requires Work object as input
@@ -81,16 +92,17 @@ func GetPassageByURNOnly(passage_urn, dbname string) gocite.Passage {
   return passage_object
 }
 
-func GetWorkURNFromPassageURN(passage_urn string) string {
-  passage_urn_object := gocite.SplitCTS(passage_urn)
-  work_urn := strings.Join([]string{
-    passage_urn_object.Base,
-    passage_urn_object.Protocol,
-    passage_urn_object.Namespace,
-    passage_urn_object.Work},
-    ":")
-  return work_urn
-}
+// might be nice to add to work.go
+
+// func GetAllWorks(dbname string) []gocite.Work {
+//   // to implement later...
+// }
+
+// might be nice to add to work.go
+
+// func GetWorkByID(id string) Work {
+//   // to implement later...
+// }
 
 func PerformReplacements(text string, orthNormConfig OrthographyNormalisationConfig) string {
   var replacements []RegexReplacement
@@ -100,17 +112,6 @@ func PerformReplacements(text string, orthNormConfig OrthographyNormalisationCon
   	text = re.ReplaceAllString(text, replacements[i].Replacement)
   }
   return text
-}
-
-// results are pairs, with the latter ultimately to be stored in Normalised field of Passage.Text object (type EncText)
-type NormalizationResult struct {
-  PassageURN      string `json:"passageURN"`
-  NormalizedText  string `json:"normalizedText"`
-}
-
-// cp. image.go, where items are single strings
-type ResultJSONlist struct {
-	Items []NormalizationResult `json:"items"`
 }
 
 func normalizeOrthography(res http.ResponseWriter, req *http.Request) {
@@ -142,9 +143,8 @@ func normalizeOrthography(res http.ResponseWriter, req *http.Request) {
   // "urn:cts:sktlit:skt0001.nyaya006.edYE:108,6+urn:cts:sktlit:skt0001.nyaya006.edYE:108,10+urn:cts:sktlit:skt0001.nyaya006.edYE:108,20/"
   // or "all" to normalize everything in db
 
-  // from image.go
+  // cp. similar in image.go
   response := ResultJSONlist{}
-
   var normalized_text_result string
 
   switch {
@@ -189,106 +189,3 @@ func normalizeOrthography(res http.ResponseWriter, req *http.Request) {
 	fmt.Fprintln(res, string(resultJSON))
 
 }
-
-// WORKING SCRATCH
-//
-// // Applies regular expression replacements listed in JSON file to text string.
-// func orthographyNormalization(res http.ResponseWriter, req *http.Request) string {
-//
-//   //First get the session..
-// 	session, err := getSession(req)
-// 	if err != nil {
-// 		http.Error(res, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-// 	//..and check if user is logged in.
-// 	user, message, loggedin := testLoginStatus("orthographyNormalization", session)
-// 	if loggedin {
-// 		log.Println(message)
-// 	} else {
-// 		log.Println(message)
-// 		Logout(res, req)
-// 		return
-// 	}
-//
-//   vars := mux.Vars(req)
-//   passage_urns := strings.Split(vars["urns"], "+") // comma canonically used for "page,line" notation
-//
-//   var currLang string
-//   var currOrthNormConfig OrthNormConfig
-//   var texturns, texts []string
-//
-//   switch len(passage_urns){
-//     // cp. collection.go, newCollection() for similar switch on variable length {urns} argument
-//     // multiple URNs separated with ","
-//     // here using SplitCTS rather than SplitCITE, since text rather than images
-//
-//   case 0:
-//     // all passages in database
-//     // cp. cex.go, ExportCEX() for acting upon all buckets in db
-//
-//       // dbname := user + ".db"
-//       // buckets := Buckets(dbname)
-//     	// db, err := openBoltDB(dbname) //open bolt DB using helper function
-//     	// if err != nil {
-//     	// 	fmt.Printf("Error opening userDB: %s", err)
-//     	// 	http.Error(res, err.Error(), http.StatusInternalServerError)
-//     	// 	return
-//     	// }
-//     	// defer db.Close()
-//     	// for i := range buckets {
-//     	// 	db.View(func(tx *bolt.Tx) error {
-//     	// 		// Assume bucket exists and has keys
-//     	// 		b := tx.Bucket([]byte(buckets[i]))
-//     	// 		c := b.Cursor()
-//     	// 		for k, v := c.First(); k != nil; k, v = c.Next() {
-//       //
-//     	// 			retrievedjson := BoltURN{} // SOON Passage{}
-//     	// 			json.Unmarshal([]byte(v), &retrievedjson)
-//       //
-//       //       ctsurn := retrievedjson.URN   // SOON PassageID; USE TO DETERMINE LANGUAGE
-//     	// 			text := retrievedjson.Text    // SOON Text.Brucheion; PERFORM TRANSFORMATION ON THIS
-//       //
-//     	// 			texturns = append(texturns, ctsurn) // NECESSARY?
-//     	// 			texts = append(texts, text)         // NECESSARY?
-//       //
-//       //       retrievedjson.Text.Normalised = PerformReplacements(text, orthNormConfig)
-//       //
-//       //       lang = LookupLangInCatalog(work_urn, dbname)
-//       //       orthNormConfig = loadOrthNormConfig(lang)
-//       //       normalized_text = PerformReplacements()
-//       //
-//     	// 		}
-//       //
-//     	// 		return nil
-//     	// 	})
-//     	// }
-//
-//   case 1:
-//     // one passage
-//     // cp. again collection.go, newCollection() — or any number of other single-URN endpoints
-//
-//     passage_urns := gocite.SplitCTS(passage_urns[0])
-//     switch {
-// 			case urn.InValid:
-//         io.WriteString(res, "failed")
-//         return
-// 			default:
-//         // DO STUFF HERE
-//
-//         lang = LookupLangInCatalog(work_urn, dbname)
-//         orthNormConfig = loadOrthNormConfig(lang)
-//         normalized_text = PerformReplacements()
-//
-//   default:
-//     // specific multiple passages
-//
-//     // urn := gocite.SplitCTS(imageIDs[i])
-// 		// switch {
-// 		// case urn.InValid:
-// 		// 	continue
-// 		// default:
-// 		// 	// DO STUFF HERE
-// 		// }
-//   }
-// }
