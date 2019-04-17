@@ -139,9 +139,18 @@
 					</div>
 					<form action="{{.Host}}/save/{{.Title}}" method="POST">
 						<div class="tile is-child box tile-resizable is-12">
+
 							<p class="subtitle">Transcription</p>
-							<div><textarea name="text" rows="15" , cols="120">{{printf "%s" .Text}}</textarea></div>
-							<div><input class="button is-primary" type="submit" value="Save"></div>
+							<p>
+								<textarea id="testtextarea" name="text" rows="15" , cols="120">{{printf "%s" .Text}}}</textarea>
+							</p>
+							<div><textarea type="text" name="text2" rows="15" , cols="120">{{printf "%s" .Text}}</textarea></div>
+							<div>
+								<input class="input" type="text" name="test" placeholder="●●●●●●●">
+								<input class="button is-primary" type="submit" value="Save">
+								<button class="button is-primary" type="submit">Save</button> 
+								<a class="button is-primary" href="#" onclick="manualPost();">Submit</a>
+							</div>
 						</div>
 					</form>
 				</div>
@@ -160,6 +169,16 @@
 
 	<input type="hidden" id="initialCITE" value="{{.ImageJS}}" readonly>
 	<script type="text/javascript" src="{{.Host}}/js/ict2.js"></script>
+	<script>
+		function manualPost() {
+			var xhttp = new XMLHttpRequest();
+			var actualPost = document.getElementById('testtextarea');
+			console.log(actualPost);
+			xhttp.open("POST", "{{.Host}}/save/{{.Title}}/", true);
+			xhttp.send(actualPost);
+			window.location = "{{.Host}}/view/{{.Title}}";
+		};
+	</script>
 </body>
 
 </html>

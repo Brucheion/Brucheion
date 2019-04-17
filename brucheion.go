@@ -122,7 +122,8 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/multicompare/{urn}/", MultiPage)
 	router.HandleFunc("/edit/{urn}/", EditPage)
 	router.HandleFunc("/editcat/{urn}/", EditCatPage)
-	router.HandleFunc("/save/{key}/", SaveTranscription)
+	//router.HandleFunc("/save/{key}/", SaveTranscription)
+	router.HandleFunc("/save/{key}/", SaveTranscription).Methods("POST")
 	router.HandleFunc("/addNodeAfter/{key}/", AddNodeAfter)
 	//	router.HandleFunc("/addFirstNode/{key}/", AddFirstNode) temporarily disabled
 	router.HandleFunc("/crud/", CrudPage)

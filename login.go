@@ -68,7 +68,7 @@ func loginGET(res http.ResponseWriter, req *http.Request) {
 	renderLoginTemplate(res, "login", loginPage)
 }
 
-//loginPOST logs in the user using the form values and gothic.
+//loginPOST logs in the user using the form values and gothic. //Todo: make better explanation
 func loginPOST(res http.ResponseWriter, req *http.Request) {
 
 	//Make sure user is not logged in yet
