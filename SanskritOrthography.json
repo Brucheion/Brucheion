@@ -3,6 +3,7 @@
   "replacements_to_use": [
 
     {"description": "newline_flag",           "pattern": "-NEWLINE-",                        "replacement": ""},
+    {"description": "folio_identifiers",      "pattern": "{([^}]*?)}",                       "replacement": ""},
 
     {"description": "keep_unclear",           "pattern": "\\(([^\\)]*?)\\)",                 "replacement": "$1"},
     {"description": "discard_deletions",      "pattern": "\\[[^\\]]*?\\]",                   "replacement": ""},
@@ -59,8 +60,6 @@
     {"description": "keep_deletions",         "pattern": "\\[([^\\]]*?)\\]",                 "replacement": "$1"},
 
     {"description": "wordfinal_n_before_n",   "pattern": "[n](\\s[n])",                      "replacement": "t$1"},
-
-    {"description": "folio_identifiers",      "pattern": "{([^}]*?)}",                       "replacement": ""},
 
     {"description": "post_r_gem_BACKREF_ø",   "pattern": "r([kgcjṭḍṇtdnpbmyv])$1",           "replacement": "r$1"},
     {"description": "preglide_gem_BACKREF_ø", "pattern": "([kgcjṭḍṇtdnpbmyv])$1([yv])",      "replacement": "$1$2"}
