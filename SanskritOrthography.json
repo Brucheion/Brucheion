@@ -9,7 +9,7 @@
     {"description": "discard_deletions",      "pattern": "\\[[^\\]]*?\\]",                   "replacement": ""},
     {"description": "keep_additions",         "pattern": "〈([^〉]*?)〉",                      "replacement": "$1"},
 
-    {"description": "remove_punctuation",     "pattern": "[\\|\\^,\\?!—\"-;¤]",              "replacement": ""},
+    {"description": "remove_punctuation",     "pattern": "[\\|\\^,\\?!—\"-;¤=]",             "replacement": ""},
     {"description": "remove_numerals",        "pattern": "[\\d²]",                           "replacement": ""},
 
     {"description": "excess_whitespace",      "pattern": "(\\s){2,}",                        "replacement": "$1"},
@@ -30,6 +30,7 @@
 
     {"description": "post_r_ṇ_gemination",    "pattern": "rṇṇ",                              "replacement": "rṇ"},
     {"description": "post_r_t_gemination",    "pattern": "rtt",                              "replacement": "rt"},
+    {"description": "post_r_d_gemination",    "pattern": "rdd",                              "replacement": "rd"},
     {"description": "post_r_p_gemination",    "pattern": "rpp",                              "replacement": "rp"},
     {"description": "post_r_m_gemination",    "pattern": "rmm",                              "replacement": "rm"},
     {"description": "post_r_y_gemination",    "pattern": "ryy",                              "replacement": "ry"},
