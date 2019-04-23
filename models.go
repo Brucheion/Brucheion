@@ -20,6 +20,7 @@ type Config struct {
 	//	GoogleKey	    string `json:"googleKey"`
 	//	GoogleSecret  string `json:"googleSecret"`
 	OrthographyNormalisationFilenames map[string]string `json:"orthographyNormalisationFilenames"`
+	UseNormalization bool `json:"useNormalization"`
 }
 
 //Transcription is the container for a transcription and context metadata

@@ -96,17 +96,47 @@ func GetPassageByURNOnly(passage_urn, dbname string) gocite.Passage {
   return passage_object
 }
 
+// might be nice to add to work.go
 type WorkList struct {
   Works []gocite.Work
 }
-
-
-// might be nice to add to work.go
 func GetAllWorks(dbname string) WorkList {
   var all_works = WorkList{}
   // to implement later...
   return all_works
 }
+
+// might be nice to add to a "passage.go"
+type PassageList struct {
+  Items []gocite.Passage
+}
+func GetAllPassages(dbname string) PassageList {
+  passage_list := PassageList{}
+  buckets := Buckets(dbname)
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
+	if err != nil {
+		fmt.Printf("Error opening userDB: %s", err)
+		return passage_list
+	}
+	defer db.Close()
+	for i := range buckets {
+		db.View(func(tx *bolt.Tx) error {
+			// Assume bucket exists and has keys
+			b := tx.Bucket([]byte(buckets[i]))
+			c := b.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				retrieved_passage := gocite.Passage{}
+				json.Unmarshal([]byte(v), &retrieved_passage)
+        if retrieved_passage.Text.Brucheion != "" {
+          passage_list.Items = append(passage_list.Items, retrieved_passage)
+        }
+			}
+			return nil
+		})
+	}
+  return passage_list
+}
+
 
 // might be nice to add to work.go
 
@@ -157,12 +187,9 @@ func normalizeOrthographyTemporarily(res http.ResponseWriter, req *http.Request)
   if len(passage_urns) == 1 && passage_urns[0] == "all" {
     // redo passage_urns as slice with all passage urns for all works in whole database
     passage_urns = nil
-    var all_works = GetAllWorks(dbname)
-    for i := range all_works.Works {
-        work_passages := all_works.Works[i].Passages
-        for j := range work_passages {
-          passage_urns = append(passage_urns, work_passages[j].PassageID)
-        }
+    var passage_list = GetAllPassages(dbname)
+    for i := range passage_list.Items {
+      passage_urns = append(passage_urns, passage_list.Items[i].PassageID)
     }
   }
 
@@ -202,9 +229,8 @@ func normalizeOrthographyTemporarily(res http.ResponseWriter, req *http.Request)
 }
 
 
-
 // close cousin of normalizeOrthographyTemporarily
-// I don't yet understand how to properly receive a JSON response from an endpoint for further processing
+// I don't yet understand how to properly receive a JSON response back from an endpoint for further processing
 // therefore, in order to keep developing this part, this alternative endpoint simply saves along the way
 func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
 
@@ -239,12 +265,9 @@ func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
   if len(passage_urns) == 1 && passage_urns[0] == "all" {
     // redo passage_urns as slice with all passage urns for all works in whole database
     passage_urns = nil
-    var all_works = GetAllWorks(dbname)
-    for i := range all_works.Works {
-        work_passages := all_works.Works[i].Passages
-        for j := range work_passages {
-          passage_urns = append(passage_urns, work_passages[j].PassageID)
-        }
+    var passage_list = GetAllPassages(dbname)
+    for i := range passage_list.Items {
+      passage_urns = append(passage_urns, passage_list.Items[i].PassageID)
     }
   }
 
@@ -276,8 +299,6 @@ func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
     // update temporary object with result
     passage.Text.Normalised = normalized_text_result
 
-    fmt.Println("passage.Text.Normalised: ", passage.Text.Normalised)
-
     // save updated object to database
     updatednode, _ := json.Marshal(passage)
     db, err := openBoltDB(dbname)
@@ -286,18 +307,14 @@ func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
       http.Error(res, err.Error(), http.StatusInternalServerError)
       return
     }
-    fmt.Println("HERE 1")
     key := []byte(passage.PassageID)    //
     value := []byte(updatednode) //
     // store some data
     err = db.Update(func(tx *bolt.Tx) error {
-      fmt.Println("HERE 3")
       bucket, err := tx.CreateBucketIfNotExists([]byte(work_urn+":"))
-      fmt.Println("HERE 4")
       if err != nil {
         return err
       }
-      fmt.Println("HERE 5")
       err = bucket.Put(key, value)
       if err != nil {
         fmt.Println(err)
@@ -309,7 +326,6 @@ func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
       log.Fatal(err)
     }
     db.Close()
-    fmt.Println("HERE 6")
   }
 
   io.WriteString(res, "normalization successfully saved")
