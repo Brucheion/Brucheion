@@ -120,7 +120,8 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
 	router.HandleFunc("/multicompare/{urn}/", MultiPage)
-	router.HandleFunc("/normalize/{urns}/", normalizeOrthography)	//HERE HERE
+	router.HandleFunc("/normalizeTemporarily/{urns}/", normalizeOrthographyTemporarily)
+	router.HandleFunc("/normalizeAndSave/{urns}/", normalizeOrthographyAndSave)
 	router.HandleFunc("/edit/{urn}/", EditPage)
 	router.HandleFunc("/editcat/{urn}/", EditCatPage)
 	router.HandleFunc("/save/{key}/", SaveTranscription)

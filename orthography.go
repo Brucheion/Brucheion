@@ -10,6 +10,10 @@ import (
   "net/http"
   "github.com/ThomasK81/gocite"
   "github.com/gorilla/mux"
+  "github.com/boltdb/bolt"
+  "io"
+
+
 )
 
 type OrthographyNormalisationConfig struct {
@@ -92,11 +96,17 @@ func GetPassageByURNOnly(passage_urn, dbname string) gocite.Passage {
   return passage_object
 }
 
-// might be nice to add to work.go
+type WorkList struct {
+  Works []gocite.Work
+}
 
-// func GetAllWorks(dbname string) []gocite.Work {
-//   // to implement later...
-// }
+
+// might be nice to add to work.go
+func GetAllWorks(dbname string) WorkList {
+  var all_works = WorkList{}
+  // to implement later...
+  return all_works
+}
 
 // might be nice to add to work.go
 
@@ -114,7 +124,7 @@ func PerformReplacements(text string, orthNormConfig OrthographyNormalisationCon
   return text
 }
 
-func normalizeOrthography(res http.ResponseWriter, req *http.Request) {
+func normalizeOrthographyTemporarily(res http.ResponseWriter, req *http.Request) {
 
   //First get the session..
 	session, err := getSession(req)
@@ -123,7 +133,7 @@ func normalizeOrthography(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	//..and check if user is logged in.
-	user, message, loggedin := testLoginStatus("normalizeOrthography", session)
+	user, message, loggedin := testLoginStatus("normalizeOrthographyTemporarily", session)
 	if loggedin {
 		log.Println(message)
 	} else {
@@ -143,44 +153,45 @@ func normalizeOrthography(res http.ResponseWriter, req *http.Request) {
   // "urn:cts:sktlit:skt0001.nyaya006.edYE:108,6+urn:cts:sktlit:skt0001.nyaya006.edYE:108,10+urn:cts:sktlit:skt0001.nyaya006.edYE:108,20/"
   // or "all" to normalize everything in db
 
+  // special argument for normalizing whole database
+  if len(passage_urns) == 1 && passage_urns[0] == "all" {
+    // redo passage_urns as slice with all passage urns for all works in whole database
+    passage_urns = nil
+    var all_works = GetAllWorks(dbname)
+    for i := range all_works.Works {
+        work_passages := all_works.Works[i].Passages
+        for j := range work_passages {
+          passage_urns = append(passage_urns, work_passages[j].PassageID)
+        }
+    }
+  }
+
+  // now process single or multiple specific passages
+
   // cp. similar in image.go
   response := ResultJSONlist{}
   var normalized_text_result string
 
-  switch {
-  case len(passage_urns) == 1 && passage_urns[0] == "all": // all passages in all works in database
+  for i := range passage_urns {
 
-    // not implemented yet...
-    // part of this will be implementing work.go, GetAllWorks() (see above)
-    // then will loop over Works, build up cumulative all_Passages from Work field Passages ([]Passage)
-    // then simply process each Passage in same way as below, end by returning giant JSON response
+    passage_urn := passage_urns[i]
 
-    fmt.Println("this will eventually normalize all passages... ")
+    // derive work_urn from passage_urn
+    work_urn := GetWorkURNFromPassageURN(passage_urn)
 
-  default: // single or multiple specific passages
+    // use work_urn to pick out appropriate orthography config replacements
+    work_language_code := GetWorkLangFromCatalog(work_urn, dbname)
+    orthographyNormalisationConfig := loadOrthographyNormalisationConfig(work_language_code)
 
-    for i := range passage_urns {
+    // fetch passage text
+    passage := GetPassageByURNOnly(passage_urn, dbname)
+    passage_text := passage.Text.Brucheion
 
-      passage_urn := passage_urns[i]
+    // normalize string
+    normalized_text_result = PerformReplacements(passage_text, orthographyNormalisationConfig)
 
-      // derive work_urn from passage_urn
-      work_urn := GetWorkURNFromPassageURN(passage_urn)
-
-      // use work_urn to pick out appropriate orthography config replacements
-      work_language_code := GetWorkLangFromCatalog(work_urn, dbname)
-      orthographyNormalisationConfig := loadOrthographyNormalisationConfig(work_language_code)
-
-      // fetch passage text
-      passage := GetPassageByURNOnly(passage_urn, dbname)
-      passage_text := passage.Text.Brucheion
-
-      // normalize string
-      normalized_text_result = PerformReplacements(passage_text, orthographyNormalisationConfig)
-
-      // package passage_urn and normalized string as result
-      response.Items = append(response.Items, NormalizationResult{passage_urn, normalized_text_result})
-
-    }
+    // package passage_urn and normalized string as result
+    response.Items = append(response.Items, NormalizationResult{passage_urn, normalized_text_result})
 
   }
 
@@ -188,4 +199,118 @@ func normalizeOrthography(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintln(res, string(resultJSON))
 
+}
+
+
+
+// close cousin of normalizeOrthographyTemporarily
+// I don't yet understand how to properly receive a JSON response from an endpoint for further processing
+// therefore, in order to keep developing this part, this alternative endpoint simply saves along the way
+func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
+
+  //First get the session..
+	session, err := getSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	//..and check if user is logged in.
+	user, message, loggedin := testLoginStatus("normalizeOrthographyTemporarily", session)
+	if loggedin {
+		log.Println(message)
+	} else {
+		log.Println(message)
+		Logout(res, req)
+		return
+	}
+
+  // construct dbname
+  dbname := user + ".db"
+
+  // extract passage urn(s)
+  vars := mux.Vars(req)
+  passage_urns := strings.Split(vars["urns"], "+") // cannot use comma since canonically used for "page,line" notation
+  // example urn arguments
+  // "urn:cts:sktlit:skt0001.nyaya006.edYE:108,6/"
+  // "urn:cts:sktlit:skt0001.nyaya006.edYE:108,6+urn:cts:sktlit:skt0001.nyaya006.edYE:108,10+urn:cts:sktlit:skt0001.nyaya006.edYE:108,20/"
+  // or "all" to normalize everything in db
+
+  // special argument for normalizing whole database
+  if len(passage_urns) == 1 && passage_urns[0] == "all" {
+    // redo passage_urns as slice with all passage urns for all works in whole database
+    passage_urns = nil
+    var all_works = GetAllWorks(dbname)
+    for i := range all_works.Works {
+        work_passages := all_works.Works[i].Passages
+        for j := range work_passages {
+          passage_urns = append(passage_urns, work_passages[j].PassageID)
+        }
+    }
+  }
+
+  // now process single or multiple specific passages
+
+  // cp. similar in image.go
+  var normalized_text_result string
+
+  for i := range passage_urns {
+
+    passage_urn := passage_urns[i]
+
+    // derive work_urn from passage_urn
+    work_urn := GetWorkURNFromPassageURN(passage_urn)
+
+    // use work_urn to pick out appropriate orthography config replacements
+    work_language_code := GetWorkLangFromCatalog(work_urn, dbname)
+    orthographyNormalisationConfig := loadOrthographyNormalisationConfig(work_language_code)
+
+    // fetch passage text
+    passage := GetPassageByURNOnly(passage_urn, dbname)
+    passage_text := passage.Text.Brucheion
+
+    // normalize string
+    normalized_text_result = PerformReplacements(passage_text, orthographyNormalisationConfig)
+
+    // DIFFERENT BELOW HERE
+
+    // update temporary object with result
+    passage.Text.Normalised = normalized_text_result
+
+    fmt.Println("passage.Text.Normalised: ", passage.Text.Normalised)
+
+    // save updated object to database
+    updatednode, _ := json.Marshal(passage)
+    db, err := openBoltDB(dbname)
+    if err != nil {
+      fmt.Printf("Error opening userDB: %s", err)
+      http.Error(res, err.Error(), http.StatusInternalServerError)
+      return
+    }
+    fmt.Println("HERE 1")
+    key := []byte(passage.PassageID)    //
+    value := []byte(updatednode) //
+    // store some data
+    err = db.Update(func(tx *bolt.Tx) error {
+      fmt.Println("HERE 3")
+      bucket, err := tx.CreateBucketIfNotExists([]byte(work_urn+":"))
+      fmt.Println("HERE 4")
+      if err != nil {
+        return err
+      }
+      fmt.Println("HERE 5")
+      err = bucket.Put(key, value)
+      if err != nil {
+        fmt.Println(err)
+        return err
+      }
+      return nil
+    })
+    if err != nil {
+      log.Fatal(err)
+    }
+    db.Close()
+    fmt.Println("HERE 6")
+  }
+
+  io.WriteString(res, "normalization successfully saved")
 }
