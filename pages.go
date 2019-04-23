@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -604,14 +603,17 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	id1 := retrievedjson.PassageID
-	text1 := retrievedjson.Text.Brucheion
+	var text1 string
+	switch config.UseNormalization { // updated only on restart, given loadConfiguration call location
+	case true:
+		text1 = retrievedjson.Text.Normalised
+	case false:
+		text1 = retrievedjson.Text.Brucheion
+	}
 	next1 := retrievedjson.Next.PassageID
 	first1 := retrievedjson.First.PassageID
 	last1 := retrievedjson.Last.PassageID
 	previous1 := retrievedjson.Prev.PassageID
-	swirlreg := regexp.MustCompile(`{[^}]*}`)
-	text1 = swirlreg.ReplaceAllString(text1, "")
-	text1 = strings.Replace(text1, "-NEWLINE-", "", -1)
 	ids := []string{}
 	texts := []string{}
 	passageID := strings.Split(urn, ":")[4]
@@ -649,7 +651,13 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 				if passageID != strings.Split(ctsurn, ":")[4] {
 					continue
 				}
-				text := strings.Replace(retrievedjson.Text.Brucheion, "-NEWLINE-", "", -1)
+				var text string
+				switch config.UseNormalization { // updated only on restart, given loadConfiguration call location
+				case true:
+					text = retrievedjson.Text.Normalised
+				case false:
+					text = retrievedjson.Text.Brucheion
+				}
 				// make sure only witness that contain text are included
 				if len(strings.Replace(text, " ", "", -1)) > 5 {
 					ids = append(ids, ctsurn)

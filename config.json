@@ -8,5 +8,6 @@
 "gitLabScope": "read_user",
 "maxAge": "45",
 "userDB": "./users.db",
-"orthographyNormalisationFilenames": {"san": "./SanskritOrthography.json"}
+"orthographyNormalisationFilenames": {"san": "./SanskritOrthography.json"},
+"useNormalization": true
 }
