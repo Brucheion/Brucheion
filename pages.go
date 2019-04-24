@@ -603,13 +603,10 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	id1 := retrievedjson.PassageID
-	var text1 string
-	switch config.UseNormalization { // updated only on restart, given loadConfiguration call location
-	case true:
+	text1 := retrievedjson.Text.TXT
+	if config.UseNormalization && retrievedjson.Text.Normalised != "" {
 		text1 = retrievedjson.Text.Normalised
-	case false:
-		text1 = retrievedjson.Text.Brucheion
-	}
+	} // config setting updated only on restart since loadConfiguration() in brucheion.go
 	next1 := retrievedjson.Next.PassageID
 	first1 := retrievedjson.First.PassageID
 	last1 := retrievedjson.Last.PassageID
@@ -651,13 +648,11 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 				if passageID != strings.Split(ctsurn, ":")[4] {
 					continue
 				}
-				var text string
-				switch config.UseNormalization { // updated only on restart, given loadConfiguration call location
-				case true:
+				text := retrievedjson.Text.TXT
+				if config.UseNormalization && retrievedjson.Text.Normalised != "" {
 					text = retrievedjson.Text.Normalised
-				case false:
-					text = retrievedjson.Text.Brucheion
-				}
+				} // config setting updated only on restart since loadConfiguration() in brucheion.go
+
 				// make sure only witness that contain text are included
 				if len(strings.Replace(text, " ", "", -1)) > 5 {
 					ids = append(ids, ctsurn)
