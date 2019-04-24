@@ -44,12 +44,12 @@
 							Tools
 						</p>
 						<div class="navbar-dropdown">
-							<a href="{{.Host}}/view/{{.Title}}" class="navbar-item">Passage Overview</a>
-							<a href="{{.Host}}/edit2/{{.Title}}" class="navbar-item">Image Citation</a>
-							<a href="{{.Host}}/edit/{{.Title}}" class="navbar-item">Transcribe</a>
-							<a href="{{.Host}}/multicompare/{{.Title}}" class="navbar-item">Multicompare</a>
+							<a href="{{.Host}}/view/{{.Title}}/" class="navbar-item">Passage Overview</a>
+							<a href="{{.Host}}/edit2/{{.Title}}/" class="navbar-item">Image Citation</a>
+							<a href="{{.Host}}/edit/{{.Title}}/" class="navbar-item">Transcribe</a>
+							<a href="{{.Host}}/multicompare/{{.Title}}/" class="navbar-item">Multicompare</a>
 							<a href="{{.Host}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
-							<a href="{{.Host}}/editcat/{{.Title}}" class="navbar-item">Edit Metadata</a>
+							<a href="{{.Host}}/editcat/{{.Title}}/" class="navbar-item">Edit Metadata</a>
 						</div>
 					</div>
 					<div class="navbar-item has-dropdown is-hoverable">
@@ -57,7 +57,7 @@
 							<i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
 						</p>
 						<div class="navbar-dropdown">
-							<a href="{{.Host}}/export/exported" class="navbar-item">Download CEX</a>
+							<a href="{{.Host}}/export/exported/" class="navbar-item">Download CEX</a>
 							<a href="#" class="navbar-item">Account Settings</a>
 							<a href="#" class="navbar-item">Display Settings</a>
 							<a href="{{.Host}}/logout/" class="navbar-item">Logout</a>
@@ -85,11 +85,11 @@
 				</h1>
 				<div class="columns">
 					<div class="coulumn">
-						<p class="subtitle"></p><a href="{{.Host}}/edit2/{{.First}}"><i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
-						<a href="{{.Host}}/edit2/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
+						<p class="subtitle"></p><a href="{{.Host}}/edit2/{{.First}}/"><i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
+						<a href="{{.Host}}/edit2/{{.Previous}}/"><i class="fa fa-chevron-left"></i></a>
 						<strong>{{.Title}}</strong>
-						<a href="{{.Host}}/edit2/{{.Next}}"><i class="fa fa-chevron-right"></i></a>
-						<a href="{{.Host}}/edit2/{{.Last}}"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
+						<a href="{{.Host}}/edit2/{{.Next}}/"><i class="fa fa-chevron-right"></i></a>
+						<a href="{{.Host}}/edit2/{{.Last}}/"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
 						</p>
 					</div>
 					<div class="column">
@@ -113,7 +113,7 @@
 				<div class="tile is-parent">
 					<div class="tile is-child is-12">
 						<div class="column is-12 has-text-right">
-							<a class="button is-medium" href="{{.Host}}/view/{{.Title}}">Cancel</a>
+							<a class="button is-medium" href="{{.Host}}/view/{{.Title}}/">Cancel</a>
 						</div>
 					</div>
 				</div>
