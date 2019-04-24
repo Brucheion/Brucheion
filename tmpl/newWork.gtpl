@@ -34,7 +34,7 @@
 	    </div>
 			<div class="nav-right nav-menu">
 				<p class="nav-item is-tab">
-					<a href="http://localhost{{.Port}}/{{.User}}/export/{{.User}}"><i class="fa fa-download">CEX-Download</i></a>
+					<a href="http://localhost{{.Port}}/{{.User}}/export/{{.User}}/"><i class="fa fa-download">CEX-Download</i></a>
 				</p>
 			</div>
 
