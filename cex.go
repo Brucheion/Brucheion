@@ -63,6 +63,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var texturns, texts, areas, imageurns []string
+	var catalog []BoltCatalog
 	var indexs []int
 	vars := mux.Vars(req)
 	filename := vars["filename"]
@@ -78,11 +79,18 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	for i := range buckets {
 		db.View(func(tx *bolt.Tx) error {
 			// Assume bucket exists and has keys
-			b := tx.Bucket([]byte(buckets[i]))
+			bucket := tx.Bucket([]byte(buckets[i]))
 
-			c := b.Cursor()
+			cursor := bucket.Cursor()
 
-			for key, value := c.First(); key != nil; key, value = c.Next() {
+			for key, value := cursor.First(); key != nil; key, value = cursor.Next() {
+				retrievedcatalog := BoltCatalog{}
+				json.Unmarshal([]byte(value), &retrievedcatalog)
+				catalog = append(catalog, retrievedcatalog)
+			}
+
+			for key, value := cursor.First(); key != nil; key, value = cursor.Next() {
+
 				//retrievedjson := BoltURN{}
 				retrievedjson := gocite.Passage{}
 				json.Unmarshal([]byte(value), &retrievedjson)
@@ -119,10 +127,22 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	}
 	sort.Sort(dataframe{Indices: correctedIndex, Values1: texturns, Values2: texts})
 	var content string
-	content = "#!ctsdata\n"
+
+	content = "#!ctscatalog\nurn#citationScheme#groupName#workTitle#versionLabel#exemplarLabel#online#lang\n"
+	for i := range catalog {
+		str := catalog[i].URN + "#" + catalog[i].Citation + "#" + catalog[i].GroupName + "#" + catalog[i].WorkTitle + "#" + catalog[i].VersionLabel + "#" + catalog[i].ExemplarLabel + "#" + catalog[i].Online + "#" + catalog[i].Language + "\n"
+		if str != "#######\n" {
+			content = content + str
+		}
+	}
+	content = content + "\n\n#!ctsdata\n"
+
+	//content = "#!ctsdata\n"
 	for i := range texturns {
 		str := texturns[i] + "#" + texts[i] + "\n"
-		content = content + str
+		if str != "#\n" {
+			content = content + str
+		}
 	}
 	content = content + "\n#!relations\n"
 	for i := range imageurns {
@@ -353,6 +373,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	for i := range boltdata.Bucket {
 		newbucket := boltdata.Bucket[i]
 		/// new stuff
+		//Saving the CTS Catalog data
 		newcatkey := boltdata.Bucket[i]
 		newcatnode, _ := json.Marshal(boltdata.Catalog[i])
 		catkey := []byte(newcatkey)
@@ -375,6 +396,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 		}
 		/// end stuff
 
+		//saving the individual passages
 		for j := range boltdata.Data[i].Passages {
 			newkey := boltdata.Data[i].Passages[j].PassageID
 			newnode, _ := json.Marshal(boltdata.Data[i].Passages[j])
