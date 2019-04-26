@@ -14,10 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ThomasK81/gocite"
 	"github.com/boltdb/bolt"
 
 	"github.com/gorilla/mux"
+
+	"github.com/ThomasK81/gocite"
 )
 
 //dataframe is the sort-matrix interface used in ExportCEX to sort integer Indices
@@ -81,13 +82,18 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 
 			c := b.Cursor()
 
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-				retrievedjson := BoltURN{}
-				json.Unmarshal([]byte(v), &retrievedjson)
-				ctsurn := retrievedjson.URN
-				text := retrievedjson.Text
+			for key, value := c.First(); key != nil; key, value = c.Next() {
+				//retrievedjson := BoltURN{}
+				retrievedjson := gocite.Passage{}
+				json.Unmarshal([]byte(value), &retrievedjson)
+				ctsurn := retrievedjson.PassageID
+				text := retrievedjson.Text.TXT
 				index := retrievedjson.Index
-				imageref := retrievedjson.ImageRef
+				//imageref := retrievedjson.ImageRef
+				imageref := []string{}
+				for _, tmp := range retrievedjson.ImageLinks {
+					imageref = append(imageref, tmp.Object)
+				}
 				if len(imageref) > 0 {
 					for i := range imageref {
 						areas = append(areas, imageref[i])

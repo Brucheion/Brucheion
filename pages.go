@@ -16,7 +16,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ViewPage
+// ViewPage prepares, loads, and renders the Passage Overview
 func ViewPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -538,15 +538,11 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
-	retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
+
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
-	previous := retrievedjson.Previous
-	next := retrievedjson.Next
-	first := retrievedjson.First
-	last := retrievedjson.Last
 
-	ctsurn := retrievedjson.URN
 	catid := retrievedcatjson.URN
 	catcit := retrievedcatjson.Citation
 	catgroup := retrievedcatjson.GroupName
@@ -555,19 +551,21 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	catexpl := retrievedcatjson.ExemplarLabel
 	caton := retrievedcatjson.Online
 	catlan := retrievedcatjson.Language
-	transcription := Transcription{CTSURN: ctsurn,
+	transcription := Transcription{
+		CTSURN:      retrievedjson.PassageID,
 		Transcriber: user,
 		TextRef:     textref,
-		Previous:    previous,
-		Next:        next,
-		First:       first,
-		Last:        last,
+		Previous:    retrievedjson.Prev.PassageID,
+		Next:        retrievedjson.Next.PassageID,
+		First:       retrievedjson.First.PassageID,
+		Last:        retrievedjson.Last.PassageID,
 		CatID:       catid, CatCit: catcit, CatGroup: catgroup, CatWork: catwork, CatVers: catversion, CatExmpl: catexpl, CatOn: caton, CatLan: catlan}
 	kind := "/editcat/"
 	page, _ := loadPage(transcription, kind)
 	renderTemplate(res, "editcat", page)
 }
 
+//MultiPage prepares, loads, and renders the Multicompare page (?)
 func MultiPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
