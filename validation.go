@@ -151,7 +151,7 @@ func validateUser(req *http.Request) (*Validation, error) {
 	}
 	providerUserID, ok := session.Values["ProviderUserID"].(string)
 	if !ok {
-		log.Println("func validateUser: Type assertion of ProviderUserID cookie value to string failed or session value could not be retrieved")
+		log.Println("func validateUser: Did not get a ProviderUserID from the cookie value. User not registered, or not logged in yet.")
 	}
 
 	userDB, err := openBoltDB(config.UserDB)
@@ -163,25 +163,22 @@ func validateUser(req *http.Request) (*Validation, error) {
 	userDB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("users")) //try to open the user bucket
 
-		var brucheionUser BrucheionUser //create a BrucheionUser variable
-		BUPointer := new(BrucheionUser) //create a pointer that will later be used to check if BrucheionUser is still empty
-		BUPointer = nil                 //and make sure that it is empty
-		cursor := bucket.Cursor()       //create a cursor object that will be used to iterate over database entries
+		brucheionUser := new(BrucheionUser) //create a BrucheionUser pointer variable
+		brucheionUser = nil                 //and make sure that it is empty
+		cursor := bucket.Cursor()           //create a cursor object that will be used to iterate over database entries
 
 		for BUserName, _ := cursor.First(); BUserName != nil; BUserName, _ = cursor.Next() { //go through the users bucket and check for BUserName already in use
 			if string(BUserName) == brucheionUserName { //if this username was found in the users Bucket
+				log.Printf("Debug: BUsername=%s brucheionUserName=%s", BUserName, brucheionUserName)
 				buffer := bucket.Get([]byte(brucheionUserName)) //get the brucheionUser as []byte buffer
 				err := json.Unmarshal(buffer, &brucheionUser)   //unmarshal the buffer and save the brucheionUser in its variable
 				if err != nil {
 					fmt.Println("Error unmarshalling brucheionUser: ", err)
 				}
 				log.Println("Found BrucheionUser " + brucheionUserName + " in usersDB.")
-				BUPointer = &brucheionUser //set the pointer to the brucheionuser
 			}
 		}
-
-		//check if ProviderUser was used for other BUser
-		if BUPointer == nil { //Login scenarios (4), (5)
+		if brucheionUser == nil { //Login scenarios (4), (5)
 			bUserValidation.BUserInUse = false   //This BUsername was not in use yet
 			bUserValidation.SameProvider = false //No BUser -> No provider chosen
 			bucket = tx.Bucket([]byte(provider)) //open the provider Bucket

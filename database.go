@@ -197,7 +197,7 @@ func addImageToCITECollection(dbName, collectionName string, newImage image) err
 		}
 		if !found {
 			collection.Collection = append(collection.Collection, newImage)
-			found = false
+			//found = false //ineffectual assignment to found: found is false already
 		}
 		dbvalue, err2 := gobEncode(&collection)
 		if err2 != nil {
@@ -222,7 +222,8 @@ func newWorkToDB(dbName string, meta cexMeta) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(meta.URN)
-	dbvalue, err := gobEncode(&meta)
+	//dbvalue, err := gobEncode(&meta) //ineffectual assignment to err: nothing is done with err before it is overwritten
+	dbvalue, _ := gobEncode(&meta)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		log.Println(fmt.Printf("newWorkToDB: error opening userDB: %s", err))
@@ -256,7 +257,8 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
 	dbkey := []byte(meta.URN)
-	dbvalue, err := gobEncode(&meta)
+	//dbvalue, err := gobEncode(&meta) //ineffectual assignment to err: nothing is done with err before it is overwritten
+	dbvalue, _ := gobEncode(&meta)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		log.Println(fmt.Printf("updateWorkMeta: error opening userDB: %s", err))
@@ -286,57 +288,57 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 
 //BoltRetrieveFirstKey returns the first key in a specified bucket of
 //a specified database as a string.
-func BoltRetrieveFirstKey(dbname, bucket string) string {
+func BoltRetrieveFirstKey(dbname, bucketName string) (string, error) {
 	var result string
 	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
-		return result
+		return result, err
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		log.Println(fmt.Printf("BoltRetrieveFirstKey: error opening userDB: %s", err))
-		return result
+		return result, err
 	}
 	defer db.Close()
 	// retrieve the data
 	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucket))
+		bucket := tx.Bucket([]byte(bucketName))
 		if bucket == nil {
-			return fmt.Errorf("bucket %q not found", bucket)
+			return fmt.Errorf("bucket %q not found", bucketName)
 		}
 		c := bucket.Cursor()
 		key, _ := c.First()
 		result = string(key)
 		return nil
 	})
-	return result
+	return result, err
 }
 
 // BoltRetrieve retrieves the string data (as BoltJSON) for the specified key
 //in the specified bucket of the specified database as a BoltJSON
-func BoltRetrieve(dbname, bucket, key string) BoltJSON {
+func BoltRetrieve(dbname, bucketName, key string) (BoltJSON, error) {
 	var result BoltJSON
 	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
-		return result
+		return result, err
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
 		log.Println(fmt.Printf("BoltRetrieve: error opening userDB: %s", err))
-		return result
+		return result, err
 	}
 	defer db.Close()
 	// retrieve the data
 	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucket))
+		bucket := tx.Bucket([]byte(bucketName))
 		if bucket == nil {
-			return fmt.Errorf("bucket %q not found", bucket)
+			return fmt.Errorf("bucket %q not found", bucketName)
 		}
 		val := bucket.Get([]byte(key))
 		result.JSON = string(val)
 		return nil
 	})
-	return result
+	return result, err
 }
 
 //deleteBucket deletes a bucket with the name of a specified URN

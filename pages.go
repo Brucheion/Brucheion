@@ -44,8 +44,8 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
@@ -129,8 +129,8 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
 	retrievedjson := BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
@@ -186,8 +186,8 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket = strings.Join(strings.Split(urn2, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata = BoltRetrieve(dbname, requestedbucket, urn2)
-	retrievedcat = BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ = BoltRetrieve(dbname, requestedbucket, urn2)
+	retrievedcat, _ = BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson = BoltCatalog{}
 	retrievedjson = BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
@@ -272,8 +272,8 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
 	retrievedjson := BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
@@ -329,8 +329,8 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket = strings.Join(strings.Split(urn2, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata = BoltRetrieve(dbname, requestedbucket, urn2)
-	retrievedcat = BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ = BoltRetrieve(dbname, requestedbucket, urn2)
+	retrievedcat, _ = BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson = BoltCatalog{}
 	retrievedjson = BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
@@ -414,7 +414,7 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
@@ -474,7 +474,7 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
@@ -535,8 +535,8 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
 	retrievedjson := gocite.Passage{}
 
@@ -592,7 +592,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 	work := strings.Join(strings.Split(strings.Split(requestedbucket, ":")[3], ".")[0:1], ".")
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	id1 := retrievedjson.PassageID
