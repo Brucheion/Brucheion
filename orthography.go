@@ -1,50 +1,48 @@
 package main
 
 import (
-  "fmt"
-  "regexp"
-  "os"
   "encoding/json"
-  "strings"
+  "fmt"
+  "github.com/ThomasK81/gocite"
+  "github.com/boltdb/bolt"
+  "github.com/gorilla/mux"
+  "io"
   "log"
   "net/http"
-  "github.com/ThomasK81/gocite"
-  "github.com/gorilla/mux"
-  "github.com/boltdb/bolt"
-  "io"
-
-
+  "os"
+  "regexp"
+  "strings"
 )
 
 type OrthographyNormalisationConfig struct {
-  ReplacementsToUse      []RegexReplacement `json:"replacements_to_use"`
-  ReplacementsToIgnore   []RegexReplacement `json:"replacements_to_ignore"`
+  ReplacementsToUse    []RegexReplacement `json:"replacements_to_use"`
+  ReplacementsToIgnore []RegexReplacement `json:"replacements_to_ignore"`
 }
 
 type RegexReplacement struct {
-  Name            string `json:"name"`
-  Pattern         string `json:"pattern"`
-  Replacement     string `json:"replacement"`
+  Name        string `json:"name"`
+  Pattern     string `json:"pattern"`
+  Replacement string `json:"replacement"`
 }
 
 // results are pairs, with the latter ultimately to be stored in Normalised field of Passage.Text object (type EncText)
 type NormalizationResult struct {
-  PassageURN      string `json:"passageURN"`
-  NormalizedText  string `json:"normalizedText"`
+  PassageURN     string `json:"passageURN"`
+  NormalizedText string `json:"normalizedText"`
 }
 
 // cp. image.go, where items are single strings
 type ResultJSONlist struct {
-	Items []NormalizationResult `json:"items"`
+  Items []NormalizationResult `json:"items"`
 }
 
 // modified version of initialization.go, loadConfiguration()
 func loadOrthographyNormalisationConfig(language_code string) OrthographyNormalisationConfig {
   configFilename := config.OrthographyNormalisationFilenames[language_code]
-  var newConfig OrthographyNormalisationConfig  //initialize config as OrthographyNormalisationConfig
+  var newConfig OrthographyNormalisationConfig         //initialize config as OrthographyNormalisationConfig
   configFile, openFileError := os.Open(configFilename) //attempt to open file
-  defer configFile.Close()                   //push closing on call list
-  if openFileError != nil {                  //error handling
+  defer configFile.Close()                             //push closing on call list
+  if openFileError != nil {                            //error handling
     fmt.Println("Open file error: " + openFileError.Error())
   }
   jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
@@ -59,7 +57,7 @@ func GetWorkLangFromCatalog(work_urn, dbname string) string {
   work_bucket_id := work_urn + ":"
 
   // fetch language_code from work bucket, using bucket_id as key to specify catalog data
-  retrieved_catalog_value_data := BoltRetrieve(dbname, work_bucket_id, work_bucket_id)
+  retrieved_catalog_value_data, _ := BoltRetrieve(dbname, work_bucket_id, work_bucket_id)
   retrieved_cat_json := BoltCatalog{}
   json.Unmarshal([]byte(retrieved_catalog_value_data.JSON), &retrieved_cat_json)
   work_language_code := retrieved_cat_json.Language
@@ -89,9 +87,9 @@ func GetPassageByURNOnly(passage_urn, dbname string) gocite.Passage {
   work_bucket_id := work_urn + ":"
 
   // fetch Passage object
-  retrieved_passage_data := BoltRetrieve(dbname, work_bucket_id, passage_urn)
-	passage_object := gocite.Passage{}
-	json.Unmarshal([]byte(retrieved_passage_data.JSON), &passage_object)
+  retrieved_passage_data, _ := BoltRetrieve(dbname, work_bucket_id, passage_urn)
+  passage_object := gocite.Passage{}
+  json.Unmarshal([]byte(retrieved_passage_data.JSON), &passage_object)
 
   return passage_object
 }
@@ -100,6 +98,7 @@ func GetPassageByURNOnly(passage_urn, dbname string) gocite.Passage {
 type WorkList struct {
   Works []gocite.Work
 }
+
 func GetAllWorks(dbname string) WorkList {
   var all_works = WorkList{}
   // to implement later...
@@ -110,33 +109,33 @@ func GetAllWorks(dbname string) WorkList {
 type PassageList struct {
   Items []gocite.Passage
 }
+
 func GetAllPassages(dbname string) PassageList {
   passage_list := PassageList{}
   buckets := Buckets(dbname)
-	db, err := openBoltDB(dbname) //open bolt DB using helper function
-	if err != nil {
-		fmt.Printf("Error opening userDB: %s", err)
-		return passage_list
-	}
-	defer db.Close()
-	for i := range buckets {
-		db.View(func(tx *bolt.Tx) error {
-			// Assume bucket exists and has keys
-			b := tx.Bucket([]byte(buckets[i]))
-			c := b.Cursor()
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-				retrieved_passage := gocite.Passage{}
-				json.Unmarshal([]byte(v), &retrieved_passage)
+  db, err := openBoltDB(dbname) //open bolt DB using helper function
+  if err != nil {
+    fmt.Printf("Error opening userDB: %s", err)
+    return passage_list
+  }
+  defer db.Close()
+  for i := range buckets {
+    db.View(func(tx *bolt.Tx) error {
+      // Assume bucket exists and has keys
+      b := tx.Bucket([]byte(buckets[i]))
+      c := b.Cursor()
+      for k, v := c.First(); k != nil; k, v = c.Next() {
+        retrieved_passage := gocite.Passage{}
+        json.Unmarshal([]byte(v), &retrieved_passage)
         if retrieved_passage.Text.Brucheion != "" {
           passage_list.Items = append(passage_list.Items, retrieved_passage)
         }
-			}
-			return nil
-		})
-	}
+      }
+      return nil
+    })
+  }
   return passage_list
 }
-
 
 // might be nice to add to work.go
 
@@ -149,7 +148,7 @@ func PerformReplacements(text string, orthNormConfig OrthographyNormalisationCon
   replacements = append(replacements, orthNormConfig.ReplacementsToUse...)
   for i := range replacements {
     re := regexp.MustCompile(replacements[i].Pattern)
-  	text = re.ReplaceAllString(text, replacements[i].Replacement)
+    text = re.ReplaceAllString(text, replacements[i].Replacement)
   }
   return text
 }
@@ -157,20 +156,20 @@ func PerformReplacements(text string, orthNormConfig OrthographyNormalisationCon
 func normalizeOrthographyTemporarily(res http.ResponseWriter, req *http.Request) {
 
   //First get the session..
-	session, err := getSession(req)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	//..and check if user is logged in.
-	user, message, loggedin := testLoginStatus("normalizeOrthographyTemporarily", session)
-	if loggedin {
-		log.Println(message)
-	} else {
-		log.Println(message)
-		Logout(res, req)
-		return
-	}
+  session, err := getSession(req)
+  if err != nil {
+    http.Error(res, err.Error(), http.StatusInternalServerError)
+    return
+  }
+  //..and check if user is logged in.
+  user, message, loggedin := testLoginStatus("normalizeOrthographyTemporarily", session)
+  if loggedin {
+    log.Println(message)
+  } else {
+    log.Println(message)
+    Logout(res, req)
+    return
+  }
 
   // construct dbname
   dbname := user + ".db"
@@ -223,11 +222,10 @@ func normalizeOrthographyTemporarily(res http.ResponseWriter, req *http.Request)
   }
 
   resultJSON, _ := json.Marshal(response)
-	res.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintln(res, string(resultJSON))
+  res.Header().Set("Content-Type", "application/json; charset=utf-8")
+  fmt.Fprintln(res, string(resultJSON))
 
 }
-
 
 // close cousin of normalizeOrthographyTemporarily
 // I don't yet understand how to properly receive a JSON response back from an endpoint for further processing
@@ -235,20 +233,20 @@ func normalizeOrthographyTemporarily(res http.ResponseWriter, req *http.Request)
 func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
 
   //First get the session..
-	session, err := getSession(req)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	//..and check if user is logged in.
-	user, message, loggedin := testLoginStatus("normalizeOrthographyTemporarily", session)
-	if loggedin {
-		log.Println(message)
-	} else {
-		log.Println(message)
-		Logout(res, req)
-		return
-	}
+  session, err := getSession(req)
+  if err != nil {
+    http.Error(res, err.Error(), http.StatusInternalServerError)
+    return
+  }
+  //..and check if user is logged in.
+  user, message, loggedin := testLoginStatus("normalizeOrthographyTemporarily", session)
+  if loggedin {
+    log.Println(message)
+  } else {
+    log.Println(message)
+    Logout(res, req)
+    return
+  }
 
   // construct dbname
   dbname := user + ".db"
@@ -307,11 +305,11 @@ func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
       http.Error(res, err.Error(), http.StatusInternalServerError)
       return
     }
-    key := []byte(passage.PassageID)    //
-    value := []byte(updatednode) //
+    key := []byte(passage.PassageID) //
+    value := []byte(updatednode)     //
     // store some data
     err = db.Update(func(tx *bolt.Tx) error {
-      bucket, err := tx.CreateBucketIfNotExists([]byte(work_urn+":"))
+      bucket, err := tx.CreateBucketIfNotExists([]byte(work_urn + ":"))
       if err != nil {
         return err
       }

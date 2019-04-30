@@ -55,16 +55,17 @@ func initializeUsersDB() error {
 		if err != nil {
 			return fmt.Errorf("Failed creating bucket users: %s", err)
 		}
+		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error and ineffasign notice)
 		bucket, err = tx.CreateBucketIfNotExists([]byte("GitHub"))
 		if err != nil {
 			return fmt.Errorf("Failed creating bucket GitHub: %s", err)
 		}
+		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error and ineffasign notice)
 		bucket, err = tx.CreateBucketIfNotExists([]byte("GitLab"))
 		if err != nil {
 			return fmt.Errorf("Failed creating bucket GitLab: %s", err)
 		}
-
-		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error)
+		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error and ineffasign notice)
 
 		return nil //if all went well, error can be returned with <nil>
 	})

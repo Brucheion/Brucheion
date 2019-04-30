@@ -175,15 +175,15 @@ func loginPOST(res http.ResponseWriter, req *http.Request) {
 
 		}
 		//if the noauth flag was not set, or set false: continue with authentification using a provider
-		log.Println("loginPost: validating if credentials match existing user. validateUser will display a message starting with: \"type assertion...\". This is normal behavior.")
+		log.Println("loginPost: validating if credentials match existing user")
 		validation, err := validateUser(req) //validate if credentials match existing user
 		if err != nil {
 			fmt.Printf("\nLoginPost: error validating user: %s", err)
 			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		if validation.ErrorCode { //Login scenarios (1), (5)
-
+		if validation.ErrorCode { //Login scenarios 1 (user in DB, should be able to login), (5) (user not in DB and not in use yet, shoould be able to register)
 			authPath := "/auth/" + strings.ToLower(req.FormValue("provider")) + "/" //set up the path for redirect according to provider (needs to be lower case for gothic)
 			session.Save(req, res)                                                  //always save the session after setting values
 			http.Redirect(res, req, authPath, http.StatusFound)                     //redirect to auth page with correct provider
@@ -192,9 +192,7 @@ func loginPOST(res http.ResponseWriter, req *http.Request) {
 
 		log.Println(validation.Message)
 		validation.Message = validation.Message + "\nPlease always use the same combination of username, provider, and provider account."
-		if (validation.BUserInUse && !validation.SameProvider && validation.PUserInUse) ||
-			(!validation.BUserInUse && validation.SameProvider && validation.PUserInUse) ||
-			(!validation.BUserInUse && validation.SameProvider && !validation.PUserInUse) { //unknown login behavior
+		if (!validation.BUserInUse) || (validation.BUserInUse && !validation.SameProvider && validation.PUserInUse) { //unknown login behavior
 			log.Println("Unknown login behavior. This should never happen. Logging out.")
 			validation.Message = "Unknown login behavior. Please report this to the development team."
 		}
@@ -293,6 +291,7 @@ func authCallback(res http.ResponseWriter, req *http.Request) {
 		PUserName:      gothUser.NickName,
 		ProviderUserID: gothUser.UserID}
 
+	log.Println("func authCallback validating if credentials match existing user")
 	validation, err := validateUser(req) //validate if credentials match existing user
 	if err != nil {
 		fmt.Printf("\nauthCallback error validating user: %s", err)
@@ -424,7 +423,7 @@ func testLoginStatus(function string, session *sessions.Session) (user, message 
 	loggedin = false                       // before proven to be logged in, the login state should always be false
 	if session.Values["Loggedin"] != nil { //test if the Loggedin variable has already been set
 		if session.Values["Loggedin"].(bool) { //Session value "Loggedin" is true if user is already logged in
-			ok := false                                             //necessary so that fuction-wide variable user is changed instead of a new variable being created.
+			var ok bool                                             //necessary so that program-wide variable user is changed instead of a new function variable is created.
 			user, ok = session.Values["BrucheionUserName"].(string) //if session was valid get a username
 			if !ok {                                                //error handling
 				fmt.Println("func testLoginStatus: Type assertion failed.")

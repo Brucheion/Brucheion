@@ -55,13 +55,13 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 		urn := gocite.SplitCITE(imageIDs[0])
 		switch {
 		case urn.InValid:
-			log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: URN invalid"), name, user)
+			log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: URN invalid", name, user))
 			io.WriteString(res, "Import of image collection "+name+" failed: URN invalid.")
 			return
 		case urn.Object == "*":
 			links, err := extractLinks(urn)
 			if err != nil {
-				log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: %s"), name, user, err)
+				log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: %s", name, user, err))
 				io.WriteString(res, "Import of image collection "+name+" failed: extracting links failed.")
 			}
 			for i := range links {
@@ -87,7 +87,7 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 	err = newCollectionToDB(user, name, collection)
 
 	if err != nil {
-		log.Println(fmt.Errorf("newCollectionToDB: Error saving Image collection %s in %s.db: %s"), name, user, err)
+		log.Println(fmt.Errorf("newCollectionToDB: Error saving Image collection %s in %s.db: %s", name, user, err))
 		io.WriteString(res, "Import of image collection "+name+" failed")
 	}
 	log.Println("newCollection: Image collection " + name + "saved in " + user + ".db successfully.")

@@ -245,7 +245,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
 
 	dbname := user + ".db"
-	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
+	retrieveddata, _ := BoltRetrieve(dbname, newbucket, newkey)
 	retrievednodejson := BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievednodejson)
 	bookmark := retrievednodejson.Index
