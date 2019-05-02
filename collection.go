@@ -16,13 +16,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//imageCollection is the container for image collections along with their URN and name as strings
-type imageCollection struct {
-	URN        string  `json:"urn"`
-	Name       string  `json:"name"`
-	Collection []image `json:"images"`
-}
-
 //newCITECollection extracts images from the mux variables in the *http.Request, joins them together
 //in an imageCollection and passes it to newCollectionToDB to have it saved in the user database
 func newCollection(res http.ResponseWriter, req *http.Request) {

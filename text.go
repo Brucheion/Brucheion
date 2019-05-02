@@ -10,6 +10,8 @@ import (
 	"github.com/boltdb/bolt"
 
 	"github.com/gorilla/mux"
+
+	"github.com/ThomasK81/gocite"
 )
 
 // newText extracts a new node (?) from the http.Request
@@ -37,8 +39,8 @@ func newText(res http.ResponseWriter, req *http.Request) {
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
 	dbname := user + ".db"
-	retrievedjson := BoltURN{}
-	retrievedjson.URN = newkey
+	retrievedjson := gocite.Passage{}
+	retrievedjson.PassageID = newkey
 	newnode, _ := json.Marshal(retrievedjson)
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
