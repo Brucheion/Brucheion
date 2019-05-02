@@ -21,7 +21,7 @@ import (
 	"github.com/ThomasK81/gocite"
 )
 
-//dataframe is the sort-matrix interface used in ExportCEX to sort integer Indices
+// dataframe is the sort-matrix interface used in ExportCEX to sort integer Indices
 //and their string values using used by sort.Sort in ExportCEX
 type dataframe struct {
 	Indices []int
@@ -42,7 +42,8 @@ func (m dataframe) Swap(i, j int) {
 	m.Values2[i], m.Values2[j] = m.Values2[j], m.Values2[i]
 }
 
-//ExportCEX exports CEX data to a CEX file
+// ExportCEX exports CEX data from the user database to a CEX file
+//Reference on CEX files: https://cite-architecture.github.io/citedx/CEX-spec-3.0.1/
 func ExportCEX(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -91,7 +92,6 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 
 			for key, value := cursor.First(); key != nil; key, value = cursor.Next() {
 
-				//retrievedjson := BoltURN{}
 				retrievedjson := gocite.Passage{}
 				json.Unmarshal([]byte(value), &retrievedjson)
 				ctsurn := retrievedjson.PassageID
