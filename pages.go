@@ -57,7 +57,7 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	passages := strings.Split(text, "\r\n")
 	text = ""
 	for i, v := range passages {
-		text = text + "<p style=\"padding: 0 0 0.25em 0\">" + "<span style=\"font-weight:bold\">" + strconv.Itoa(i+1) + ": " + "</span>" + v + "</p>"
+		text = text + "<p name=\"textpassage\" style=\"padding: 0 0 0.25em 0\">" + "<span style=\"font-weight:bold\">" + strconv.Itoa(i+1) + ": " + "</span>" + v + "</p>"
 	}
 	previous := retrievedjson.Prev.PassageID
 	next := retrievedjson.Next.PassageID
