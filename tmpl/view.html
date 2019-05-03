@@ -86,18 +86,21 @@
 				</h1>
 				<div class="columns">
 					<div class="coulumn">
-						<p class="subtitle"></p><a href="{{.Host}}/view/{{.First}}/"><i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
+						<p class="subtitle"></p><a href="{{.Host}}/view/{{.First}}/"><i
+								class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
 						<a href="{{.Host}}/view/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
 						<strong>{{.Title}}</strong>
 						<a href="{{.Host}}/view/{{.Next}}/"><i class="fa fa-chevron-right"></i></a>
-						<a href="{{.Host}}/view/{{.Last}}/"><i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i></a>
+						<a href="{{.Host}}/view/{{.Last}}/"><i class="fa  fa-chevron-right"></i><i
+								class="fa  fa-chevron-right"></i></a>
 						</p>
 					</div>
 					<div class="column">
 						<form name="nav">
 							<div class="control">
 								<div class="select">
-									<select name="SelectURL" onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
+									<select name="SelectURL"
+										onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
 										{{.TextHTML}}
 									</select>
 								</div>
@@ -118,15 +121,17 @@
 		<div class="tile is-ancestor">
 			<div class="tile is-parent">
 				<div class="tile is-child box tile-resizable">
-					<p class="has-text-right"><a class="button is-small" href="/edit2/{{.Title}}/">EDIT IMAGE REFERENCES</a></p>
-					<br/>
+					<p class="has-text-right"><a class="button is-small" href="/edit2/{{.Title}}/">EDIT IMAGE
+							REFERENCES</a></p>
+					<br />
 					<p>ImageRef: {{.ImageHTML}}</p>
 				</div>
 			</div>
 			<div class="tile is-parent">
 				<div class="tile is-child box tile-resizable">
-					<p class="has-text-right"><a class="button is-small" href="/editcat/{{.Title}}/">EDIT METADATA</a></p>
-					<br/>
+					<p class="has-text-right"><a class="button is-small" href="/editcat/{{.Title}}/">EDIT METADATA</a>
+					</p>
+					<br />
 					<table>
 						<tr>
 							<td>WorkURN: {{.CatID}}</td>
@@ -157,26 +162,43 @@
 				</div>
 				<div class="tile is-parent">
 					<div class="tile is-child box tile-resizable">
-						<br/>
+						<br />
 						<div class="tile is-child">
 							<p class="has-text-left">Previous: {{.PreviousLink}}</p>
 							<p class="has-text-left">Next: {{.NextLink}}</p>
 						</div>
-						<div class="tile is-child">
-							<p class="has-text-right"><a class="button is-small" href="/edit/{{.Title}}/">EDIT TRANSCRIPTION</a></p>
+						<div class="tile is-child columns">
+							<div class="column">
+								<button type="button" onclick="makeXSmall()"><span
+										style="font-size: x-small">Aa</span></button>
+								<button type="button" onclick="makeSmall()"><span
+										style="font-size: small">Aa</span></button>
+								<button type="button" onclick="makeMedium()"><span
+										style="font-size: medium">Aa</span></button>
+								<button type="button" onclick="makeBig()"><span
+										style="font-size: large">Aa</span></button>
+								<button type="button" onclick="makeXBig()"><span
+										style="font-size: x-large">Aa</span></button>
+							</div>
+							<div class="column">
+								<p class="has-text-right"><a class="button is-small" href="/edit/{{.Title}}/">EDIT
+										TRANSCRIPTION</a></p>
+							</div>
 						</div>
 						<div style="text-indent: 2em">
-						{{.Text}}
+							{{.Text}}
 						</div>
 					</div>
 				</div>
 			</div>
 		</section>
 		<footer>
-			<br/>
-			<p>Brucheion is ©2017–2018 Thomas Koentges. CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell. Brucheion is
+			<br />
+			<p>Brucheion is ©2017–2018 Thomas Koentges. CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell.
+				Brucheion is
 				available for use, modification, and distribution under the terms of the
-				<a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion's image citation tool <a href="">BrIC</a>
+				<a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion's image citation
+				tool <a href="">BrIC</a>
 				is ©2018 Thomas Koentges and based on Christopher Blackwell's and Mees Gelein's
 				<a href="https://github.com/cite-architecture/ict2">ICT2</a> and on
 				<a href="http://openseadragon.github.io">Openseadragon</a>.</p>
@@ -184,6 +206,38 @@
 	</div>
 	<input type="hidden" id="initialCITE" value="{{.ImageJS}}" readonly>
 	<script type="text/javascript" src="{{.Host}}/js/BrIC.js"></script>
+	<script>
+		function makeXBig() {
+			var x = document.getElementsByName("textpassage");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "x-large";
+			};
+		};
+		function makeBig() {
+			var x = document.getElementsByName("textpassage");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "large";
+			};
+		};
+		function makeMedium() {
+			var x = document.getElementsByName("textpassage");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "medium";
+			}
+		};
+		function makeXSmall() {
+			var x = document.getElementsByName("textpassage");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "x-small";
+			}
+		};
+		function makeSmall() {
+			var x = document.getElementsByName("textpassage");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "small";
+			}
+		};
+	</script>
 </body>
 
 </html>
