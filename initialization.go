@@ -13,7 +13,8 @@ import (
 	"github.com/boltdb/bolt" //for working with the bolt DB key-value store
 )
 
-//LoadConfiguration loads and parses the JSON config file and returns Config.
+// LoadConfiguration loads and parses the JSON config file and returns Config.
+//todo: Errorhandling
 func loadConfiguration(file string) Config {
 	var newConfig Config                       //initialize Config variable newConfig
 	configFile, openFileError := os.Open(file) //attempt to open file
@@ -26,7 +27,8 @@ func loadConfiguration(file string) Config {
 	return newConfig                          //return ServerConfig config
 }
 
-//getCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
+// getCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
+//Todo: Errorhandling
 func getCookieStore(maxAge int) sessions.Store {
 	//Todo: research encryption key and if it can/should be used fot our use cases
 	key := securecookie.GenerateRandomKey(64) //Generate a random key for the session
@@ -64,6 +66,11 @@ func initializeUsersDB() error {
 		bucket, err = tx.CreateBucketIfNotExists([]byte("GitLab"))
 		if err != nil {
 			return fmt.Errorf("Failed creating bucket GitLab: %s", err)
+		}
+		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error and ineffasign notice)
+		bucket, err = tx.CreateBucketIfNotExists([]byte("Google"))
+		if err != nil {
+			return fmt.Errorf("Failed creating bucket Google: %s", err)
 		}
 		_ = bucket //to have done something with the bucket (avoiding 'username declared and not used' error and ineffasign notice)
 
