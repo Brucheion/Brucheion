@@ -22,12 +22,12 @@ type Config struct {
 	GitLabKey                         string            `json:"gitLabKey"`
 	GitLabSecret                      string            `json:"gitLabSecret"`
 	GitLabScope                       string            `json:"gitLabScope"` //for accessing GitLab user information this has to be "read_user"
-	MaxAge                            int               `json:"maxAge"`      //sets the lifetime of the brucheion session
+	GoogleKey                         string            `json:"googleKey"`
+	GoogleSecret                      string            `json:"googleSecret"`
+	MaxAge                            int               `json:"maxAge"` //sets the lifetime of the brucheion session
 	UserDB                            string            `json:"userDB"`
 	OrthographyNormalisationFilenames map[string]string `json:"orthographyNormalisationFilenames"`
 	UseNormalization                  bool              `json:"useNormalization"`
-	//	GoogleKey	    string `json:"googleKey"`
-	//	GoogleSecret  string `json:"googleSecret"`
 }
 
 //BrucheionUser stores Information about the logged in Brucheion user
