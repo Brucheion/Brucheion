@@ -181,8 +181,15 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	cex := vars["cex"]                              //get the name of the CEX file from URL
 	httpReq := config.Host + "/cex/" + cex + ".cex" //build the URL to pass to cexHandler
-	data, _ := getContent(httpReq)                  //get response data using getContent and cexHandler
-	str := string(data)                             //make the response data a string
+	data, err := getContent(httpReq)                //get response data using getContent and cexHandler
+	if err != nil {
+		message = ("CEX file " + cex + ".cex not found.")
+		log.Println(message)
+		io.WriteString(res, message)
+		return
+	}
+
+	str := string(data) //make the response data a string
 	var urns, areas []string
 	var catalog []BoltCatalog
 
@@ -421,7 +428,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 	}
-	message = ("CEX file " + cex + " loaded into Brucheion successfully.")
+	message = ("CEX file " + cex + ".cex loaded into Brucheion successfully.")
 	log.Println(message)
 	io.WriteString(res, message)
 	//This function should load a page using a template and display a propper success flash.
