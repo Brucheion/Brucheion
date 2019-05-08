@@ -16,13 +16,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//imageCollection is the container for image collections along with their URN and name as strings
-type imageCollection struct {
-	URN        string  `json:"urn"`
-	Name       string  `json:"name"`
-	Collection []image `json:"images"`
-}
-
 //newCITECollection extracts images from the mux variables in the *http.Request, joins them together
 //in an imageCollection and passes it to newCollectionToDB to have it saved in the user database
 func newCollection(res http.ResponseWriter, req *http.Request) {
@@ -55,13 +48,13 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 		urn := gocite.SplitCITE(imageIDs[0])
 		switch {
 		case urn.InValid:
-			log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: URN invalid"), name, user)
+			log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: URN invalid", name, user))
 			io.WriteString(res, "Import of image collection "+name+" failed: URN invalid.")
 			return
 		case urn.Object == "*":
 			links, err := extractLinks(urn)
 			if err != nil {
-				log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: %s"), name, user, err)
+				log.Println(fmt.Errorf("newCollection: Error saving Image collection %s in %s.db: %s", name, user, err))
 				io.WriteString(res, "Import of image collection "+name+" failed: extracting links failed.")
 			}
 			for i := range links {
@@ -87,7 +80,7 @@ func newCollection(res http.ResponseWriter, req *http.Request) {
 	err = newCollectionToDB(user, name, collection)
 
 	if err != nil {
-		log.Println(fmt.Errorf("newCollectionToDB: Error saving Image collection %s in %s.db: %s"), name, user, err)
+		log.Println(fmt.Errorf("newCollectionToDB: Error saving Image collection %s in %s.db: %s", name, user, err))
 		io.WriteString(res, "Import of image collection "+name+" failed")
 	}
 	log.Println("newCollection: Image collection " + name + "saved in " + user + ".db successfully.")

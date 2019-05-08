@@ -8,12 +8,6 @@ import (
 	"text/template"
 )
 
-//cexMeta is the container for CEX metadata (work metadata). Used for saving new URNs with newWork
-//or changing metatdata with updateWorkMeta
-type cexMeta struct {
-	URN, CitationScheme, GroupName, WorkTitle, VersionLabel, ExemplarLabel, Online, Language string
-}
-
 //newWork extracts cexMeta data from the *http.Request form values and
 //passes it to newWorkToDB to save it in the user database
 func newWork(res http.ResponseWriter, req *http.Request) {

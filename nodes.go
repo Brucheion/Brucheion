@@ -11,6 +11,8 @@ import (
 	"github.com/boltdb/bolt"
 
 	"github.com/gorilla/mux"
+
+	"github.com/ThomasK81/gocite"
 )
 
 // func AddFirstNode(res http.ResponseWriter, req *http.Request) {
@@ -217,8 +219,8 @@ import (
 // 	}
 // }
 
+// AddNodeAfter adds
 func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
-
 	//First get the session..
 	session, err := getSession(req)
 	if err != nil {
@@ -237,19 +239,22 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var texturns, texts, previouss, nexts, firsts, lasts []string
-	var imagerefs, linetexts [][]string
+	//var imagerefs, linetexts [][]string
+	var imagerefs [][]string
 	var indexs []int
 	vars := mux.Vars(req)
 	newkey := vars["key"]
 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
 
 	dbname := user + ".db"
-	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
-	retrievednodejson := BoltURN{}
+	retrieveddata, _ := BoltRetrieve(dbname, newbucket, newkey)
+	//retrievednodejson := BoltURN{}
+	retrievednodejson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievednodejson)
 	bookmark := retrievednodejson.Index
 	lastnode := false
-	if retrievednodejson.Last == retrievednodejson.URN {
+	//if retrievednodejson.Last == retrievednodejson.URN {
+	if retrievednodejson.Last.PassageID == retrievednodejson.PassageID {
 		lastnode = true
 	}
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
@@ -262,12 +267,12 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 
 	db.View(func(tx *bolt.Tx) error {
 		// Assume bucket exists and has keys
-		b := tx.Bucket([]byte(newbucket))
+		bucket := tx.Bucket([]byte(newbucket))
 
-		c := b.Cursor()
+		cursor := bucket.Cursor()
 
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			retrievedjson := BoltURN{}
+		for key, value := cursor.First(); key != nil; key, value = cursor.Next() {
+			/*retrievedjson := BoltURN{}
 			json.Unmarshal([]byte(v), &retrievedjson)
 			ctsurn := retrievedjson.URN
 			text := retrievedjson.Text
@@ -277,13 +282,28 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 			first := retrievedjson.First
 			imageref := retrievedjson.ImageRef
 			last := retrievedjson.Last
+			index := retrievedjson.Index*/
+
+			retrievedjson := gocite.Passage{}
+			json.Unmarshal([]byte(value), &retrievedjson)
+			ctsurn := retrievedjson.PassageID
+			text := retrievedjson.Text.TXT
+			//linetext is being retired and replaced with to gocite.Text
+			previous := retrievedjson.Prev.PassageID
+			next := retrievedjson.Next.PassageID
+			first := retrievedjson.First.PassageID
+			last := retrievedjson.Last.PassageID
+			imageref := []string{}
+			for _, tmp := range retrievedjson.ImageLinks {
+				imageref = append(imageref, tmp.Object)
+			}
 			index := retrievedjson.Index
 
 			switch {
 			case index < bookmark:
 				texturns = append(texturns, ctsurn)
 				texts = append(texts, text)
-				linetexts = append(linetexts, linetext)
+				//linetexts = append(linetexts, linetext)
 				previouss = append(previouss, previous)
 				nexts = append(nexts, next)
 				firsts = append(firsts, first)
@@ -300,7 +320,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 				newindex := index + 1
 				texturns = append(texturns, ctsurn)
 				texts = append(texts, text)
-				linetexts = append(linetexts, linetext)
+				//linetexts = append(linetexts, linetext)
 				previouss = append(previouss, previous)
 				nexts = append(nexts, next)
 				firsts = append(firsts, first)
@@ -319,7 +339,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 
 				texturns = append(texturns, ctsurn)
 				texts = append(texts, text)
-				linetexts = append(linetexts, linetext)
+				//linetexts = append(linetexts, linetext)
 				previouss = append(previouss, previous)
 				nexts = append(nexts, newnode)
 				firsts = append(firsts, first)
@@ -335,7 +355,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 
 				texturns = append(texturns, newnode)
 				texts = append(texts, "")
-				linetexts = append(linetexts, []string{})
+				//linetexts = append(linetexts, []string{})
 				previouss = append(previouss, ctsurn)
 				nexts = append(nexts, next)
 				firsts = append(firsts, first)
@@ -353,7 +373,7 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 				newindex := index + 1
 				texturns = append(texturns, ctsurn)
 				texts = append(texts, text)
-				linetexts = append(linetexts, linetext)
+				//linetexts = append(linetexts, linetext)
 				previouss = append(previouss, newnode)
 				nexts = append(nexts, next)
 				firsts = append(firsts, first)
@@ -371,21 +391,41 @@ func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
 		return nil
 	})
 
-	var bolturns []BoltURN
+	//var bolturns []BoltURN
+	var gocitePassages []gocite.Passage
 	for i := range texturns {
-		bolturns = append(bolturns, BoltURN{URN: texturns[i],
-			Text:     texts[i],
-			LineText: linetexts[i],
-			Previous: previouss[i],
-			Next:     nexts[i],
-			First:    firsts[i],
-			Last:     lasts[i],
-			Index:    indexs[i],
-			ImageRef: imagerefs[i]})
+		/*bolturns = append(bolturns, BoltURN{URN: texturns[i],
+		Text:     texts[i],
+		//LineText: linetexts[i],
+		Previous: previouss[i],
+		Next:     nexts[i],
+		First:    firsts[i],
+		Last:     lasts[i],
+		Index:    indexs[i],
+		ImageRef: imagerefs[i]})*/
+
+		text := gocite.EncText{}
+		text.TXT = texts[i]
+		var previous, next, first, last gocite.PassLoc
+		previous.PassageID = previouss[i]
+		next.PassageID = nexts[i]
+		first.PassageID = firsts[i]
+		last.PassageID = lasts[i]
+
+		gocitePassages = append(gocitePassages, gocite.Passage{
+			PassageID: texturns[i],
+			Text:      text,
+			Prev:      previous,
+			Next:      next,
+			First:     first,
+			Last:      last,
+			Index:     indexs[i]})
+		//ImageRef:  imagerefs[i]}) //What to do with the imagerefs?
 	}
-	for i := range bolturns {
+	//for i := range bolturns {
+	for i := range gocitePassages {
 		newkey := texturns[i]
-		newnode, _ := json.Marshal(bolturns[i])
+		newnode, _ := json.Marshal(gocitePassages[i])
 		key := []byte(newkey)
 		value := []byte(newnode)
 		err = db.Update(func(tx *bolt.Tx) error {

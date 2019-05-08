@@ -62,7 +62,7 @@ func loadPage(transcription Transcription, kind string) (*Page, error) {
 		texturn := requestedbucket + strings.Split(title, ":")[4]
 
 		// adding testing if requestedbucket exists...
-		retrieveddata := BoltRetrieve(dbname, requestedbucket, texturn)
+		retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, texturn)
 		if retrieveddata.JSON == "" {
 			continue
 		}
@@ -75,7 +75,7 @@ func loadPage(transcription Transcription, kind string) (*Page, error) {
 		case ctsurn == title:
 			htmllink = `<option value="` + config.Host + kind + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
 		case ctsurn == "":
-			ctsurn = BoltRetrieveFirstKey(dbname, requestedbucket)
+			ctsurn, _ = BoltRetrieveFirstKey(dbname, requestedbucket)
 			htmllink = `<option value="` + config.Host + kind + ctsurn + `">` + transcription.TextRef[i] + `</option>`
 		default:
 			htmllink = `<option value="` + config.Host + kind + ctsurn + `">` + transcription.TextRef[i] + `</option>`
@@ -206,7 +206,7 @@ func loadMultiPage(transcription Transcription) (*Page, error) {
 		texturn := requestedbucket + strings.Split(transcription.CTSURN, ":")[4]
 
 		// adding testing if requestedbucket exists...
-		retrieveddata := BoltRetrieve(dbname, requestedbucket, texturn)
+		retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, texturn)
 		if retrieveddata.JSON == "" {
 			continue
 		}
@@ -220,7 +220,7 @@ func loadMultiPage(transcription Transcription) (*Page, error) {
 		case ctsurn == transcription.CTSURN:
 			htmllink = `<option value="` + config.Host + "/multicompare/" + ctsurn + `" selected>` + transcription.TextRef[i] + `</option>`
 		case ctsurn == "":
-			ctsurn = BoltRetrieveFirstKey(dbname, requestedbucket)
+			ctsurn, _ = BoltRetrieveFirstKey(dbname, requestedbucket)
 			htmllink = `<option value="` + config.Host + "/multicompare/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`
 		default:
 			htmllink = `<option value="` + config.Host + "/multicompare/" + ctsurn + `">` + transcription.TextRef[i] + `</option>`

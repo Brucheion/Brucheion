@@ -7,5 +7,7 @@
 "gitLabSecret": "6ad9c6a416eeae876993a63d5ca1b3f36d026eb0a84add2a9ad24bd04a69bf11",
 "gitLabScope": "read_user",
 "maxAge": "45",
-"userDB": "./users.db"
+"userDB": "./users.db",
+"orthographyNormalisationFilenames": {"san": "./SanskritOrthography.json"},
+"useNormalization": true
 }
