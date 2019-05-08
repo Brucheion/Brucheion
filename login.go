@@ -12,6 +12,7 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
+	"github.com/markbates/goth/providers/google"
 
 	"github.com/boltdb/bolt"
 
@@ -29,10 +30,12 @@ func setUpGothic() {
 	//Build the authentification paths for the choosen providers
 	gitHubPath := (config.Host + "/auth/github/callback")
 	gitLabPath := (config.Host + "/auth/gitlab/callback")
+	googlePath := (config.Host + "/auth/google/callback")
 	//Tell gothic which login providers to use
 	goth.UseProviders(
 		github.New(config.GitHubKey, config.GitHubSecret, gitHubPath),
-		gitlab.New(config.GitLabKey, config.GitLabSecret, gitLabPath, config.GitLabScope))
+		gitlab.New(config.GitLabKey, config.GitLabSecret, gitLabPath, config.GitLabScope),
+		google.New(config.GoogleKey, config.GoogleSecret, googlePath, "profile"))
 	//Create new Cookiestore for _gothic_session
 	loginTimeout := 60 //Time the _gothic_session cookie will be alive in seconds
 	gothic.Store = getCookieStore(loginTimeout)
