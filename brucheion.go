@@ -78,7 +78,7 @@ func landingPage(res http.ResponseWriter, req *http.Request) {
 	log.Println(buckets)
 
 	//test := BoltRetrieve(dbname, "users", "test")
-	adri := BoltRetrieve(dbname, "users", "adri")
+	adri, _ := BoltRetrieve(dbname, "users", "adri")
 
 	log.Println("User test:")
 	log.Println(BoltRetrieve(dbname, "users", "test"))
@@ -120,6 +120,8 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
 	router.HandleFunc("/multicompare/{urn}/", MultiPage)
+	router.HandleFunc("/normalizeTemporarily/{urns}/", normalizeOrthographyTemporarily)
+	router.HandleFunc("/normalizeAndSave/{urns}/", normalizeOrthographyAndSave)
 	router.HandleFunc("/edit/{urn}/", EditPage)
 	router.HandleFunc("/editcat/{urn}/", EditCatPage)
 	router.HandleFunc("/save/{key}/", SaveTranscription)

@@ -43,7 +43,7 @@ func SaveTranscription(res http.ResponseWriter, req *http.Request) {
 	//linetext := strings.Split(text, "\r\n")
 	text = strings.Replace(text, "\r\n", "", -1)
 	dbname := user + ".db"
-	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
+	retrieveddata, _ := BoltRetrieve(dbname, newbucket, newkey)
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	retrievedjson.Text.Brucheion = text //gocite.Passage.Text.Brucheion is the text representation with newline tags

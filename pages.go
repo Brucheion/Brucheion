@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -17,7 +16,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ViewPage
+// ViewPage prepares, loads, and renders the Passage Overview
 func ViewPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -45,8 +44,8 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
@@ -133,27 +132,24 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
-	retrievedjson := BoltURN{}
+	//retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
-	ctsurn := retrievedjson.URN
-	text := ""
-	linetext := retrievedjson.LineText
-	for i := range linetext {
-		text = text + linetext[i]
-		if i < len(linetext)-1 {
-			text = text + " "
-		}
+	ctsurn := retrievedjson.PassageID
+	text := retrievedjson.Text.TXT
+	previous := retrievedjson.Prev.PassageID
+	next := retrievedjson.Next.PassageID
+	imageref := []string{}
+	for _, tmp := range retrievedjson.ImageLinks {
+		imageref = append(imageref, tmp.Object)
 	}
-	previous := retrievedjson.Previous
-	next := retrievedjson.Next
-	imageref := retrievedjson.ImageRef
-	first := retrievedjson.First
-	last := retrievedjson.Last
+	first := retrievedjson.First.PassageID
+	last := retrievedjson.Last.PassageID
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -190,27 +186,24 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket = strings.Join(strings.Split(urn2, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata = BoltRetrieve(dbname, requestedbucket, urn2)
-	retrievedcat = BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ = BoltRetrieve(dbname, requestedbucket, urn2)
+	retrievedcat, _ = BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson = BoltCatalog{}
-	retrievedjson = BoltURN{}
+	//retrievedjson = BoltURN{}
+	retrievedjson = gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
-	ctsurn = retrievedjson.URN
-	text = ""
-	linetext = retrievedjson.LineText
-	for i := range linetext {
-		text = text + linetext[i]
-		if i < len(linetext)-1 {
-			text = text + " "
-		}
+	ctsurn = retrievedjson.PassageID
+	text = retrievedjson.Text.TXT
+	previous = retrievedjson.Prev.PassageID
+	next = retrievedjson.Next.PassageID
+	imageref = []string{}
+	for _, tmp := range retrievedjson.ImageLinks {
+		imageref = append(imageref, tmp.Object)
 	}
-	previous = retrievedjson.Previous
-	next = retrievedjson.Next
-	imageref = retrievedjson.ImageRef
-	first = retrievedjson.First
-	last = retrievedjson.Last
+	first = retrievedjson.First.PassageID
+	last = retrievedjson.Last.PassageID
 	imagejs = "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -276,8 +269,8 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
 	retrievedjson := BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
@@ -333,8 +326,8 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket = strings.Join(strings.Split(urn2, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata = BoltRetrieve(dbname, requestedbucket, urn2)
-	retrievedcat = BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ = BoltRetrieve(dbname, requestedbucket, urn2)
+	retrievedcat, _ = BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson = BoltCatalog{}
 	retrievedjson = BoltURN{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
@@ -418,7 +411,7 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
@@ -478,7 +471,7 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 
@@ -539,18 +532,14 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 
 	// adding testing if requestedbucket exists...
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedcat := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
-	retrievedjson := BoltURN{}
+	retrievedjson := gocite.Passage{}
+
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
-	previous := retrievedjson.Previous
-	next := retrievedjson.Next
-	first := retrievedjson.First
-	last := retrievedjson.Last
 
-	ctsurn := retrievedjson.URN
 	catid := retrievedcatjson.URN
 	catcit := retrievedcatjson.Citation
 	catgroup := retrievedcatjson.GroupName
@@ -559,19 +548,21 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	catexpl := retrievedcatjson.ExemplarLabel
 	caton := retrievedcatjson.Online
 	catlan := retrievedcatjson.Language
-	transcription := Transcription{CTSURN: ctsurn,
+	transcription := Transcription{
+		CTSURN:      retrievedjson.PassageID,
 		Transcriber: user,
 		TextRef:     textref,
-		Previous:    previous,
-		Next:        next,
-		First:       first,
-		Last:        last,
+		Previous:    retrievedjson.Prev.PassageID,
+		Next:        retrievedjson.Next.PassageID,
+		First:       retrievedjson.First.PassageID,
+		Last:        retrievedjson.Last.PassageID,
 		CatID:       catid, CatCit: catcit, CatGroup: catgroup, CatWork: catwork, CatVers: catversion, CatExmpl: catexpl, CatOn: caton, CatLan: catlan}
 	kind := "/editcat/"
 	page, _ := loadPage(transcription, kind)
 	renderTemplate(res, "editcat", page)
 }
 
+//MultiPage prepares, loads, and renders the Multicompare page (?)
 func MultiPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -598,18 +589,18 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 	work := strings.Join(strings.Split(strings.Split(requestedbucket, ":")[3], ".")[0:1], ".")
-	retrieveddata := BoltRetrieve(dbname, requestedbucket, urn)
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	id1 := retrievedjson.PassageID
-	text1 := retrievedjson.Text.Brucheion
+	text1 := retrievedjson.Text.TXT
+	if config.UseNormalization && retrievedjson.Text.Normalised != "" {
+		text1 = retrievedjson.Text.Normalised
+	} // config setting updated only on restart since loadConfiguration() in brucheion.go
 	next1 := retrievedjson.Next.PassageID
 	first1 := retrievedjson.First.PassageID
 	last1 := retrievedjson.Last.PassageID
 	previous1 := retrievedjson.Prev.PassageID
-	swirlreg := regexp.MustCompile(`{[^}]*}`)
-	text1 = swirlreg.ReplaceAllString(text1, "")
-	text1 = strings.Replace(text1, "-NEWLINE-", "", -1)
 	ids := []string{}
 	texts := []string{}
 	passageID := strings.Split(urn, ":")[4]
@@ -647,7 +638,11 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 				if passageID != strings.Split(ctsurn, ":")[4] {
 					continue
 				}
-				text := strings.Replace(retrievedjson.Text.Brucheion, "-NEWLINE-", "", -1)
+				text := retrievedjson.Text.TXT
+				if config.UseNormalization && retrievedjson.Text.Normalised != "" {
+					text = retrievedjson.Text.Normalised
+				} // config setting updated only on restart since loadConfiguration() in brucheion.go
+
 				// make sure only witness that contain text are included
 				if len(strings.Replace(text, " ", "", -1)) > 5 {
 					ids = append(ids, ctsurn)
@@ -695,7 +690,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 			case score >= base:
 				highlight = 0.0
 			default:
-				highlight = 1.0 - float32(score)/float32(base)
+				highlight = 1.0 - float32(score)/(3*float32(base))
 			}
 			newscore = append(newscore, highlight)
 		}

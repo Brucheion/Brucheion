@@ -6,34 +6,6 @@ import (
 	"net/http"
 )
 
-type TreeNode struct {
-	Identifier string     `json:"name"`
-	SentenceID string     `json:"sentence"`
-	CTSID      string     `json:"CTSID"`
-	WordToken  WordToken  `json:"token"`
-	Lemma      Lemma      `json:"lemma"`
-	Children   []TreeNode `json:"children"`
-	Parent     []TreeNode `json:"parent"`
-}
-
-type WordToken struct {
-	Identifier string `json:"treeTokenID"`
-	Text       string `json:"treeToken"`
-	Relation   string `json:"relation"`
-	POStag     string `json:"postag"`
-}
-
-type Lemma struct {
-	Identifier string `json:"treeLemmaID"`
-	Text       string `json:"treeLemma"`
-}
-
-type Sentence struct {
-	Identifier    string
-	CTSIdentifier string
-	Text          string
-}
-
 //Some kind of proof of concept for something?
 func Treenode(w http.ResponseWriter, r *http.Request) {
 	var parentNode, childNode1, childNode2, childNode3, childNode4, childNode5 TreeNode

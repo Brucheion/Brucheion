@@ -240,7 +240,7 @@ func SaveImageRef(res http.ResponseWriter, req *http.Request) {
 	// imagerefstr := r.FormValue("text")
 	imageref := strings.Split(imagerefstr, "+")
 	dbname := user + ".db"
-	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
+	retrieveddata, _ := BoltRetrieve(dbname, newbucket, newkey)
 	retrievedjson := gocite.Passage{}
 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
 	var textareas []gocite.Triple

@@ -84,7 +84,7 @@ func removeDuplicatesUnordered(elements []string) []string {
 	return result
 }
 
-//extractLinks extracts tje links from a gocite.Citr2Urn and returns them as a string slice
+// extractLinks extracts the links from a gocite.Cite2Urn and returns them as a string slice
 //called by newCollection
 func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 	urnLink := urn.Namespace + "/" + strings.Replace(urn.Collection, ".", "/", -1) + "/"
@@ -113,12 +113,12 @@ func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 				urnStr := urn.Base + ":" + urn.Protocol + ":" + urn.Namespace + ":" + urn.Collection + ":" + strings.Replace(url, ".dzi", "", -1)
 				links = append(links, urnStr)
 			}
-			if !ok {
+			if !ok { //wouldn't this continue any way? Or put his before the if statement?
 				continue
 			}
 		}
 	}
-	return links, nil
+	//return links, nil //go vet: unreacheable code: will return with err != nil or case tt anyway
 }
 
 //maxfloat returns the index of the highest float64 in a float64 slice
@@ -291,7 +291,7 @@ func addSansHyphens(s string) string {
 		}
 		if next {
 			newSl = append(newSl, runeSl[i])
-			next = false
+			//next = false //ineffectual assignment to next: next is not called after this if-clause and is set false with every run of the outer for-clause anyway.
 			continue
 		}
 		if runeSl[i] == rune('a') {

@@ -14,13 +14,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ThomasK81/gocite"
 	"github.com/boltdb/bolt"
 
 	"github.com/gorilla/mux"
+
+	"github.com/ThomasK81/gocite"
 )
 
-//dataframe is the sort-matrix interface used in ExportCEX to sort integer Indices
+// dataframe is the sort-matrix interface used in ExportCEX to sort integer Indices
 //and their string values using used by sort.Sort in ExportCEX
 type dataframe struct {
 	Indices []int
@@ -41,7 +42,8 @@ func (m dataframe) Swap(i, j int) {
 	m.Values2[i], m.Values2[j] = m.Values2[j], m.Values2[i]
 }
 
-//ExportCEX exports CEX data to a CEX file
+// ExportCEX exports CEX data from the user database to a CEX file
+//Reference on CEX files: https://cite-architecture.github.io/citedx/CEX-spec-3.0.1/
 func ExportCEX(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -62,6 +64,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var texturns, texts, areas, imageurns []string
+	var catalog []BoltCatalog
 	var indexs []int
 	vars := mux.Vars(req)
 	filename := vars["filename"]
@@ -77,17 +80,28 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	for i := range buckets {
 		db.View(func(tx *bolt.Tx) error {
 			// Assume bucket exists and has keys
-			b := tx.Bucket([]byte(buckets[i]))
+			bucket := tx.Bucket([]byte(buckets[i]))
 
-			c := b.Cursor()
+			cursor := bucket.Cursor()
 
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-				retrievedjson := BoltURN{}
-				json.Unmarshal([]byte(v), &retrievedjson)
-				ctsurn := retrievedjson.URN
-				text := retrievedjson.Text
+			for key, value := cursor.First(); key != nil; key, value = cursor.Next() {
+				retrievedcatalog := BoltCatalog{}
+				json.Unmarshal([]byte(value), &retrievedcatalog)
+				catalog = append(catalog, retrievedcatalog)
+			}
+
+			for key, value := cursor.First(); key != nil; key, value = cursor.Next() {
+
+				retrievedjson := gocite.Passage{}
+				json.Unmarshal([]byte(value), &retrievedjson)
+				ctsurn := retrievedjson.PassageID
+				text := retrievedjson.Text.TXT
 				index := retrievedjson.Index
-				imageref := retrievedjson.ImageRef
+				//imageref := retrievedjson.ImageRef
+				imageref := []string{}
+				for _, tmp := range retrievedjson.ImageLinks {
+					imageref = append(imageref, tmp.Object)
+				}
 				if len(imageref) > 0 {
 					for i := range imageref {
 						areas = append(areas, imageref[i])
@@ -113,10 +127,22 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	}
 	sort.Sort(dataframe{Indices: correctedIndex, Values1: texturns, Values2: texts})
 	var content string
-	content = "#!ctsdata\n"
+
+	content = "#!ctscatalog\nurn#citationScheme#groupName#workTitle#versionLabel#exemplarLabel#online#lang\n"
+	for i := range catalog {
+		str := catalog[i].URN + "#" + catalog[i].Citation + "#" + catalog[i].GroupName + "#" + catalog[i].WorkTitle + "#" + catalog[i].VersionLabel + "#" + catalog[i].ExemplarLabel + "#" + catalog[i].Online + "#" + catalog[i].Language + "\n"
+		if str != "#######\n" {
+			content = content + str
+		}
+	}
+	content = content + "\n\n#!ctsdata\n"
+
+	//content = "#!ctsdata\n"
 	for i := range texturns {
 		str := texturns[i] + "#" + texts[i] + "\n"
-		content = content + str
+		if str != "#\n" {
+			content = content + str
+		}
 	}
 	content = content + "\n#!relations\n"
 	for i := range imageurns {
@@ -347,6 +373,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	for i := range boltdata.Bucket {
 		newbucket := boltdata.Bucket[i]
 		/// new stuff
+		//Saving the CTS Catalog data
 		newcatkey := boltdata.Bucket[i]
 		newcatnode, _ := json.Marshal(boltdata.Catalog[i])
 		catkey := []byte(newcatkey)
@@ -369,6 +396,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 		}
 		/// end stuff
 
+		//saving the individual passages
 		for j := range boltdata.Data[i].Passages {
 			newkey := boltdata.Data[i].Passages[j].PassageID
 			newnode, _ := json.Marshal(boltdata.Data[i].Passages[j])
