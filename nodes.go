@@ -15,209 +15,287 @@ import (
 	"github.com/ThomasK81/gocite"
 )
 
-// func AddFirstNode(res http.ResponseWriter, req *http.Request) {
+//AddFirstNode adds a new passage at the beginning of the work
+func AddFirstNode(res http.ResponseWriter, req *http.Request) {
+	//First get the session..
+	session, err := getSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-// 	//First get the session..
-// 	session, err := getSession(req)
-// 	if err != nil {
-// 		http.Error(res, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
+	//..and check if user is logged in.
+	user, message, loggedin := testLoginStatus("AddFirstNode", session)
+	if loggedin {
+		log.Println(message)
+	} else {
+		log.Println(message)
+		Logout(res, req)
+		return
+	}
 
-// 	//..and check if user is logged in.
-// 	user, message, loggedin := testLoginStatus("AddFirstNode", session)
-// 	if loggedin {
-// 		log.Println(message)
-// 	} else {
-// 		log.Println(message)
-// 		Logout(res, req)
-// 		return
-// 	}
+	dbName := user + ".db"
+	passage, err := BoltRetrievePassage(dbName, "urn:cts:sktlit:skt0001.nyaya002.msC3D:", "3.1.44")
 
-// 	var texturns, texts, previouss, nexts, firsts, lasts []string
-// 	var imagerefs, linetexts [][]string
-// 	var indexs []int
-// 	vars := mux.Vars(req)
-// 	newkey := vars["key"]
-// 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
-// 	dbname := user + ".db"
-// 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
-// 	retrievednodejson := BoltURN{}
-// 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievednodejson)
-// 	marker := retrievednodejson.First
-// 	retrieveddata = BoltRetrieve(dbname, newbucket, marker)
-// 	retrievednodejson = BoltURN{}
-// 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievednodejson)
-// 	bookmark := retrievednodejson.Index
-// 	lastnode := false
-// 	if retrievednodejson.Last == retrievednodejson.URN {
-// 		lastnode = true
-// 	}
-// 	db, err := openBoltDB(dbname) //open bolt DB using helper function
-// 	if err != nil {
-// 		fmt.Printf("Error opening userDB: %s", err)
-// 		http.Error(res, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-// 	defer db.Close()
+	log.Printf("Passage received: %s \nIndex: %d\nFirst: %d\nLast: %d\nPrev: %d\nNext: %d\n",
+		passage.PassageID, passage.Index, passage.First.Index,
+		passage.Last.Index, passage.Prev.Index, passage.Next.Index)
 
-// 	db.View(func(tx *bolt.Tx) error {
-// 		// Assume bucket exists and has keys
-// 		b := tx.Bucket([]byte(newbucket))
+	work, err := BoltRetrieveWork(dbName, "urn:cts:sktlit:skt0001.nyaya002.msC3D:")
 
-// 		c := b.Cursor()
+	if err == nil {
+		for i := range work.Passages {
+			log.Println(fmt.Printf(" Work received: PassageID: %s\n Index: %d\nFirst.Index: %d\nFirst.PassageID: %s\nLast.Index: %d\nLast.PassageID: %s\nPrev.Index: %d\nPrev.PassageID: %s\nNext.Index: %d\nNext.PassageID: %s\n\n",
+				work.Passages[i].PassageID, work.Passages[i].Index,
+				work.Passages[i].First.Index, work.Passages[i].First.PassageID,
+				work.Passages[i].Last.Index, work.Passages[i].Last.PassageID,
+				work.Passages[i].Prev.Index, work.Passages[i].Prev.PassageID,
+				work.Passages[i].Next.Index, work.Passages[i].Next.PassageID))
+		}
+	} else {
+		log.Println(err)
+	}
 
-// 		for k, v := c.First(); k != nil; k, v = c.Next() {
-// 			retrievedjson := BoltURN{}
-// 			json.Unmarshal([]byte(v), &retrievedjson)
-// 			ctsurn := retrievedjson.URN
-// 			text := retrievedjson.Text
-// 			linetext := retrievedjson.LineText
-// 			previous := retrievedjson.Previous
-// 			next := retrievedjson.Next
-// 			imageref := retrievedjson.ImageRef
-// 			last := retrievedjson.Last
-// 			index := retrievedjson.Index
-// 			newfirst := newbucket + "newNode" + strconv.Itoa(bookmark)
+	/*
+		var first, last, prev, next string
 
-// 			switch {
-// 			case index < bookmark:
-// 				texturns = append(texturns, ctsurn)
-// 				texts = append(texts, text)
-// 				linetexts = append(linetexts, linetext)
-// 				previouss = append(previouss, previous)
-// 				nexts = append(nexts, next)
-// 				firsts = append(firsts, newfirst)
-// 				switch lastnode {
-// 				case false:
-// 					lasts = append(lasts, last)
-// 				case true:
-// 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
-// 					lasts = append(lasts, newlast)
-// 				}
-// 				indexs = append(indexs, index)
-// 				imagerefs = append(imagerefs, imageref)
-// 			case index > bookmark+1:
-// 				newindex := index + 1
-// 				texturns = append(texturns, ctsurn)
-// 				texts = append(texts, text)
-// 				linetexts = append(linetexts, linetext)
-// 				previouss = append(previouss, previous)
-// 				nexts = append(nexts, next)
-// 				firsts = append(firsts, newfirst)
-// 				switch lastnode {
-// 				case false:
-// 					lasts = append(lasts, last)
-// 				case true:
-// 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
-// 					lasts = append(lasts, newlast)
-// 				}
-// 				indexs = append(indexs, newindex)
-// 				imagerefs = append(imagerefs, imageref)
-// 			case index == bookmark:
-// 				newnode := newbucket + "newNode" + strconv.Itoa(index)
-// 				newindex := index + 1
+		vars := mux.Vars(req)
 
-// 				texturns = append(texturns, newnode)
-// 				texts = append(texts, "")
-// 				linetexts = append(linetexts, []string{})
-// 				previouss = append(previouss, newfirst)
-// 				nexts = append(nexts, ctsurn)
-// 				firsts = append(firsts, newfirst)
-// 				switch lastnode {
-// 				case false:
-// 					lasts = append(lasts, last)
-// 				case true:
-// 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
-// 					lasts = append(lasts, newlast)
-// 				}
-// 				indexs = append(indexs, index)
-// 				imagerefs = append(imagerefs, []string{})
+		/*
+		    	var texturns, texts, previouss, nexts, firsts, lasts []string
+		    	var imagerefs, linetexts [][]string
+		    	var indexs []int
+		    	vars := mux.Vars(req)
+		    	newkey := vars["key"]
+		    	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
+		    	dbname := user + ".db"
+		    	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
+		    	retrievednodejson := BoltURN{}
+		    	json.Unmarshal([]byte(retrieveddata.JSON), &retrievednodejson)
+		   	marker := retrievednodejson.First
+		    	retrieveddata = BoltRetrieve(dbname, newbucket, marker)
+		   	retrievednodejson = BoltURN{}
+		    	json.Unmarshal([]byte(retrieveddata.JSON), &retrievednodejson)
+		    	bookmark := retrievednodejson.Index
+		    	lastnode := false
+		    	if retrievednodejson.Last == retrievednodejson.URN {
+		    		lastnode = true
+		    	}
+		    	db, err := openBoltDB(dbname) //open bolt DB using helper function
+		    	if err != nil {
+		    		fmt.Printf("Error opening userDB: %s", err)
+		    		http.Error(res, err.Error(), http.StatusInternalServerError)
+		    		return
+		    	}
+		    	defer db.Close()
 
-// 				texturns = append(texturns, ctsurn)
-// 				texts = append(texts, text)
-// 				linetexts = append(linetexts, linetext)
-// 				previouss = append(previouss, newfirst)
-// 				nexts = append(nexts, next)
-// 				firsts = append(firsts, newfirst)
-// 				switch lastnode {
-// 				case false:
-// 					lasts = append(lasts, last)
-// 				case true:
-// 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
-// 					lasts = append(lasts, newlast)
-// 				}
-// 				indexs = append(indexs, newindex)
-// 				imagerefs = append(imagerefs, imageref)
-// 			case index == bookmark+1:
-// 				newnode := newbucket + "newNode" + strconv.Itoa(bookmark)
-// 				newindex := index + 1
-// 				texturns = append(texturns, ctsurn)
-// 				texts = append(texts, text)
-// 				linetexts = append(linetexts, linetext)
-// 				previouss = append(previouss, newnode)
-// 				nexts = append(nexts, next)
-// 				firsts = append(firsts, newfirst)
-// 				switch lastnode {
-// 				case false:
-// 					lasts = append(lasts, last)
-// 				case true:
-// 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
-// 					lasts = append(lasts, newlast)
-// 				}
-// 				indexs = append(indexs, newindex)
-// 				imagerefs = append(imagerefs, imageref)
-// 			}
-// 		}
+	*/
+}
 
-// 		return nil
-// 	})
+/*
+ func AddFirstNodeOLD(res http.ResponseWriter, req *http.Request) {
 
-// 	var bolturns []gocite.Passage
-// 	lastTextID := len(texturns)-1
-// 	for i := range texturns {
-// 		prevEx := true
-// 		nextEx := true
-// 		if i == 0 {prevEx = false}
-// 		if i == lastTextID {nextEx = false}
-// 		bolturns = append(bolturns, gocite.Passage{PassageID: texturns[i],
-// 			Range: false,
-// 			Text:     gocite.EncText{Brucheion: texts[i],
-// 			TXT: linetexts[i]},
-// 			Previous: gocite.PassLoc{Exists: prevEx,
-// 				PassageID: previouss[i],
-// 				index = i - 1},
-// 			Next:     gocite.PassLoc{Exists: nextEx,
-// 				PassageID: nexts[i],
-// 				index = i + 1},
-// 			First:    gocite.PassLoc{Exists: true,
-// 				PassageID: firsts[i],
-// 				index = 0},
-// 			Last:     gocite.PassLoc{Exists: true,
-// 				PassageID: lasts[i],
-// 				index = lastTextID},
-// 			Index:    indexs[i],
-// 			ImageRef: imagerefs[i]})
-// 	}
-// 	for i := range bolturns {
-// 		newkey := texturns[i]
-// 		newnode, _ := json.Marshal(bolturns[i])
-// 		key := []byte(newkey)
-// 		value := []byte(newnode)
-// 		err = db.Update(func(tx *bolt.Tx) error {
-// 			bucket, err := tx.CreateBucketIfNotExists([]byte(newbucket))
-// 			if err != nil {
-// 				return err
-// 			}
+ 	//First get the session..
+ 	session, err := getSession(req)
+ 	if err != nil {
+ 		http.Error(res, err.Error(), http.StatusInternalServerError)
+ 		return
+ 	}
 
-// 			err = bucket.Put(key, value)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			return nil
-// 		})
-// 	}
-// }
+ 	//..and check if user is logged in.
+ 	user, message, loggedin := testLoginStatus("AddFirstNode", session)
+ 	if loggedin {
+ 		log.Println(message)
+ 	} else {
+ 		log.Println(message)
+ 		Logout(res, req)
+ 		return
+ 	}
+
+
+ 	var texturns, texts, previouss, nexts, firsts, lasts []string
+ 	var imagerefs, linetexts [][]string
+ 	var indexs []int
+ 	vars := mux.Vars(req)
+ 	newkey := vars["key"]
+ 	newbucket := strings.Join(strings.Split(newkey, ":")[0:4], ":") + ":"
+ 	dbname := user + ".db"
+ 	retrieveddata := BoltRetrieve(dbname, newbucket, newkey)
+ 	retrievednodejson := BoltURN{}
+ 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievednodejson)
+	marker := retrievednodejson.First
+ 	retrieveddata = BoltRetrieve(dbname, newbucket, marker)
+	retrievednodejson = BoltURN{}
+ 	json.Unmarshal([]byte(retrieveddata.JSON), &retrievednodejson)
+ 	bookmark := retrievednodejson.Index
+ 	lastnode := false
+ 	if retrievednodejson.Last == retrievednodejson.URN {
+ 		lastnode = true
+ 	}
+ 	db, err := openBoltDB(dbname) //open bolt DB using helper function
+ 	if err != nil {
+ 		fmt.Printf("Error opening userDB: %s", err)
+ 		http.Error(res, err.Error(), http.StatusInternalServerError)
+ 		return
+ 	}
+ 	defer db.Close()
+
+ 	db.View(func(tx *bolt.Tx) error {
+		// Assume bucket exists and has keys
+ 		b := tx.Bucket([]byte(newbucket))
+		c := b.Cursor()
+
+ 		for k, v := c.First(); k != nil; k, v = c.Next() {
+ 			retrievedjson := BoltURN{}
+ 			json.Unmarshal([]byte(v), &retrievedjson)
+ 			ctsurn := retrievedjson.URN
+ 			text := retrievedjson.Text
+ 			linetext := retrievedjson.LineText
+ 			previous := retrievedjson.Previous
+ 			next := retrievedjson.Next
+ 			imageref := retrievedjson.ImageRef
+ 			last := retrievedjson.Last
+ 			index := retrievedjson.Index
+ 			newfirst := newbucket + "newNode" + strconv.Itoa(bookmark)
+
+ 			switch {
+ 			case index < bookmark:
+ 				texturns = append(texturns, ctsurn)
+ 				texts = append(texts, text)
+ 				linetexts = append(linetexts, linetext)
+ 				previouss = append(previouss, previous)
+ 				nexts = append(nexts, next)
+ 				firsts = append(firsts, newfirst)
+ 				switch lastnode {
+ 				case false:
+ 					lasts = append(lasts, last)
+ 				case true:
+ 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
+ 					lasts = append(lasts, newlast)
+ 				}
+				indexs = append(indexs, index)
+				imagerefs = append(imagerefs, imageref)
+ 			case index > bookmark+1:
+ 				newindex := index + 1
+ 				texturns = append(texturns, ctsurn)
+ 				texts = append(texts, text)
+ 				linetexts = append(linetexts, linetext)
+ 				previouss = append(previouss, previous)
+				nexts = append(nexts, next)
+ 				firsts = append(firsts, newfirst)
+ 				switch lastnode {
+ 				case false:
+					lasts = append(lasts, last)
+ 				case true:
+ 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
+ 					lasts = append(lasts, newlast)
+ 				}
+ 				indexs = append(indexs, newindex)
+ 				imagerefs = append(imagerefs, imageref)
+ 			case index == bookmark:
+ 				newnode := newbucket + "newNode" + strconv.Itoa(index)
+ 				newindex := index + 1
+
+ 				texturns = append(texturns, newnode)
+ 				texts = append(texts, "")
+ 				linetexts = append(linetexts, []string{})
+				previouss = append(previouss, newfirst)
+ 				nexts = append(nexts, ctsurn)
+ 				firsts = append(firsts, newfirst)
+				switch lastnode {
+ 				case false:
+ 					lasts = append(lasts, last)
+ 				case true:
+ 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
+ 					lasts = append(lasts, newlast)
+ 				}
+ 				indexs = append(indexs, index)
+ 				imagerefs = append(imagerefs, []string{})
+
+ 				texturns = append(texturns, ctsurn)
+ 				texts = append(texts, text)
+ 				linetexts = append(linetexts, linetext)
+ 				previouss = append(previouss, newfirst)
+ 				nexts = append(nexts, next)
+ 				firsts = append(firsts, newfirst)
+				switch lastnode {
+ 				case false:
+					lasts = append(lasts, last)
+ 				case true:
+ 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
+ 					lasts = append(lasts, newlast)
+ 				}
+				indexs = append(indexs, newindex)
+ 				imagerefs = append(imagerefs, imageref)
+ 			case index == bookmark+1:
+ 				newnode := newbucket + "newNode" + strconv.Itoa(bookmark)
+				newindex := index + 1
+ 				texturns = append(texturns, ctsurn)
+ 				texts = append(texts, text)
+ 				linetexts = append(linetexts, linetext)
+				previouss = append(previouss, newnode)
+ 				nexts = append(nexts, next)
+ 				firsts = append(firsts, newfirst)
+ 				switch lastnode {
+ 				case false:
+ 					lasts = append(lasts, last)
+ 				case true:
+ 					newlast := newbucket + "newNode" + strconv.Itoa(bookmark)
+ 					lasts = append(lasts, newlast)
+				}
+				indexs = append(indexs, newindex)
+ 				imagerefs = append(imagerefs, imageref)
+ 			}
+ 		}
+ 		return nil
+ 	})
+
+ 	var bolturns []gocite.Passage
+ 	lastTextID := len(texturns)-1
+ 	for i := range texturns {
+ 		prevEx := true
+ 		nextEx := true
+ 		if i == 0 {prevEx = false}
+ 		if i == lastTextID {nextEx = false}
+ 		bolturns = append(bolturns, gocite.Passage{PassageID: texturns[i],
+ 			Range: false,
+ 			Text:     gocite.EncText{Brucheion: texts[i],
+ 			TXT: linetexts[i]},
+ 			Previous: gocite.PassLoc{Exists: prevEx,
+ 				PassageID: previouss[i],
+ 				index = i - 1},
+ 			Next:     gocite.PassLoc{Exists: nextEx,
+ 				PassageID: nexts[i],
+ 				index = i + 1},
+ 			First:    gocite.PassLoc{Exists: true,
+ 				PassageID: firsts[i],
+ 				index = 0},
+ 			Last:     gocite.PassLoc{Exists: true,
+ 				PassageID: lasts[i],
+ 				index = lastTextID},
+ 			Index:    indexs[i],
+ 			ImageRef: imagerefs[i]})
+ 	}
+ 	for i := range bolturns {
+ 		newkey := texturns[i]
+ 		newnode, _ := json.Marshal(bolturns[i])
+ 		key := []byte(newkey)
+ 		value := []byte(newnode)
+ 		err = db.Update(func(tx *bolt.Tx) error {
+ 			bucket, err := tx.CreateBucketIfNotExists([]byte(newbucket))
+ 			if err != nil {
+ 				return err
+ 			}
+
+ 			err = bucket.Put(key, value)
+ 			if err != nil {
+ 				return err
+ 			}
+ 			return nil
+ 		})
+ 	}
+ }
+*/
 
 // AddNodeAfter adds
 func AddNodeAfter(res http.ResponseWriter, req *http.Request) {
