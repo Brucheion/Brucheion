@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -59,7 +60,6 @@ func openBoltDB(dbName string) (*bolt.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println("DB opened")
 	return db, nil
 }
 
@@ -219,7 +219,7 @@ func newWorkToDB(dbName string, meta cexMeta) error {
 }
 
 //updateWorkMeta saves cexMeta data for an already existing key in the meta bucket
-//in the user database. Seems not to be called yet.
+//in the user database. Seems not to be called yet. (not in use) (deprecated?)
 func updateWorkMeta(dbName string, meta cexMeta) error {
 	pwd, _ := os.Getwd()
 	dbname := pwd + "/" + dbName + ".db"
@@ -254,7 +254,7 @@ func updateWorkMeta(dbName string, meta cexMeta) error {
 }
 
 //BoltRetrieveFirstKey returns the first key in a specified bucket of
-//a specified database as a string.
+//a specified database as a string. (deprecated)
 func BoltRetrieveFirstKey(dbname, bucketName string) (string, error) {
 	var result string
 	if _, err := os.Stat(dbname); os.IsNotExist(err) {
@@ -281,15 +281,97 @@ func BoltRetrieveFirstKey(dbname, bucketName string) (string, error) {
 	return result, err
 }
 
+// BoltRetrievePassage retrieves a Passage from its bucket as a gocite.Passage object
+func BoltRetrievePassage(dbName, workName, passageIdentifiers string) (gocite.Passage, error) {
+	var result gocite.Passage
+	if _, err := os.Stat(dbName); os.IsNotExist(err) {
+		log.Println(err)
+		return result, err
+	}
+	db, err := openBoltDB(dbName)
+	if err != nil {
+		log.Println(fmt.Printf("BoltRetrieve: error opening userDB: %s", err))
+		return result, err
+	}
+	defer db.Close()
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(workName))
+		if bucket == nil {
+			return fmt.Errorf("bucket %q not found", workName)
+		}
+		buffer := bucket.Get([]byte(workName + passageIdentifiers))
+		err := json.Unmarshal(buffer, &result) //unmarshal the buffer and save the gocite.Passage
+		if err != nil {
+			log.Println(fmt.Printf("Error unmarshalling work: %s", err))
+			return (err)
+		}
+		return nil
+	})
+	return result, err
+}
+
+//BoltRetrieveWork retrieves an entire work from the users database as an (ordered) gocite.Work object
+func BoltRetrieveWork(dbName, workID string) (gocite.Work, error) {
+	var result gocite.Work
+	if _, err := os.Stat(dbName); os.IsNotExist(err) {
+		log.Println(err)
+		return result, err
+	}
+	db, err := openBoltDB(dbName)
+	if err != nil {
+		log.Printf("BoltRetrieve: error opening userDB: %s\n", err)
+		return result, err
+	}
+	defer db.Close()
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(workID))
+		if bucket == nil {
+			return fmt.Errorf("BoltRetrieveWork: bucket %q not found", workID)
+		}
+		result.WorkID = workID
+		cursor := bucket.Cursor()
+
+		for key, value := cursor.First(); key != nil; key, value = cursor.Next() {
+			var passage gocite.Passage
+			err := json.Unmarshal(value, &passage) //unmarshal the buffer and save the gocite.Passage
+			if err != nil {
+				log.Println(fmt.Printf("BoltRetrieveWork: Error unmarshalling Passage: %s", err))
+				return fmt.Errorf("BoltRetrieveWork: Error unmarshalling Passage: %s", err)
+			}
+			//log.Println("Adding " + passage.PassageID + " to work")
+			if passage.PassageID != "" {
+				result.Passages = append(result.Passages, passage)
+			}
+		}
+		return nil
+	})
+	/*for i := range result.Passages {
+		log.Println(fmt.Printf("result: received: %s \nIndex: %d\nFirst: %d\nLast: %d\nPrev: %d\nNext: %d\n",
+			result.Passages[i].PassageID, result.Passages[i].Index, result.Passages[i].First.Index,
+			result.Passages[i].Last.Index, result.Passages[i].Prev.Index, result.Passages[i].Next.Index))
+	}*/
+	result2 := gocite.SortPassages(result)
+	for i := range result2.Passages {
+		log.Println(fmt.Printf(" SORTED result: PassageID: %s\n Index: %d\nFirst.Index: %d\nFirst.PassageID: %s\nLast.Index: %d\nLast.PassageID: %s\nPrev.Index: %d\nPrev.PassageID: %s\nNext.Index: %d\nNext.PassageID: %s\n\n",
+			result2.Passages[i].PassageID, result2.Passages[i].Index,
+			result2.Passages[i].First.Index, result2.Passages[i].First.PassageID,
+			result2.Passages[i].Last.Index, result2.Passages[i].Last.PassageID,
+			result2.Passages[i].Prev.Index, result2.Passages[i].Prev.PassageID,
+			result2.Passages[i].Next.Index, result2.Passages[i].Next.PassageID))
+	}
+	return result, err
+
+}
+
 // BoltRetrieve retrieves the string data (as BoltJSON) for the specified key
-//in the specified bucket of the specified database as a BoltJSON
+//in the specified bucket of the specified database as a BoltJSON (deprecated)
 func BoltRetrieve(dbname, bucketName, key string) (BoltJSON, error) {
 	var result BoltJSON
 	if _, err := os.Stat(dbname); os.IsNotExist(err) {
 		log.Println(err)
 		return result, err
 	}
-	db, err := openBoltDB(dbname) //open bolt DB using helper function
+	db, err := openBoltDB(dbname)
 	if err != nil {
 		log.Println(fmt.Printf("BoltRetrieve: error opening userDB: %s", err))
 		return result, err
@@ -309,6 +391,7 @@ func BoltRetrieve(dbname, bucketName, key string) (BoltJSON, error) {
 }
 
 //deleteBucket deletes a bucket with the name of a specified URN
+//(unused) (deprecated?)
 func deleteBucket(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -349,6 +432,7 @@ func deleteBucket(res http.ResponseWriter, req *http.Request) {
 }
 
 //deleteNode deletes the specified bucket (that is related to a certain node?)
+//(unused) (deprecated)
 func deleteNode(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..

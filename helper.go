@@ -121,7 +121,7 @@ func extractLinks(urn gocite.Cite2Urn) (links []string, err error) {
 	//return links, nil //go vet: unreacheable code: will return with err != nil or case tt anyway
 }
 
-//maxfloat returns the index of the highest float64 in a float64 slice
+//maxfloat returns the index of the highest float64 in a float64 slice (unused)
 func maxfloat(floatslice []float64) int {
 	max := floatslice[0]
 	maxindex := 0

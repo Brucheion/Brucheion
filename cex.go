@@ -325,7 +325,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 			sortedcatalog = append(sortedcatalog, BoltCatalog{})
 		}
 
-		var bolturns []gocite.Passage
+		var passages []gocite.Passage
 		for j := range texturns {
 			if strings.Contains(texturns[j], work) {
 				var textareas []gocite.Triple
@@ -339,31 +339,31 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 					}
 				}
 				linetext := strings.Replace(text[j], "-NEWLINE-", "\r\n", -1)
-				bolturns = append(bolturns, gocite.Passage{PassageID: texturns[j],
+				passages = append(passages, gocite.Passage{PassageID: texturns[j],
 					Range: false,
 					Text: gocite.EncText{Brucheion: text[j],
 						TXT: linetext},
 					ImageLinks: textareas})
 			}
 		}
-		for j := range bolturns {
-			bolturns[j].Index = j + 1
+		for j := range passages {
+			passages[j].Index = j
 			switch {
-			case j+1 == len(bolturns):
-				bolturns[j].Next = gocite.PassLoc{Exists: false}
+			case j+1 == len(passages):
+				passages[j].Next = gocite.PassLoc{Exists: false}
 			default:
-				bolturns[j].Next = gocite.PassLoc{Exists: true, PassageID: bolturns[j+1].PassageID, Index: j + 1}
+				passages[j].Next = gocite.PassLoc{Exists: true, PassageID: passages[j+1].PassageID, Index: j + 1}
 			}
 			switch {
 			case j == 0:
-				bolturns[j].Prev = gocite.PassLoc{Exists: false}
+				passages[j].Prev = gocite.PassLoc{Exists: false}
 			default:
-				bolturns[j].Prev = gocite.PassLoc{Exists: true, PassageID: bolturns[j-1].PassageID, Index: j - 1}
+				passages[j].Prev = gocite.PassLoc{Exists: true, PassageID: passages[j-1].PassageID, Index: j - 1}
 			}
-			bolturns[j].Last = gocite.PassLoc{Exists: true, PassageID: bolturns[len(bolturns)-1].PassageID, Index: len(bolturns) - 1}
-			bolturns[j].First = gocite.PassLoc{Exists: true, PassageID: bolturns[0].PassageID, Index: 0}
+			passages[j].Last = gocite.PassLoc{Exists: true, PassageID: passages[len(passages)-1].PassageID, Index: len(passages) - 1}
+			passages[j].First = gocite.PassLoc{Exists: true, PassageID: passages[0].PassageID, Index: 0}
 		}
-		boltworks = append(boltworks, gocite.Work{WorkID: work, Passages: bolturns, Ordered: true})
+		boltworks = append(boltworks, gocite.Work{WorkID: work, Passages: passages, Ordered: true})
 	}
 	boltdata := BoltData{Bucket: works, Data: boltworks, Catalog: sortedcatalog}
 
