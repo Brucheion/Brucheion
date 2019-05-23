@@ -125,7 +125,7 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/edit/{urn}/", EditPage)
 	router.HandleFunc("/editcat/{urn}/", EditCatPage)
 	router.HandleFunc("/save/{key}/", SaveTranscription)
-	router.HandleFunc("/addNodeAfter/{key}/", AddNodeAfter)
+	//	router.HandleFunc("/addNodeAfter/{key}/", AddNodeAfter)
 	router.HandleFunc("/addFirstNode/{key}/", AddFirstNode)
 	router.HandleFunc("/crud/", CrudPage)
 	router.HandleFunc("/deleteBucket/{urn}/", deleteBucket)

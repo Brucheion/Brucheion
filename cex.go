@@ -18,7 +18,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/ThomasK81/gocite"
+	"gociteDev/gocite"
 )
 
 // dataframe is the sort-matrix interface used in ExportCEX to sort integer Indices
@@ -159,6 +159,7 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 
 //LoadCEX loads a CEX file, parses it, and saves its contents in the user DB.
 //Maybe pass the parsed content to function in db.go?
+//could possibly be overhauled with new gocite release
 func LoadCEX(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -321,7 +322,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 		if testexist == false {
-			log.Println(fmt.Println(works[i], " has no catalog entry"))
+			log.Println(works[i], " has no catalog entry")
 			sortedcatalog = append(sortedcatalog, BoltCatalog{})
 		}
 
@@ -346,6 +347,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 					ImageLinks: textareas})
 			}
 		}
+		//assign Next and Prev fields for all passages
 		for j := range passages {
 			passages[j].Index = j
 			switch {
@@ -360,10 +362,10 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 			default:
 				passages[j].Prev = gocite.PassLoc{Exists: true, PassageID: passages[j-1].PassageID, Index: j - 1}
 			}
-			passages[j].Last = gocite.PassLoc{Exists: true, PassageID: passages[len(passages)-1].PassageID, Index: len(passages) - 1}
-			passages[j].First = gocite.PassLoc{Exists: true, PassageID: passages[0].PassageID, Index: 0}
 		}
-		boltworks = append(boltworks, gocite.Work{WorkID: work, Passages: passages, Ordered: true})
+		/*workToBeSaved, _ := gocite.SortPassages(gocite.Work{WorkID: work, Passages: passages, Ordered: true, First: gocite.PassLoc{Exists: true, PassageID: passages[0].PassageID, Index: 0}, Last: gocite.PassLoc{Exists: true, PassageID: passages[len(passages)-1].PassageID, Index: len(passages) - 1}})
+		boltworks = append(boltworks, workToBeSaved)*/
+		boltworks = append(boltworks, gocite.Work{WorkID: work, Passages: passages, Ordered: true, First: gocite.PassLoc{Exists: true, PassageID: passages[0].PassageID, Index: 0}, Last: gocite.PassLoc{Exists: true, PassageID: passages[len(passages)-1].PassageID, Index: len(passages) - 1}})
 	}
 	boltdata := BoltData{Bucket: works, Data: boltworks, Catalog: sortedcatalog}
 

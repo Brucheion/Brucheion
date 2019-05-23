@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ThomasK81/gocite"
+	"gociteDev/gocite"
+
 	"github.com/gorilla/mux"
 
 	"github.com/boltdb/bolt"

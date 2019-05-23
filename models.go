@@ -3,7 +3,7 @@ package main
 import (
 	"html/template"
 
-	"github.com/ThomasK81/gocite"
+	"gociteDev/gocite"
 )
 
 //All necessary structs may be collected in this file for better overview.
