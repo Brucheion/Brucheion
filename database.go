@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ThomasK81/gocite"
+	"gociteDev/gocite"
 
 	"github.com/boltdb/bolt"
 
@@ -204,7 +204,7 @@ func newWorkToDB(dbName string, meta cexMeta) error {
 		}
 		val := bucket.Get(dbkey)
 		if val != nil {
-			return errors.New("work already exists")
+			return errors.New("work already exists ")
 		}
 		err = bucket.Put(dbkey, dbvalue)
 		if err != nil {
@@ -282,7 +282,7 @@ func BoltRetrieveFirstKey(dbname, bucketName string) (string, error) {
 }
 
 // BoltRetrievePassage retrieves a Passage from its bucket as a gocite.Passage object
-func BoltRetrievePassage(dbName, workName, passageIdentifiers string) (gocite.Passage, error) {
+func BoltRetrievePassage(dbName, workName, passageIdentifier string) (gocite.Passage, error) {
 	var result gocite.Passage
 	if _, err := os.Stat(dbName); os.IsNotExist(err) {
 		log.Println(err)
@@ -299,7 +299,7 @@ func BoltRetrievePassage(dbName, workName, passageIdentifiers string) (gocite.Pa
 		if bucket == nil {
 			return fmt.Errorf("bucket %q not found", workName)
 		}
-		buffer := bucket.Get([]byte(workName + passageIdentifiers))
+		buffer := bucket.Get([]byte(workName + passageIdentifier))
 		err := json.Unmarshal(buffer, &result) //unmarshal the buffer and save the gocite.Passage
 		if err != nil {
 			log.Println(fmt.Printf("Error unmarshalling work: %s", err))
@@ -350,17 +350,8 @@ func BoltRetrieveWork(dbName, workID string) (gocite.Work, error) {
 			result.Passages[i].PassageID, result.Passages[i].Index, result.Passages[i].First.Index,
 			result.Passages[i].Last.Index, result.Passages[i].Prev.Index, result.Passages[i].Next.Index))
 	}*/
-	result2 := gocite.SortPassages(result)
-	for i := range result2.Passages {
-		log.Println(fmt.Printf(" SORTED result: PassageID: %s\n Index: %d\nFirst.Index: %d\nFirst.PassageID: %s\nLast.Index: %d\nLast.PassageID: %s\nPrev.Index: %d\nPrev.PassageID: %s\nNext.Index: %d\nNext.PassageID: %s\n\n",
-			result2.Passages[i].PassageID, result2.Passages[i].Index,
-			result2.Passages[i].First.Index, result2.Passages[i].First.PassageID,
-			result2.Passages[i].Last.Index, result2.Passages[i].Last.PassageID,
-			result2.Passages[i].Prev.Index, result2.Passages[i].Prev.PassageID,
-			result2.Passages[i].Next.Index, result2.Passages[i].Next.PassageID))
-	}
+	result, err = gocite.SortPassages(result)
 	return result, err
-
 }
 
 // BoltRetrieve retrieves the string data (as BoltJSON) for the specified key

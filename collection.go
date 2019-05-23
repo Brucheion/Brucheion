@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ThomasK81/gocite"
+	"gociteDev/gocite"
 
 	"github.com/boltdb/bolt"
 

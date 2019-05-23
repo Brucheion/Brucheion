@@ -10,13 +10,14 @@ import (
 
 	"github.com/boltdb/bolt"
 
-	"github.com/ThomasK81/gocite"
 	"github.com/ThomasK81/gonwr"
+	"gociteDev/gocite"
 
 	"github.com/gorilla/mux"
 )
 
 // ViewPage prepares, loads, and renders the Passage Overview
+//todo: overhaul with new database functions
 func ViewPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -47,25 +48,28 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
-	retrievedjson := gocite.Passage{}
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	retrievedPassage := gocite.Passage{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
-	ctsurn := retrievedjson.PassageID
-	text := retrievedjson.Text.TXT
+	ctsurn := retrievedPassage.PassageID
+	text := retrievedPassage.Text.TXT
 	passages := strings.Split(text, "\r\n")
 	text = ""
 	for i, v := range passages {
 		text = text + "<p name=\"textpassage\" style=\"padding: 0 0 0.25em 0\">" + "<span style=\"font-weight:bold\">" + strconv.Itoa(i+1) + ": " + "</span>" + v + "</p>"
 	}
-	previous := retrievedjson.Prev.PassageID
-	next := retrievedjson.Next.PassageID
+	previous := retrievedPassage.Prev.PassageID
+	next := retrievedPassage.Next.PassageID
 	imageref := []string{}
-	for _, tmp := range retrievedjson.ImageLinks {
+	for _, tmp := range retrievedPassage.ImageLinks {
 		imageref = append(imageref, tmp.Object)
 	}
-	first := retrievedjson.First.PassageID
-	last := retrievedjson.Last.PassageID
+	/*first := retrievedPassage.First.PassageID
+	last := retrievedPassage.Last.PassageID*/
+	work, _ := BoltRetrieveWork(dbname, requestedbucket)
+	first := work.First.PassageID
+	last := work.Last.PassageID
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -104,6 +108,7 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "view", page)
 }
 
+//todo: needs overhaul with new database functions
 func comparePage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -135,21 +140,24 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
-	//retrievedjson := BoltURN{}
-	retrievedjson := gocite.Passage{}
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	//retrievedPassage := BoltURN{}
+	retrievedPassage := gocite.Passage{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
-	ctsurn := retrievedjson.PassageID
-	text := retrievedjson.Text.TXT
-	previous := retrievedjson.Prev.PassageID
-	next := retrievedjson.Next.PassageID
+	ctsurn := retrievedPassage.PassageID
+	text := retrievedPassage.Text.TXT
+	previous := retrievedPassage.Prev.PassageID
+	next := retrievedPassage.Next.PassageID
 	imageref := []string{}
-	for _, tmp := range retrievedjson.ImageLinks {
+	for _, tmp := range retrievedPassage.ImageLinks {
 		imageref = append(imageref, tmp.Object)
 	}
-	first := retrievedjson.First.PassageID
-	last := retrievedjson.Last.PassageID
+	/*first := retrievedPassage.First.PassageID
+	last := retrievedPassage.Last.PassageID*/
+	work, _ := BoltRetrieveWork(dbname, requestedbucket)
+	first := work.First.PassageID
+	last := work.Last.PassageID
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -189,21 +197,24 @@ func comparePage(res http.ResponseWriter, req *http.Request) {
 	retrieveddata, _ = BoltRetrieve(dbname, requestedbucket, urn2)
 	retrievedcat, _ = BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson = BoltCatalog{}
-	//retrievedjson = BoltURN{}
-	retrievedjson = gocite.Passage{}
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	//retrievedPassage = BoltURN{}
+	retrievedPassage = gocite.Passage{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
-	ctsurn = retrievedjson.PassageID
-	text = retrievedjson.Text.TXT
-	previous = retrievedjson.Prev.PassageID
-	next = retrievedjson.Next.PassageID
+	ctsurn = retrievedPassage.PassageID
+	text = retrievedPassage.Text.TXT
+	previous = retrievedPassage.Prev.PassageID
+	next = retrievedPassage.Next.PassageID
 	imageref = []string{}
-	for _, tmp := range retrievedjson.ImageLinks {
+	for _, tmp := range retrievedPassage.ImageLinks {
 		imageref = append(imageref, tmp.Object)
 	}
-	first = retrievedjson.First.PassageID
-	last = retrievedjson.Last.PassageID
+	work, _ = BoltRetrieveWork(dbname, requestedbucket)
+	first = work.First.PassageID
+	last = work.Last.PassageID
+	/*first = retrievedPassage.First.PassageID
+	last = retrievedPassage.Last.PassageID*/
 	imagejs = "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -272,24 +283,24 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
-	retrievedjson := BoltURN{}
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	retrievedPassage := BoltURN{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
-	ctsurn := retrievedjson.URN
+	ctsurn := retrievedPassage.URN
 	text := ""
-	linetext := retrievedjson.LineText
+	linetext := retrievedPassage.LineText
 	for i := range linetext {
 		text = text + linetext[i]
 		if i < len(linetext)-1 {
 			text = text + " "
 		}
 	}
-	previous := retrievedjson.Previous
-	next := retrievedjson.Next
-	imageref := retrievedjson.ImageRef
-	first := retrievedjson.First
-	last := retrievedjson.Last
+	previous := retrievedPassage.Previous
+	next := retrievedPassage.Next
+	imageref := retrievedPassage.ImageRef
+	first := retrievedPassage.First
+	last := retrievedPassage.Last
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -329,24 +340,24 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 	retrieveddata, _ = BoltRetrieve(dbname, requestedbucket, urn2)
 	retrievedcat, _ = BoltRetrieve(dbname, requestedbucket, requestedbucket)
 	retrievedcatjson = BoltCatalog{}
-	retrievedjson = BoltURN{}
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	retrievedPassage = BoltURN{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
-	ctsurn = retrievedjson.URN
+	ctsurn = retrievedPassage.URN
 	text = ""
-	linetext = retrievedjson.LineText
+	linetext = retrievedPassage.LineText
 	for i := range linetext {
 		text = text + linetext[i]
 		if i < len(linetext)-1 {
 			text = text + " "
 		}
 	}
-	previous = retrievedjson.Previous
-	next = retrievedjson.Next
-	imageref = retrievedjson.ImageRef
-	first = retrievedjson.First
-	last = retrievedjson.Last
+	previous = retrievedPassage.Previous
+	next = retrievedPassage.Next
+	imageref = retrievedPassage.ImageRef
+	first = retrievedPassage.First
+	last = retrievedPassage.Last
 	imagejs = "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -385,6 +396,7 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 }
 
 //EditPage prepares, loads, and renders the Transcription Desk
+//can possibly be overhauled using gocite release 2.0.0
 func EditPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -409,15 +421,15 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	dbname := user + ".db"
 	textref := Buckets(dbname)
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
-
+	work, _ := BoltRetrieveWork(dbname, requestedbucket)
 	// adding testing if requestedbucket exists...
 	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedjson := gocite.Passage{}
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	retrievedPassage := gocite.Passage{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
 
-	text := retrievedjson.Text.TXT
+	text := retrievedPassage.Text.TXT
 	imageref := []string{}
-	for _, tmp := range retrievedjson.ImageLinks {
+	for _, tmp := range retrievedPassage.ImageLinks {
 		imageref = append(imageref, tmp.Object)
 	}
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
@@ -428,13 +440,13 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	}
 
 	transcription := Transcription{
-		CTSURN:        retrievedjson.PassageID,
+		CTSURN:        retrievedPassage.PassageID,
 		Transcriber:   user,
 		Transcription: text,
-		Previous:      retrievedjson.Prev.PassageID,
-		Next:          retrievedjson.Next.PassageID,
-		First:         retrievedjson.First.PassageID,
-		Last:          retrievedjson.Last.PassageID,
+		Previous:      retrievedPassage.Prev.PassageID,
+		Next:          retrievedPassage.Next.PassageID,
+		First:         work.First.PassageID,
+		Last:          work.Last.PassageID,
 		TextRef:       textref,
 		ImageRef:      imageref,
 		ImageJS:       imagejs}
@@ -472,19 +484,22 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 
 	// adding testing if requestedbucket exists...
 	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedjson := gocite.Passage{}
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	retrievedPassage := gocite.Passage{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
 
-	ctsurn := retrievedjson.PassageID
-	text := retrievedjson.Text.TXT
-	previous := retrievedjson.Prev.PassageID
-	next := retrievedjson.Next.PassageID
+	ctsurn := retrievedPassage.PassageID
+	text := retrievedPassage.Text.TXT
+	previous := retrievedPassage.Prev.PassageID
+	next := retrievedPassage.Next.PassageID
 	imageref := []string{}
-	for _, tmp := range retrievedjson.ImageLinks {
+	for _, tmp := range retrievedPassage.ImageLinks {
 		imageref = append(imageref, tmp.Object)
 	}
-	first := retrievedjson.First.PassageID
-	last := retrievedjson.Last.PassageID
+	/*First := retrievedPassage.First.PassageID
+	last := retrievedPassage.Last.PassageID*/
+	work, _ := BoltRetrieveWork(dbname, requestedbucket)
+	first := work.First.PassageID
+	last := work.Last.PassageID
 	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
 	switch len(imageref) > 0 {
 	case true:
@@ -534,10 +549,11 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	// adding testing if requestedbucket exists...
 	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
 	retrievedcat, _ := BoltRetrieve(dbname, requestedbucket, requestedbucket)
+	retrievedWork, _ := BoltRetrieveWork(dbname, requestedbucket)
 	retrievedcatjson := BoltCatalog{}
-	retrievedjson := gocite.Passage{}
+	retrievedPassage := gocite.Passage{}
 
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
 	json.Unmarshal([]byte(retrievedcat.JSON), &retrievedcatjson)
 
 	catid := retrievedcatjson.URN
@@ -549,13 +565,13 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	caton := retrievedcatjson.Online
 	catlan := retrievedcatjson.Language
 	transcription := Transcription{
-		CTSURN:      retrievedjson.PassageID,
+		CTSURN:      retrievedPassage.PassageID,
 		Transcriber: user,
 		TextRef:     textref,
-		Previous:    retrievedjson.Prev.PassageID,
-		Next:        retrievedjson.Next.PassageID,
-		First:       retrievedjson.First.PassageID,
-		Last:        retrievedjson.Last.PassageID,
+		Previous:    retrievedPassage.Prev.PassageID,
+		Next:        retrievedPassage.Next.PassageID,
+		First:       retrievedWork.First.PassageID,
+		Last:        retrievedWork.Last.PassageID,
 		CatID:       catid, CatCit: catcit, CatGroup: catgroup, CatWork: catwork, CatVers: catversion, CatExmpl: catexpl, CatOn: caton, CatLan: catlan}
 	kind := "/editcat/"
 	page, _ := loadPage(transcription, kind)
@@ -590,17 +606,18 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 	work := strings.Join(strings.Split(strings.Split(requestedbucket, ":")[3], ".")[0:1], ".")
 	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
-	retrievedjson := gocite.Passage{}
-	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedjson)
-	id1 := retrievedjson.PassageID
-	text1 := retrievedjson.Text.TXT
-	if config.UseNormalization && retrievedjson.Text.Normalised != "" {
-		text1 = retrievedjson.Text.Normalised
+	retrievedPassage := gocite.Passage{}
+	retrievedWork, _ := BoltRetrieveWork(dbname, requestedbucket)
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
+	id1 := retrievedPassage.PassageID
+	text1 := retrievedPassage.Text.TXT
+	if config.UseNormalization && retrievedPassage.Text.Normalised != "" {
+		text1 = retrievedPassage.Text.Normalised
 	} // config setting updated only on restart since loadConfiguration() in brucheion.go
-	next1 := retrievedjson.Next.PassageID
-	first1 := retrievedjson.First.PassageID
-	last1 := retrievedjson.Last.PassageID
-	previous1 := retrievedjson.Prev.PassageID
+	next1 := retrievedPassage.Next.PassageID
+	previous1 := retrievedPassage.Prev.PassageID
+	first1 := retrievedWork.First.PassageID
+	last1 := retrievedWork.Last.PassageID
 	ids := []string{}
 	texts := []string{}
 	passageID := strings.Split(urn, ":")[4]
@@ -629,18 +646,18 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 			c := b.Cursor()
 
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				retrievedjson := gocite.Passage{}
-				json.Unmarshal([]byte(v), &retrievedjson)
-				ctsurn := retrievedjson.PassageID
+				retrievedPassage := gocite.Passage{}
+				json.Unmarshal([]byte(v), &retrievedPassage)
+				ctsurn := retrievedPassage.PassageID
 				if ctsurn == "" {
 					continue
 				}
 				if passageID != strings.Split(ctsurn, ":")[4] {
 					continue
 				}
-				text := retrievedjson.Text.TXT
-				if config.UseNormalization && retrievedjson.Text.Normalised != "" {
-					text = retrievedjson.Text.Normalised
+				text := retrievedPassage.Text.TXT
+				if config.UseNormalization && retrievedPassage.Text.Normalised != "" {
+					text = retrievedPassage.Text.Normalised
 				} // config setting updated only on restart since loadConfiguration() in brucheion.go
 
 				// make sure only witness that contain text are included
