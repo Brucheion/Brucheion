@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"gociteDev/gocite"
+	"github.com/ThomasK81/gocite"
 
 	"github.com/boltdb/bolt"
 

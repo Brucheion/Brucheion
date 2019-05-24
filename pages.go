@@ -10,8 +10,8 @@ import (
 
 	"github.com/boltdb/bolt"
 
+	"github.com/ThomasK81/gocite"
 	"github.com/ThomasK81/gonwr"
-	"gociteDev/gocite"
 
 	"github.com/gorilla/mux"
 )

@@ -1,11 +1,13 @@
 package main
 
+/* *** This file is completely under construction *** */
+
 import (
 	"fmt"
 	"log"
 	"net/http"
 
-	"gociteDev/gocite"
+	"github.com/ThomasK81/gocite"
 	/*
 		"encoding/json"
 		"strconv"
