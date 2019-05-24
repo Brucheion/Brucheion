@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gociteDev/gocite"
+	"github.com/ThomasK81/gocite"
 )
 
 func loadCrudPage(transcription Transcription) (*Page, error) {

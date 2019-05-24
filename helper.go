@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/net/html"
 
-	"gociteDev/gocite"
+	"github.com/ThomasK81/gocite"
 
 	"github.com/gorilla/sessions" //for Cookiestore and other session functionality
 )

@@ -18,7 +18,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"gociteDev/gocite"
+	"github.com/ThomasK81/gocite"
 )
 
 // dataframe is the sort-matrix interface used in ExportCEX to sort integer Indices
