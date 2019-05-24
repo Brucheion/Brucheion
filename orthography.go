@@ -3,15 +3,18 @@ package main
 import (
   "encoding/json"
   "fmt"
-  "github.com/ThomasK81/gocite"
-  "github.com/boltdb/bolt"
-  "github.com/gorilla/mux"
   "io"
   "log"
   "net/http"
   "os"
   "regexp"
   "strings"
+
+  "github.com/ThomasK81/gocite"
+
+  "github.com/boltdb/bolt"
+
+  "github.com/gorilla/mux"
 )
 
 type OrthographyNormalisationConfig struct {

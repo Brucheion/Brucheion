@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ThomasK81/gocite"
+
 	"github.com/gorilla/mux"
 
 	"github.com/boltdb/bolt"
