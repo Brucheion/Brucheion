@@ -16,7 +16,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//newCITECollection extracts images from the mux variables in the *http.Request, joins them together
+//newCollection extracts imagesIDs from the mux variables in the *http.Request, joins them together
 //in an imageCollection and passes it to newCollectionToDB to have it saved in the user database
 func newCollection(res http.ResponseWriter, req *http.Request) {
 
