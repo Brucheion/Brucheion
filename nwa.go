@@ -125,7 +125,7 @@ func nwa2(basetext, baseid string, texts, ids []string) (alignments Alignments) 
 			alignment.Target = append(alignment.Target, tmpB)
 			alignment.Score = append(alignment.Score, highlight)
 		}
-		newID := baseid + "+" + ids[i]
+		newID := ids[i]
 		alignments.Name = append(alignments.Name, newID)
 		alignments.Alignment = append(alignments.Alignment, alignment)
 	}

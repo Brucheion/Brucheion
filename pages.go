@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -747,7 +749,6 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 
 	switch keep == "true" {
 	case true:
-		log.Printf("GrandWazooKeep")
 		dbkey := []byte(id1)
 		db, err := openBoltDB(dbname) //open bolt DB using helper function
 		if err != nil {
@@ -777,55 +778,55 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 		}
 		db.Close()
 	default:
-		log.Printf("GrandWazooReDo")
 		alignments = nwa2(text1, id1, texts, ids)
 		aligntime := time.Now()
 		alignments.AlignmentTime = aligntime.Format("20060102150405")
 		alignments.AlignmentID = id1
-		AlignmentsToDB(dbname, alignments)
-	}
-
-	slsl := [][]string{}
-	for i := range alignments.Alignment {
-		slsl = append(slsl, alignments.Alignment[i].Source)
-	}
-	reordered, ok := testStringSl(slsl)
-	if !ok {
-		panic(ok)
-	}
-	for i := range alignments.Alignment {
-		newset := reordered[i]
-		newsource := []string{}
-		newtarget := []string{}
-		newscore := []float32{}
-		for j := range newset {
-			tmpstr := ""
-			tmpstr2 := ""
-			for _, v := range newset[j] {
-				tmpstr = tmpstr + alignments.Alignment[i].Source[v]
-				tmpstr2 = tmpstr2 + alignments.Alignment[i].Target[v]
-			}
-			newsource = append(newsource, tmpstr)
-			newtarget = append(newtarget, tmpstr2)
-			var highlight float32
-			_, _, score := gonwr.Align([]rune(tmpstr), []rune(tmpstr2), rune('#'), 1, -1, -1)
-			base := len([]rune(tmpstr))
-			if len([]rune(tmpstr2)) > base {
-				base = len([]rune(tmpstr2))
-			}
-			switch {
-			case score <= 0:
-				highlight = 1.0
-			case score >= base:
-				highlight = 0.0
-			default:
-				highlight = 1.0 - float32(score)/(3*float32(base))
-			}
-			newscore = append(newscore, highlight)
+		// building the lemmata
+		slsl := [][]string{}
+		for i := range alignments.Alignment {
+			slsl = append(slsl, alignments.Alignment[i].Source)
 		}
-		alignments.Alignment[i].Score = newscore
-		alignments.Alignment[i].Source = newsource
-		alignments.Alignment[i].Target = newtarget
+		reordered, ok := testStringSl(slsl)
+		if !ok {
+			panic(ok)
+		}
+		for i := range alignments.Alignment {
+			newset := reordered[i]
+			newsource := []string{}
+			newtarget := []string{}
+			newscore := []float32{}
+			for j := range newset {
+				tmpstr := ""
+				tmpstr2 := ""
+				for _, v := range newset[j] {
+					tmpstr = tmpstr + alignments.Alignment[i].Source[v]
+					tmpstr2 = tmpstr2 + alignments.Alignment[i].Target[v]
+				}
+				newsource = append(newsource, tmpstr)
+				newtarget = append(newtarget, tmpstr2)
+				var highlight float32
+				_, _, score := gonwr.Align([]rune(tmpstr), []rune(tmpstr2), rune('#'), 1, -1, -1)
+				base := len([]rune(tmpstr))
+				if len([]rune(tmpstr2)) > base {
+					base = len([]rune(tmpstr2))
+				}
+				switch {
+				case score <= 0:
+					highlight = 1.0
+				case score >= base:
+					highlight = 0.0
+				default:
+					highlight = 1.0 - float32(score)/(3*float32(base))
+				}
+				newscore = append(newscore, highlight)
+			}
+			alignments.Alignment[i].Score = newscore
+			alignments.Alignment[i].Source = newsource
+			alignments.Alignment[i].Target = newtarget
+		}
+
+		AlignmentsToDB(dbname, alignments)
 	}
 	start := `<div class="tile is-child" lnum="L`
 	start1 := `<div id="`
@@ -922,6 +923,145 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 		Transcription: tmpstr}
 	page, _ := loadMultiPage(transcription)
 	renderTemplate(res, "multicompare", page)
+}
+
+//SeeAlignment prepares, loads, and renders the SeeAlignment page
+func SeeAlignment(res http.ResponseWriter, req *http.Request) {
+	//First get the session..
+	session, err := getSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//..and check if user is logged in.
+	user, message, loggedin := testLoginStatus("MultiPage", session)
+	if loggedin {
+		log.Println(message)
+	} else {
+		log.Println(message)
+		Logout(res, req)
+		return
+	}
+
+	vars := mux.Vars(req)
+	urn := vars["urn"]
+	var alignments Alignments
+
+	dbname := user + ".db"
+	dbkey := []byte(urn)
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
+	if err != nil {
+		log.Println(fmt.Printf("requestImgID: error opening userDB: %s", err))
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("alignmentsCollection"))
+		if bucket == nil {
+			return errors.New("failed to get bucket")
+		}
+		val := bucket.Get(dbkey)
+		if val == nil {
+			return errors.New("failed to retrieve value")
+		}
+		alignments, err = gobDecodeAlignments(val)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Println(fmt.Printf("error retrieving alignments: %s", err))
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	db.Close()
+	// add error handling
+	jsonresponse, _ := json.Marshal(alignments)
+	io.WriteString(res, string(jsonresponse))
+}
+
+//TableAlignments prepares, loads, and renders the TableAlignments page
+func TableAlignments(res http.ResponseWriter, req *http.Request) {
+	//First get the session..
+	session, err := getSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//..and check if user is logged in.
+	user, message, loggedin := testLoginStatus("MultiPage", session)
+	if loggedin {
+		log.Println(message)
+	} else {
+		log.Println(message)
+		Logout(res, req)
+		return
+	}
+
+	vars := mux.Vars(req)
+	urn := vars["urn"]
+	var alignments Alignments
+
+	dbname := user + ".db"
+	dbkey := []byte(urn)
+	db, err := openBoltDB(dbname) //open bolt DB using helper function
+	if err != nil {
+		log.Println(fmt.Printf("requestImgID: error opening userDB: %s", err))
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("alignmentsCollection"))
+		if bucket == nil {
+			return errors.New("failed to get bucket")
+		}
+		val := bucket.Get(dbkey)
+		if val == nil {
+			return errors.New("failed to retrieve value")
+		}
+		alignments, err = gobDecodeAlignments(val)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Println(fmt.Printf("error retrieving alignments: %s", err))
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	db.Close()
+	type TableData struct {
+		TableID   template.HTML
+		TableHead template.HTML
+		TableBody template.HTML
+		Host      string
+	}
+	tableid := `<a href="` + config.Host + `/view/` + alignments.AlignmentID + `" target="_blank">` + alignments.AlignmentID + `</a>`
+	tablehead := `<tr><th></th>`
+	for _, v := range alignments.Name {
+		tablehead = tablehead + `<th><a href="` + config.Host + `/view/` + v + `" target="_blank">` + v + `</a></th>`
+	}
+	tablehead = tablehead + `</tr>`
+	tablebody := ``
+	for i := range alignments.Alignment[0].Source {
+		tablebody = tablebody + `<tr>`
+		tablebody = tablebody + `<td class = "th">` + alignments.Alignment[0].Source[i] + `<i class="fa fa-plus-square" onclick="addFunction(this)"></i><i class="fa fa-minus-square" onclick="removeFunction(this)"></i></th>`
+		for j := range alignments.Alignment {
+			tablebody = tablebody + `<td>` + alignments.Alignment[j].Target[i] + `</td>`
+		}
+		tablebody = tablebody + `</tr>`
+	}
+	aligntable := TableData{
+		TableID:   template.HTML(tableid),
+		TableHead: template.HTML(tablehead),
+		TableBody: template.HTML(tablebody),
+		Host:      config.Host,
+	}
+	templates.ExecuteTemplate(res, "tablealignment.html", aligntable)
 }
 
 //TreePage prepares, loads, and renders a Morpho-syntactic Treebank page
