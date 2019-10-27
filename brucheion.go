@@ -14,7 +14,7 @@ var config Config
 var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/editpt.html",
 	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
 	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html",
-	"tmpl/main.html"))
+	"tmpl/main.html", "tmpl/tablealignment.html"))
 
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
@@ -120,6 +120,8 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
 	router.HandleFunc("/multicompare/{urn}/", MultiPage).Methods("GET")
+	router.HandleFunc("/seealignment/{urn}", SeeAlignment).Methods("GET")
+	router.HandleFunc("/tablealignment/{urn}", TableAlignments).Methods("GET")
 	router.HandleFunc("/normalizeTemporarily/{urns}/", normalizeOrthographyTemporarily)
 	router.HandleFunc("/normalizeAndSave/{urns}/", normalizeOrthographyAndSave)
 	router.HandleFunc("/edit/{urn}/", EditPage)
