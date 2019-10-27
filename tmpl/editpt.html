@@ -1,0 +1,246 @@
+<html>
+
+<head>
+	<title>Brucheion</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/openseadragon.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/openseadragon-guides.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/selection.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/selectionoverlay.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/selectionrect.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/dragging.js"></script>
+	<script type="text/javascript" src="{{.Host}}/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/application.css">
+	<link rel="stylesheet" href="{{.Host}}/static/css/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/brulma.css">
+	<style>
+		.tile-resizable {
+			resize: both;
+			overflow: hidden
+		}
+	</style>
+	{{.ImageScript}}
+</head>
+
+<body>
+	<nav class="navbar">
+		<div class="container">
+			<div class="navbar-brand">
+				<a class="navbar-item img">
+					<img src="/static/img/BrucheionLogo.png" alt="Brucheion logo">
+				</a>
+				<span class="navbar-burger burger" data-target="navMenu">
+					<span></span>
+					<span></span>
+					<span></span>
+				</span>
+			</div>
+			<div id="navMenu" class="navbar-menu">
+				<div class="navbar-end">
+					<div class="navbar-item has-dropdown is-hoverable">
+						<p class="navbar-link">
+							Tools
+						</p>
+						<div class="navbar-dropdown">
+							<a href="{{.Host}}/view/{{.Title}}/" class="navbar-item">Passage Overview</a>
+							<a href="{{.Host}}/edit2/{{.Title}}/" class="navbar-item">Image Citation</a>
+							<a href="{{.Host}}/edit/{{.Title}}/pt" class="navbar-item">Transcribe</a>
+							<a href="{{.Host}}/multicompare/{{.Title}}/" class="navbar-item">Multicompare</a>
+							<a href="{{.Host}}/tree/" class="navbar-item">Morpho-syntactic analysis</a>
+							<a href="{{.Host}}/editcat/{{.Title}}/" class="navbar-item">Edit Metadata</a>
+						</div>
+					</div>
+					<div class="navbar-item has-dropdown is-hoverable">
+						<p class="navbar-link">
+							<i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
+						</p>
+						<div class="navbar-dropdown">
+							<a href="{{.Host}}/export/exported/" class="navbar-item">Download CEX</a>
+							<a href="#" class="navbar-item">Account Settings</a>
+							<a href="#" class="navbar-item">Display Settings</a>
+							<a href="{{.Host}}/logout/" class="navbar-item">Logout</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</nav>
+	<script type="text/javascript">
+		(function () {
+			var burger = document.querySelector('.burger');
+			var nav = document.querySelector('#' + burger.dataset.target);
+			burger.addEventListener('click', function () {
+				burger.classList.toggle('is-active');
+				nav.classList.toggle('is-active');
+			});
+		})();
+	</script>
+	<section class="hero is-link">
+		<div class="hero-body">
+			<div class="container">
+				<h1 class="title">
+					Transcription Desk 2
+				</h1>
+				<div class="columns">
+					<div class="column">
+						<p class="subtitle"></p><a href="{{.Host}}/edit/{{.First}}/pt"><i
+								class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
+						<a href="{{.Host}}/edit/{{.Previous}}/pt"><i class="fa fa-chevron-left"></i></a>
+						<strong>{{.Title}}</strong>
+						<a href="{{.Host}}/edit/{{.Next}}/pt"><i class="fa fa-chevron-right"></i></a>
+						<a href="{{.Host}}/edit/{{.Last}}/pt"><i class="fa  fa-chevron-right"></i><i
+								class="fa  fa-chevron-right"></i></a>
+						</p>
+					</div>
+					<div class="column">
+						<form name="nav">
+							<div class="control">
+								<div class="select">
+									<select name="SelectURL"
+										onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
+										{{.TextHTML}}
+									</select>
+								</div>
+							</div>
+						</form>
+                    </div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<div class="container is-fluid">
+
+		<section>
+			<div class="tile is-ancestor">
+				<div class="tile is-parent">
+					<div class="tile is-child box is-6">
+						<input id="image_urnBox" type="text" size="60" value="" /> <button
+							class="button is-small is-primary" id="image_changeUrn">Change
+							Image
+						</button>
+					</div>
+					<div class="tile is-child box is-5">
+						<p>ImageRef: {{.ImageHTML}}</p>
+					</div>
+					<div class="tile is-child is-1">
+						<div class="column is-12 has-text-right">
+                            <a class="button is-small is-danger" href="{{.Host}}/view/{{.Title}}/">CANCEL</a>
+                            <a class="button is-small" href="{{.Host}}/edit/{{.Title}}/">LANDSCAPE</a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="tile is-ancestor">
+				<div class="tile is-parent">
+					<div class="tile is-child box tile-resizable is-6">
+						<div class="box" style="height: 500px;">
+							<div id="image_imageContainer"></div>
+						</div>
+					</div>
+					<form action="{{.Host}}/save/{{.Title}}/" method="POST">
+						<div class="tile is-child box tile-resizable is-12">
+							<p class="subtitle">Transcription</p>
+							<div>
+								<div class="tile is-child columns">
+									<div class="column">
+										<button type="button" onclick="makeXSmall()"><span
+												style="font-size: x-small">Aa</span></button>
+										<button type="button" onclick="makeSmall()"><span
+												style="font-size: small">Aa</span></button>
+										<button type="button" onclick="makeMedium()"><span
+												style="font-size: medium">Aa</span></button>
+										<button type="button" onclick="makeBig()"><span
+												style="font-size: large">Aa</span></button>
+										<button type="button" onclick="makeXBig()"><span
+												style="font-size: x-large">Aa</span></button>
+									</div>
+									<div class="column">
+										<select lang="en" onchange="loadJS(this.value)">
+											<option selected="selected" disabled="true"> Select a keyboard language
+											</option>
+											<option value="sansKey">sansKey</option>
+											<option value="greekBeta">greekBeta</option>
+											<option value="none">none</option>
+										</select>
+									</div>
+								</div>
+								<div><textarea class="specialKey" name="text" rows="15" ,
+										cols="60">{{printf "%s" .Text}}</textarea></div>
+								<div><input class="button is-primary" type="submit" value="Save"></div>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</section>
+		<footer>
+			<br />
+			<p>Brucheion is ©2017–2018 Thomas Koentges. CITE/CTS is ©2002–2017 Neel Smith and Christopher Blackwell.
+				Brucheion is
+				available for use, modification, and distribution under the terms of the
+				<a href="https://opensource.org/licenses/gpl-3.0.html">GPL 3.0</a> licence. Brucheion's image citation
+				tool <a href="">BrIC</a>
+				is ©2018 Thomas Koentges and based on Christopher Blackwell's and Mees Gelein's
+				<a href="https://github.com/cite-architecture/ict2">ICT2</a> and on
+				<a href="http://openseadragon.github.io">Openseadragon</a>.</p>
+		</footer>
+	</div>
+
+	<input type="hidden" id="initialCITE" value="{{.ImageJS}}" readonly>
+	<script type="text/javascript" src="{{.Host}}/js/ict2.js"></script>
+	<script type="text/javascript">
+		var letterMap,
+			keys,
+			values,
+			firstLetter,
+			secondLetter;
+
+		function loadJS(v) {
+			var d = document, h = d.getElementsByTagName('head')[0], newScript;
+			try { h.removeChild(d.getElementById('keylang')); } catch (e) { }
+			newScript = d.createElement('script');
+			newScript.id = 'keylang';
+			newScript.type = 'text/javascript';
+			newScript.src = '{{.Host}}/js/keyboards/' + v + '.js';
+			h.appendChild(newScript);
+		}
+	</script>
+	<script>
+		function makeXBig() {
+			var x = document.getElementsByName("text");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "x-large";
+			};
+		};
+		function makeBig() {
+			var x = document.getElementsByName("text");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "large";
+			};
+		};
+		function makeMedium() {
+			var x = document.getElementsByName("text");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "medium";
+			}
+		};
+		function makeXSmall() {
+			var x = document.getElementsByName("text");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "x-small";
+			}
+		};
+		function makeSmall() {
+			var x = document.getElementsByName("text");
+			for (var i = 0; i < x.length; i++) {
+				x[i].style.fontSize = "small";
+			}
+		};
+	</script>
+</body>
+
+</html>

@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/boltdb/bolt"
 
@@ -456,6 +458,72 @@ func EditPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "edit", page)
 }
 
+//EditPageFormat prepares, loads, and renders the Transcription Desk with format
+//can possibly be overhauled using gocite release 2.0.0
+func EditPageFormat(res http.ResponseWriter, req *http.Request) {
+
+	//First get the session..
+	session, err := getSession(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//..and check if user is logged in.
+	user, message, loggedin := testLoginStatus("EditPage", session)
+	if loggedin {
+		log.Println(message)
+	} else {
+		log.Println(message)
+		Logout(res, req)
+		return
+	}
+
+	vars := mux.Vars(req)
+	urn := vars["urn"]
+	format := vars["format"]
+	dbname := user + ".db"
+	textref := Buckets(dbname)
+	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
+	work, _ := BoltRetrieveWork(dbname, requestedbucket)
+	// adding testing if requestedbucket exists...
+	retrieveddata, _ := BoltRetrieve(dbname, requestedbucket, urn)
+	retrievedPassage := gocite.Passage{}
+	json.Unmarshal([]byte(retrieveddata.JSON), &retrievedPassage)
+
+	text := retrievedPassage.Text.TXT
+	imageref := []string{}
+	for _, tmp := range retrievedPassage.ImageLinks {
+		imageref = append(imageref, tmp.Object)
+	}
+	imagejs := "urn:cite2:test:googleart.positive:DuererHare1502"
+
+	switch len(imageref) > 0 {
+	case true:
+		imagejs = imageref[0]
+	}
+
+	transcription := Transcription{
+		CTSURN:        retrievedPassage.PassageID,
+		Transcriber:   user,
+		Transcription: text,
+		Previous:      retrievedPassage.Prev.PassageID,
+		Next:          retrievedPassage.Next.PassageID,
+		First:         work.First.PassageID,
+		Last:          work.Last.PassageID,
+		TextRef:       textref,
+		ImageRef:      imageref,
+		ImageJS:       imagejs}
+
+	kind := "/edit/"
+	page, _ := loadPage(transcription, kind)
+	if format == "pt" {
+		renderTemplate(res, "editpt", page)
+	} else {
+		renderTemplate(res, "edit", page)
+	}
+}
+
 //Edit2Page prepares, loads, and renders the Image Citation Editor
 func Edit2Page(res http.ResponseWriter, req *http.Request) {
 
@@ -578,7 +646,7 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "editcat", page)
 }
 
-//MultiPage prepares, loads, and renders the Multicompare page (?)
+//MultiPage prepares, loads, and renders the Multicompare page
 func MultiPage(res http.ResponseWriter, req *http.Request) {
 
 	//First get the session..
@@ -602,6 +670,11 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	urn := vars["urn"]
 
 	dbname := user + ".db"
+
+	vquery := req.URL.Query()
+	keep := vquery.Get("keep")
+
+	var alignments Alignments
 
 	requestedbucket := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
 	work := strings.Join(strings.Split(strings.Split(requestedbucket, ":")[3], ".")[0:1], ".")
@@ -672,7 +745,46 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 	}
 	db.Close()
 
-	alignments := nwa2(text1, id1, texts, ids)
+	switch keep == "true" {
+	case true:
+		log.Printf("GrandWazooKeep")
+		dbkey := []byte(id1)
+		db, err := openBoltDB(dbname) //open bolt DB using helper function
+		if err != nil {
+			log.Println(fmt.Printf("requestImgID: error opening userDB: %s", err))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = db.View(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte("alignmentsCollection"))
+			if bucket == nil {
+				return errors.New("failed to get bucket")
+			}
+			val := bucket.Get(dbkey)
+			if val == nil {
+				return errors.New("failed to retrieve value")
+			}
+			alignments, err = gobDecodeAlignments(val)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			log.Println(fmt.Printf("error retrieving alignments: %s", err))
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		db.Close()
+	default:
+		log.Printf("GrandWazooReDo")
+		alignments = nwa2(text1, id1, texts, ids)
+		aligntime := time.Now()
+		alignments.AlignmentTime = aligntime.Format("20060102150405")
+		alignments.AlignmentID = id1
+		AlignmentsToDB(dbname, alignments)
+	}
+
 	slsl := [][]string{}
 	for i := range alignments.Alignment {
 		slsl = append(slsl, alignments.Alignment[i].Source)
@@ -768,7 +880,7 @@ func MultiPage(res http.ResponseWriter, req *http.Request) {
 			s := fmt.Sprintf("%.2f", alignments.Alignment[i].Score[j])
 			tmpstr = tmpstr + "<span hyphens=\"manual\" style=\"background: rgba(165, 204, 107, " + s + ");\" id=\"" + strconv.Itoa(j+1) + "\" alignment=\"" + strconv.Itoa(j+1) + "\">" + addSansHyphens(v) + "</span>" + " "
 		}
-		tmpstr = tmpstr + end
+		tmpstr = tmpstr + `<br><br/><a class="button is-small is-primary" href = "#" onClick="MyWindow=window.open('` + config.Host + "/view/" + ids[i] + `','MyWindow'); return false;">PassageView</a>` + end
 		tmpsl = append(tmpsl, tmpstr)
 	}
 

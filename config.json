@@ -10,6 +10,6 @@
 "googleSecret": "xEmgo7lqzXNOqgjm4bZ-hsMF",
 "maxAge": "45",
 "userDB": "./users.db",
-"orthographyNormalisationFilenames": {"san": "./SanskritOrthography.json"},
+"orthographyNormalisationFilenames": {"sans": "./SanskritOrthography.json"},
 "useNormalization": true
 }
