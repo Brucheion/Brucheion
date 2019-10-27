@@ -42,6 +42,18 @@ func gobDecodeImgCol(data []byte) (imageCollection, error) {
 	return *p, nil
 }
 
+//gobDecodeAlignments decodes a byte slice from the database to an imageCollection
+func gobDecodeAlignments(data []byte) (Alignments, error) {
+	var p *Alignments
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&p)
+	if err != nil {
+		return Alignments{}, err
+	}
+	return *p, nil
+}
+
 //gobDecodePassage decodes a byte slice from the database to a gocite.Passage
 func gobDecodePassage(data []byte) (gocite.Passage, error) {
 	var p *gocite.Passage

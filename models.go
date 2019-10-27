@@ -177,8 +177,10 @@ type Alignment struct {
 // Alignments is a named container for Aligment structs
 //Used in MultiPage and nwa2
 type Alignments struct {
-	Alignment []Alignment
-	Name      []string
+	AlignmentID   string
+	AlignmentTime string
+	Alignment     []Alignment
+	Name          []string
 }
 
 // *** Treebank containers ***

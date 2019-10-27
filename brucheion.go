@@ -11,7 +11,7 @@ import (
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
 var config Config
 
-var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html",
+var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/editpt.html",
 	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
 	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html",
 	"tmpl/main.html"))
@@ -119,10 +119,12 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/new/{key}/{updated}/", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
-	router.HandleFunc("/multicompare/{urn}/", MultiPage)
+	router.HandleFunc("/multicompare/{urn}/", MultiPage).Methods("GET")
 	router.HandleFunc("/normalizeTemporarily/{urns}/", normalizeOrthographyTemporarily)
 	router.HandleFunc("/normalizeAndSave/{urns}/", normalizeOrthographyAndSave)
 	router.HandleFunc("/edit/{urn}/", EditPage)
+	router.HandleFunc("/edit/{urn}/{format}", EditPageFormat)
+	// router.Path("/edit/{urn}").Queries("format", "{[a-Z]+}").HandlerFunc(EditPageFormat).Name("EditPageFormat")
 	router.HandleFunc("/editcat/{urn}/", EditCatPage)
 	router.HandleFunc("/save/{key}/", SaveTranscription)
 	//	router.HandleFunc("/addNodeAfter/{key}/", AddNodeAfter)

@@ -125,6 +125,42 @@ func newCollectionToDB(dbName, collectionName string, collection imageCollection
 	return nil
 }
 
+//AlignmentsToDB saves alignments in a user database. Called by endpoint multipage.
+func AlignmentsToDB(dbName string, alignments Alignments) error {
+	dbkey := []byte(alignments.AlignmentID)
+	dbvalue, err := gobEncode(&alignments)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	db, err := openBoltDB(dbName) //open bolt DB using helper function
+	if err != nil {
+		log.Println(fmt.Printf("AlignmentToDB: error opening userDB: %s", err))
+		return err
+	}
+	defer db.Close()
+	err = db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("alignmentsCollection"))
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		// val := bucket.Get(dbkey)
+		// if val != nil {
+		// 	return errors.New("collection already exists")
+		// }
+		err = bucket.Put(dbkey, dbvalue)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //deleteCollection deletes the collection specified in the URL from the user database
 // localhost:7000/deleteCollection/?name=urn:cite2:nyaya:Awimg.positive:
 func deleteCollection(res http.ResponseWriter, req *http.Request) {
