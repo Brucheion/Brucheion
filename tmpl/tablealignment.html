@@ -1,14 +1,21 @@
 <html>
 
 <head>
+    <title>Brucheion</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
     <link rel="stylesheet" href="{{.Host}}/static/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/brulma.css">
     <style>
         div .aligmenttable {
             max-width: 100%;
             max-height: 100%;
             overflow: scroll;
             position: relative;
+        }
+
+        .table__wrapper {
+            overflow-x: auto;
         }
 
         table {
@@ -45,8 +52,18 @@
 </head>
 
 <body>
-    <div>
-        <button type = "submit">Submit changes for {{.TableID}}</button>
+    <section class="hero is-link">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title">
+                    Alignment Table
+                </h1>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="table__wrapper">
+        <button type="submit">Submit changes for {{.TableID}}</button>
         <div class="alignmenttable">
             <table id="alignmentTable">
                 <thead>
