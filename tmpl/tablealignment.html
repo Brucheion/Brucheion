@@ -52,16 +52,8 @@
 </head>
 
 <body>
-    <section class="hero is-link">
-        <div class="hero-body">
-            <div class="container">
-                <h1 class="title">
-                    Alignment Table
-                </h1>
-                </div>
-            </div>
-        </div>
-    </section>
+    {{template "hero-simple" "Alignment Table"}}
+
     <div class="table__wrapper">
         <button type="submit">Submit changes for {{.TableID}}</button>
         <div class="alignmenttable">
