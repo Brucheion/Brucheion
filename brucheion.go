@@ -14,7 +14,7 @@ var config Config
 var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/editpt.html",
 	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
 	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html",
-	"tmpl/main.html", "tmpl/tablealignment.html"))
+	"tmpl/main.html", "tmpl/tablealignment.html", "tmpl/spa.html"))
 
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
@@ -101,14 +101,16 @@ func setUpRouter() *mux.Router {
 	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	jsHandler := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
 	cexHandler := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
+	bundleHandler := http.StripPrefix("/assets/ui", http.FileServer(http.Dir("./ui/dist")))
 
 	//Set up PathPrefix routes for serving static files
 	router.PathPrefix("/static/").Handler(staticHandler)
 	router.PathPrefix("/js/").Handler(jsHandler)
 	router.PathPrefix("/cex/").Handler(cexHandler)
+	router.PathPrefix("/assets/ui").Handler(bundleHandler)
 
 	//Set up HandleFunc routes
-	router.HandleFunc("/login/", loginGET).Methods("GET")         //The initial page. Idially the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.
+	router.HandleFunc("/login/", loginGET).Methods("GET")         //The initial page. Ideally the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.
 	router.HandleFunc("/login/", loginPOST).Methods("POST")       //This is where users are redirected to when credentials habe been entered.
 	router.HandleFunc("/auth/{provider}/", auth)                  //Initializes the authentication, redirects to callback.
 	router.HandleFunc("/auth/{provider}/callback/", authCallback) //Displays message when logged in successfully. Forwards to Main
@@ -119,6 +121,7 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/new/{key}/{updated}/", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
+	router.HandleFunc("/ingest", spaHandler)
 	router.HandleFunc("/multicompare/{urn}/", MultiPage).Methods("GET")
 	router.HandleFunc("/seealignment/{urn}", SeeAlignment).Methods("GET")
 	router.HandleFunc("/tablealignment/{urn}", TableAlignments).Methods("GET")
