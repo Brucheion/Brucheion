@@ -1,0 +1,54 @@
+{
+  "name": "brucheion-ui",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^12.0.0",
+    "@rollup/plugin-node-resolve": "^8.0.0",
+    "husky": "^4.2.5",
+    "lint-staged": "^10.2.8",
+    "prettier": "^2.0.5",
+    "prettier-plugin-svelte": "^1.1.0",
+    "rollup": "^2.3.4",
+    "rollup-plugin-svelte": "^5.0.3",
+    "rollup-plugin-terser": "^5.1.2",
+    "svelte": "^3.0.0",
+    "svelte-routing": "^1.4.2"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,css,md}": "prettier --write"
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "tabWidth": 2,
+    "semi": false,
+    "singleQuote": true,
+    "pluginSearchDirs": [
+      "."
+    ],
+    "overrides": [
+      {
+        "files": "*.svelte",
+        "options": {
+          "parser": "svelte",
+          "svelteSortOrder": "scripts-markup-styles",
+          "svelteBracketNewLine": true
+        }
+      }
+    ]
+  },
+  "dependencies": {
+    "rollup-plugin-sourcemaps": "^0.6.2"
+  }
+}
