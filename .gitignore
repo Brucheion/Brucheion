@@ -3,6 +3,7 @@ Thumbs.db
 .DS_Store
 *.db
 users.db
+.session-key
 
 # exclude image_archive and cex
 static/image_archive/*
