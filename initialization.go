@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gorilla/securecookie" //for generating the cookieStore key
 	"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
@@ -27,15 +29,27 @@ func loadConfiguration(file string) Config {
 	return newConfig                          //return ServerConfig config
 }
 
+func getSessionKey() []byte {
+	brucheionPath, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return securecookie.GenerateRandomKey(64)
+	}
+
+	keyFile := filepath.Join(brucheionPath, ".session-key")
+	content, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		key := securecookie.GenerateRandomKey(64)
+		_ = ioutil.WriteFile(keyFile, key, 0666)
+		return key
+	}
+
+	return content
+}
+
 // getCookieStore sets up and returns a cookiestore. The maxAge is defined by what was defined in config.json.
 //Todo: Errorhandling
 func getCookieStore(maxAge int) sessions.Store {
-	//Todo: research encryption key and if it can/should be used fot our use cases
-	key := securecookie.GenerateRandomKey(64) //Generate a random key for the session
-	if key == nil {
-		fmt.Println("Error generating random session key.")
-	}
-
+	key := getSessionKey()
 	cookieStore := sessions.NewCookieStore([]byte(key)) //Get CookieStore from sessions package
 	cookieStore.Options.HttpOnly = true                 //Ensures that Cookie can not be accessed by scripts
 	cookieStore.MaxAge(maxAge)                          //Sets the maxAge of the session/cookie
