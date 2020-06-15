@@ -5,6 +5,7 @@
   import FormLine from '../components/FormLine.svelte'
   import Message from '../components/Message.svelte'
   import { validateUrn } from '../lib/cts-urn'
+  import TextInput from '../components/TextInput.svelte'
 
   let collection = ''
   let imageName = ''
@@ -12,15 +13,16 @@
   let external = true
   let protocol = 'static'
 
-  let errorMessage = null, timeoutHandle
+  let statusMessage = null, timeoutHandle
   let collectionRef, imageNameRef
 
   $: complete = validateUrn(collection, { noPassage: true }) && validateUrn(imageName) && imageUrl
 
-  $: if (errorMessage !== null) {
+  $: if (statusMessage !== null) {
     clearTimeout(timeoutHandle)
-    timeoutHandle = setTimeout(() => errorMessage = null, 10000)
+    timeoutHandle = setTimeout(() => statusMessage = null, 10000)
   }
+  $: errorMessage = statusMessage && statusMessage.toLowerCase().includes('error')
 
   onMount(() => {
     const query = new URLSearchParams(location.search)
@@ -53,10 +55,14 @@
     const res = await fetch(`/addtoCITE?${stringifyQuery(query)}`)
     if (res.status !== 200) {
       console.error(`Ingestion failed: HTTP ${res.status} ${await res.text()}`)
-      errorMessage = 'An error occurred. Please try later.'
+      statusMessage = 'An error occurred. Please try later.'
       return
     }
-    errorMessage = 'Image ingested!'
+    statusMessage = 'Image ingested.'
+    window.setTimeout(() => {
+      imageName = ''
+      imageNameRef.focus()
+    }, 2500)
   }
 </script>
 
@@ -64,17 +70,21 @@
   <section>
     <form class="form" on:submit={handleSubmit}>
       <FormLine id="collection" label="Collection">
-        <input id="collection" class="input" type="text" placeholder="Collection CITE URN"
-               bind:value={collection} bind:this={collectionRef}/>
+        <TextInput id="collection" placeholder="Collection CITE URN" bind:value={collection}
+                   bind:inputRef={collectionRef}
+                   validate={value => (validateUrn(value, {noPassage: true}))}
+                   invalidMessage="Please enter a valid CITE collection URN."/>
       </FormLine>
 
       <FormLine id="name" label="Image Name">
-        <input id="name" class="input" type="text" placeholder="Image CITE URN" bind:value={imageName}
-               bind:this={imageNameRef}/>
+        <TextInput id="name" placeholder="Image CITE URN" bind:value={imageName} bind:inputRef={imageNameRef}
+                   validate={value => validateUrn(value)}
+                   invalidMessage="Please enter a valid CITE object URN."
+                   autocomplete={false}/>
       </FormLine>
 
       <FormLine id="source" label="Source">
-        <input id="source" class="input" type="text" placeholder="Resource URL" bind:value={imageUrl}/>
+        <TextInput id="source" placeholder="Resource URL" bind:value={imageUrl}/>
       </FormLine>
 
       <FormLine id="protocol" label="Type">
@@ -96,8 +106,8 @@
 
       <FormLine offset>
         <button class="button is-success" disabled={!complete} on:click={handleSubmit}>Add Image</button>
-        {#if errorMessage}
-          <Message text={errorMessage} error/>
+        {#if statusMessage}
+          <Message text={statusMessage} error={errorMessage}/>
         {/if}
       </FormLine>
     </form>
@@ -111,7 +121,7 @@
     padding: 25px;
   }
 
-  input, select {
+  select {
     background-color: white;
     border-color: #dbdbdb;
     border-radius: 4px;
