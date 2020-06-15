@@ -1,0 +1,28 @@
+<script>
+  export let id = ''
+  export let label = ''
+  export let offset = false
+</script>
+
+<div class="field is-horizontal" class:offset>
+  <div class="field-label is-normal label-wrapper">
+    {#if label}<label class="label" for={id}>{label}</label>{/if}
+  </div>
+  <div class="field-body">
+    <div class="field">
+      <div class="control">
+        <slot/>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .offset {
+    margin-top: 50px;
+  }
+
+  .label-wrapper {
+    flex-grow: 2;
+  }
+</style>
