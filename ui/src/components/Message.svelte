@@ -1,11 +1,13 @@
 <script>
-  import { fade } from 'svelte/transition'
+  import growAndFade from '../transitions/growAndFade'
 
   export let text = ''
   export let error = false
 </script>
 
-<em class:error transition:fade={{duration: 125}}>{text}</em>
+<div transition:growAndFade>
+  <em class:error>{text}</em>
+</div>
 
 <style>
   em {
@@ -13,6 +15,8 @@
     padding: 5px;
 
     font-style: normal;
+    font-size: 90%;
+    font-weight: 500;
   }
 
   .error {
