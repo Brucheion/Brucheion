@@ -8,7 +8,7 @@ Parts of Brucheion are ready to be tested. Please note, that the VRE is still un
 
 ## Install 
 
-To Install Brucheion simply download the repository. Depending on the operating system you want to test Brucheion on, you may need to recompile the binary file. Compiling on linux for a 64 bit linux the Terminal you may use: `env GOOS=linux GOARCH=amd64 go build` See this overview explanation of [How To Build Go Executables for Multiple Platforms](https://www.digitalocean.com/community/tutorials/how-to-build-go-executables-for-multiple-platforms-on-ubuntu-16-04).
+To install Brucheion simply obtain an official release from your Brucheion distribution channels. The release will contain a binary file that will likely run on your operating system. If your operating system isn't supported you will need to compile it on your machine. Compiling on linux for a 64 bit linux the Terminal you may use: `env GOOS=linux GOARCH=amd64 make build`. See this overview explanation of [How To Build Go Executables for Multiple Platforms](https://www.digitalocean.com/community/tutorials/how-to-build-go-executables-for-multiple-platforms-on-ubuntu-16-04).
 
 
 ## Usage
@@ -95,10 +95,22 @@ For logging in without authentification start Brucheion with setting the noauth 
 
 ![startWithNoauthFlag](static/img/tutorial/startWithNoauthFlag.png)
 
-###
+## Development
 
+For development or building Brucheion, you will need the following software: [Go](https://golang.org/) (`>= 1.14`) and [Node.js](https://nodejs.org/) (`>= v12`). The following workflow has been tested on macOS but should work on any Unix-based machine. By using `make`, you can issue the following commands:
 
-### View
+* `make` Create a production build of Brucheion. Install all dependencies, run all tests, build the UI and compile Brucheion.
+* `make test` Run all tests.
+* `make build` Build the UI and compile Brucheion.
+* `make dev` Continuously build the UI as files are being changed.
+* `make deps` Install all Node.js dependencies.
+* `make clean` Remove all generated files. If any undocumented errors occur during development or compilation, try this command and reinstall all dependencies via `make deps`.
+
+Running `make` should sufficiently prepare your machine for development. More recent components of the Brucheion UI are build as an interactive JavaScript application using the [Svelte](https://svelte.dev/) framework. Parts related to this UI are situated in the `ui` folder.
+
+In order to develop the Svelte-based UI, start a development process via `make dev`; it will reprocess all JavaScript files as they are being changed. Then, run the Brucheion binary via `./brucheion` and access Brucheion via `https://localhost:7000/` in your browser. After changing parts of the UI JavaScript code, simply refresh the website.
+
+### References
 
 <b id="Wikipedia_JSON">1</b> https://en.wikipedia.org/wiki/JSON [↩](#1)
 
