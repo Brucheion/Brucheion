@@ -2,8 +2,13 @@ package main
 
 import (
 	"errors"
+	"github.com/markbates/pkger"
 	"html/template"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // <https://stackoverflow.com/a/18276968>
@@ -58,4 +63,31 @@ func renderAuthTemplate(res http.ResponseWriter, tmpl string, loginPage *LoginPa
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+// adapted from here: <https://osinet.fr/go/en/articles/bundling-templates-with-pkger/>
+func compileTemplates(dir string) (*template.Template, error) {
+	var t *template.Template
+	err := pkger.Walk(dir, func(path string, info os.FileInfo, _ error) error {
+		if info.IsDir() || !strings.HasSuffix(path, ".html") {
+			return nil
+		}
+
+		name := filepath.Base(path)
+		f, _ := pkger.Open(path)
+		sl, _ := ioutil.ReadAll(f)
+
+		var tmpl *template.Template
+		if t == nil {
+			t = template.New(name)
+		}
+		if name == t.Name() {
+			tmpl = t
+		} else {
+			tmpl = t.New(name)
+		}
+		_, err := tmpl.Parse(string(sl))
+		return err
+	})
+	return t, err
 }
