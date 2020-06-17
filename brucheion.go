@@ -6,18 +6,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/markbates/pkger"
 )
 
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
 var config Config
 
-var templates = template.Must(createBaseTemplate().ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/editpt.html",
-	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
-	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html",
-	"tmpl/main.html", "tmpl/tablealignment.html", "tmpl/spa.html", "tmpl/shared/navigation.html", "tmpl/shared/footer.html",
-	"tmpl/shared/page.html"))
-
-var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
+var templates *template.Template
 
 //Main starts the program the mux server
 func main() {
@@ -31,6 +26,14 @@ func main() {
 	} else {
 		log.Println("Loading configuration from: ./config.json")
 		config = loadConfiguration("./config.json")
+	}
+
+	dir := pkger.Include("/tmpl")
+	t, err := compileTemplates(dir)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		templates = t
 	}
 
 	//Create new Cookiestore instance for use with Brucheion
@@ -99,12 +102,14 @@ func setUpRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
 	//Set up handlers for serving static files
-	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	jsHandler := http.StripPrefix("/js/", http.FileServer(http.Dir("./js/")))
+	libraryHandler := http.StripPrefix("/static/image_archive", http.FileServer(http.Dir("./library")))
+	staticHandler := http.StripPrefix("/static/", http.FileServer(pkger.Dir("/static/")))
+	jsHandler := http.StripPrefix("/js/", http.FileServer(pkger.Dir("/js/")))
 	cexHandler := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
-	bundleHandler := http.StripPrefix("/assets/ui", http.FileServer(http.Dir("./ui/dist")))
+	bundleHandler := http.StripPrefix("/assets/ui", http.FileServer(pkger.Dir("/ui/dist")))
 
 	//Set up PathPrefix routes for serving static files
+	router.PathPrefix("/static/image_archive/").Handler(libraryHandler)
 	router.PathPrefix("/static/").Handler(staticHandler)
 	router.PathPrefix("/js/").Handler(jsHandler)
 	router.PathPrefix("/cex/").Handler(cexHandler)
