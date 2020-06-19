@@ -1,0 +1,7 @@
+nav.navbar, nav.navbar .container, nav.navbar .container .navbar-brand {
+    height: auto;
+    min-height: auto;
+}
+nav.navbar .navbar-brand .navbar-item.logo img {
+    height: 40px;
+}
