@@ -1,6 +1,8 @@
 GO=go
 NPM=cd ui && npm
 BIN=Brucheion
+SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+TMPL = $(shell find ./tmpl -type f -name '*.html')
 
 NODE_MODULES=ui/node_modules
 
@@ -10,7 +12,7 @@ all: deps test build
 .PHONY: build
 build: build-ui brucheion
 
-brucheion:
+brucheion: $(SRC) $(TMPL)
 	$(GO) build -o $(BIN) -v
 
 .PHONY: build-ui
