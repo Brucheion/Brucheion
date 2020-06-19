@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-
 <head>
     <title>Brucheion</title>
+    <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
     <script type="text/javascript" src="{{.Host}}/js/openseadragon.js"></script>
@@ -24,8 +23,6 @@
         }
     </style>
     {{.ImageScript}}
-</head>
-
 
 <style type="text/css">
     .node,
@@ -436,7 +433,7 @@
                 }
             };
             childCount(0, root);
-            var newHeight = d3.max(levelWidth) * 25; // 25 pixels per line  
+            var newHeight = d3.max(levelWidth) * 25; // 25 pixels per line
             tree = tree.size([newHeight, viewerWidth]);
 
             // Compute the new tree layout.
@@ -612,7 +609,7 @@
         centerNode(root);
     });
 </script>
-
+</head>
 <body>
     {{template "navigation" .}}
     {{template "hero-simple" "Morpho-syntactic Treebank"}}
@@ -662,5 +659,4 @@
         // console.log(window.updatedtree);
     };
 </script>
-
 </html>
