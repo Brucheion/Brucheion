@@ -119,3 +119,8 @@ nav.navbar .navbar-burger {
 .hero-navigation .hero-passage-selection .navigate:hover {
   opacity: 0.6;
 }
+
+.credits-footer {
+  padding-bottom: 15px;
+  line-height: 135%;
+}
