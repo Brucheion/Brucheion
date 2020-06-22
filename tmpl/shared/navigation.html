@@ -105,41 +105,42 @@
 {{end}}
 
 {{define "hero-passage-selection"}}
-<section class="hero is-link">
+<section class="hero is-link hero-navigation">
   <div class="hero-body">
     <div class="container">
-      <h1 class="title">
-        {{.Title}}
-      </h1>
-      <div class="columns">
-        <div class="column">
-          <p class="subtitle"></p>
-          <a href="{{.Page.Host}}/{{.PathName}}/{{.Page.First}}/">
-            <i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i>
-          </a>
-          <a href="{{.Page.Host}}/{{.PathName}}/{{.Page.Previous}}">
-            <i class="fa fa-chevron-left"></i>
-          </a>
-          <strong>{{.Page.Title}}</strong>
-          <a href="{{.Page.Host}}/{{.PathName}}/{{.Page.Next}}/">
-            <i class="fa fa-chevron-right"></i>
-          </a>
-          <a href="{{.Page.Host}}/{{.PathName}}/{{.Page.Last}}/">
-            <i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i>
-          </a>
-        </div>
-        <div class="column">
-          <form name="nav">
-            <div class="control">
-              <div class="select">
-                <select name="SelectURL"
-                        onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
-                  {{.Page.TextHTML}}
-                </select>
-              </div>
+      <div class="hero-passage-title">
+        <h1 class="title">
+          {{.Title}}
+        </h1>
+        <form class="urn-picker" name="nav">
+          <div class="control">
+            <div class="select">
+              <select
+                      class="select-urn"
+                      name="SelectURL"
+                      onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
+                {{.Page.TextHTML}}
+              </select>
             </div>
-          </form>
-        </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="hero-passage-selection">
+      <div class="box">
+        <a href="{{.Page.Host}}/{{.PathName}}/{{.Page.First}}/" class="navigate first" title="First passage">
+          <i class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i>
+        </a>
+        <a href="{{.Page.Host}}/{{.PathName}}/{{.Page.Previous}}" class="navigate previous" title="Previous passage">
+          <i class="fa fa-chevron-left"></i>
+        </a>
+        <strong class="urn">{{.Page.Title}}</strong>
+        <a href="{{.Page.Host}}/{{.PathName}}/{{.Page.Next}}/" class="navigate next" title="Next passage">
+          <i class="fa fa-chevron-right"></i>
+        </a>
+        <a href="{{.Page.Host}}/{{.PathName}}/{{.Page.Last}}/" class="navigate last" title="Last passage">
+          <i class="fa  fa-chevron-right"></i><i class="fa  fa-chevron-right"></i>
+        </a>
       </div>
     </div>
   </div>
