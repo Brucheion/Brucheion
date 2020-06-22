@@ -16,47 +16,10 @@
 </head>
 <body class="has-hero">
   {{template "navigation" .}}
-
-	<section class="hero is-link">
-		<div class="hero-body">
-			<div class="container">
-				<h1 class="title">
-					Passage Overview
-				</h1>
-				<div class="columns">
-					<div class="coulumn">
-						<p class="subtitle"></p><a href="{{.Host}}/view/{{.First}}/"><i
-								class="fa fa-chevron-left"></i><i class="fa fa-chevron-left"></i></a>
-						<a href="{{.Host}}/view/{{.Previous}}"><i class="fa fa-chevron-left"></i></a>
-						<strong>{{.Title}}</strong>
-						<a href="{{.Host}}/view/{{.Next}}/"><i class="fa fa-chevron-right"></i></a>
-						<a href="{{.Host}}/view/{{.Last}}/"><i class="fa  fa-chevron-right"></i><i
-								class="fa  fa-chevron-right"></i></a>
-						</p>
-					</div>
-					<div class="column">
-						<form name="nav">
-							<div class="control">
-								<div class="select">
-									<select name="SelectURL"
-										onchange="document.location.href=document.nav.SelectURL.options[document.nav.SelectURL.selectedIndex].value">
-										{{.TextHTML}}
-									</select>
-								</div>
-							</div>
-						</form>
-					</div>
-				</div>
-			</div>
-		</div>
-	</section>
+  {{template "hero-passage-selection" dict "Title" "Passage Overview" "PathName" "view" "Page" .}}
 
 	<div class="container is-fluid">
-
-
-		<section>
-
-		</section>
+		<section></section>
 		<div class="tile is-ancestor">
 			<div class="tile is-parent">
 				<div class="tile is-child box tile-resizable">
