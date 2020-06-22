@@ -1,7 +1,21 @@
-nav.navbar, nav.navbar .container, nav.navbar .container .navbar-brand {
-    height: auto;
-    min-height: auto;
+nav.navbar {
+  border-radius: 0;
+  border-bottom: 1px solid rgb(230, 230, 230);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.has-hero nav.navbar {
+  margin-bottom: 0;
+  border-bottom-color: rgb(200, 200, 200);
+  box-shadow: 0 0 7px rgba(0, 0, 0, 0.35);
+}
+
+nav.navbar,
+nav.navbar .container,
+nav.navbar .container .navbar-brand {
+  height: auto;
+  min-height: auto;
 }
 nav.navbar .navbar-brand .navbar-item.logo img {
-    height: 40px;
+  height: 40px;
 }
