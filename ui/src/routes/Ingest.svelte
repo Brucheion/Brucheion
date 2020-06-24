@@ -98,7 +98,7 @@
       </FormLine>
 
       <FormLine>
-        <label class="checkbox label">
+        <label class="checkbox label checkbox-label">
           <input type="checkbox" bind:checked={external}>
           External resource
         </label>
@@ -128,7 +128,13 @@
     color: #363636;
   }
 
+  .checkbox-label {
+    padding: 0;
+    text-align: left;
+  }
+
   input[type=checkbox] {
+    position: relative;
     margin: 0 6px 3px 3px;
   }
 </style>
