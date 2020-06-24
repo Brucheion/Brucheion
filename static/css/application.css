@@ -137,6 +137,10 @@ img.object_imgThumb, img#image_previewImg {
 	max-height: 200px;
 }
 
+div#image_imageContainer {
+	height: 100%;
+}
+
 div#image_imageContainer.fullpage {
 	max-width: 100%;
 }
