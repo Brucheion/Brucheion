@@ -6,7 +6,7 @@
 
 <div class="field is-horizontal" class:offset>
   <div class="field-label is-normal label-wrapper">
-    {#if label}<label class="label" for={id}>{label}</label>{/if}
+    {#if label}<label class="label line-label" for={id}>{label}</label>{/if}
   </div>
   <div class="field-body">
     <div class="field">
@@ -24,5 +24,10 @@
 
   .label-wrapper {
     flex-grow: 2;
+  }
+
+  .line-label {
+    padding: 0;
+    text-align: right;
   }
 </style>
