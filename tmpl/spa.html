@@ -8,16 +8,12 @@
 
     <title>Brucheion</title>
 
-    <link rel="stylesheet" href="/static/css/font-awesome.min.css" />
-    <link rel="stylesheet" href="/static/css/bulma.css" />
-    <link rel="stylesheet" href="/static/css/application.css" />
-    <link rel="stylesheet" href="/static/css/font-awesome.min.css" />
-    <link rel="stylesheet" href="/static/css/brulma.css" />
+    {{template "stylesheets"}}
     <link rel="stylesheet" href="/assets/ui/bundle.css" />
   </head>
-  <body>
+  <body class="has-hero">
     {{template "navigation"}}
-    {{template "hero-simple" "Folio Ingestion"}}
+    {{template "hero-simple" .Title}}
 
     <div id="app"></div>
     {{template "footer"}}
