@@ -122,7 +122,7 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/new/{key}/{updated}/", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
-	router.HandleFunc("/ingest", spaHandler)
+	router.HandleFunc("/ingest", createSpaHandler("Image Ingestion"))
 	router.HandleFunc("/multicompare/{urn}/", MultiPage).Methods("GET")
 	router.HandleFunc("/seealignment/{urn}", SeeAlignment).Methods("GET")
 	router.HandleFunc("/tablealignment/{urn}", TableAlignments).Methods("GET")
