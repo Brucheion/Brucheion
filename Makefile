@@ -1,22 +1,22 @@
+NODE_MODULES=ui/node_modules
+
 GO=go
 NPM=cd ui && npm
 BIN=Brucheion
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-TMPL = $(shell find ./tmpl -type f -name '*.html')
-
-NODE_MODULES=ui/node_modules
 
 .PHONY: all
 all: deps test build
 
 .PHONY: build
-build: build-ui brucheion
+build: ui brucheion
 
-brucheion: $(SRC) $(TMPL)
+.PHONY: brucheion
+brucheion:
 	$(GO) build -o $(BIN) -v
 
-.PHONY: build-ui
-build-ui:
+.PHONY: ui
+ui:
 	$(NPM) run build
 
 .PHONY: clean
