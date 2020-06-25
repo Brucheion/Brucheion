@@ -1,23 +1,12 @@
+<!DOCTYPE html>
 <html>
-
 <head>
     <title>Brucheion</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
     <script type="text/javascript" src="{{.Host}}/js/bootstrap.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/bootstrap-theme.min.css">
-    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/application.css">
-    <link rel="stylesheet" href="{{.Host}}/static/css/font-awesome.min.css">
-    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/brulma.css">
-    <style>
-        .tile-resizable {
-            resize: both;
-            overflow: hidden
-        }
-    </style>
+    {{template "stylesheets" .}}
 </head>
-
 <body>
     {{template "navigation" .}}
     {{template "hero-simple" "Edit Image Collection"}}
@@ -95,6 +84,4 @@
         });
     </script>
 </body>
-
-
 </html>
