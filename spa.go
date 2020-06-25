@@ -2,9 +2,16 @@ package main
 
 import "net/http"
 
-func spaHandler(res http.ResponseWriter, req *http.Request) {
-	err := templates.ExecuteTemplate(res, "spa.html", nil)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+type staticPage struct {
+	Title string
+}
+
+func createSpaHandler(title string) func(http.ResponseWriter, *http.Request) {
+	page := staticPage{Title: title}
+	return func(res http.ResponseWriter, req *http.Request) {
+		err := templates.ExecuteTemplate(res, "spa.html", page)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }

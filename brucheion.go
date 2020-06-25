@@ -11,10 +11,11 @@ import (
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
 var config Config
 
-var templates = template.Must(template.ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/editpt.html",
+var templates = template.Must(createBaseTemplate().ParseFiles("tmpl/view.html", "tmpl/edit.html", "tmpl/editpt.html",
 	"tmpl/edit2.html", "tmpl/editcat.html", "tmpl/compare.html", "tmpl/multicompare.html",
 	"tmpl/consolidate.html", "tmpl/tree.html", "tmpl/crud.html", "tmpl/login.html", "tmpl/callback.html",
-	"tmpl/main.html", "tmpl/tablealignment.html", "tmpl/spa.html", "tmpl/navigation.html", "tmpl/footer.html"))
+	"tmpl/main.html", "tmpl/tablealignment.html", "tmpl/spa.html", "tmpl/shared/navigation.html", "tmpl/shared/footer.html",
+	"tmpl/shared/page.html"))
 
 var jstemplates = template.Must(template.ParseFiles("js/ict2.js"))
 
@@ -121,7 +122,7 @@ func setUpRouter() *mux.Router {
 	router.HandleFunc("/new/{key}/{updated}/", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
-	router.HandleFunc("/ingest", spaHandler)
+	router.HandleFunc("/ingest", createSpaHandler("Image Ingestion"))
 	router.HandleFunc("/multicompare/{urn}/", MultiPage).Methods("GET")
 	router.HandleFunc("/seealignment/{urn}", SeeAlignment).Methods("GET")
 	router.HandleFunc("/tablealignment/{urn}", TableAlignments).Methods("GET")
