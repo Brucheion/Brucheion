@@ -102,7 +102,7 @@ func setUpRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
 	//Set up handlers for serving static files
-	libraryHandler := http.StripPrefix("/static/image_archive", http.FileServer(http.Dir("./library")))
+	libraryHandler := http.StripPrefix("/static/image_archive", http.FileServer(http.Dir("./image_archive")))
 	staticHandler := http.StripPrefix("/static/", http.FileServer(pkger.Dir("/static/")))
 	jsHandler := http.StripPrefix("/js/", http.FileServer(pkger.Dir("/js/")))
 	cexHandler := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
