@@ -33,7 +33,7 @@
     }
   },
   "lint-staged": {
-    "*.{js,css,md}": "prettier --write"
+    "*.{js,css,md,svelte}": "prettier --write"
   },
   "prettier": {
     "trailingComma": "es5",
@@ -47,9 +47,7 @@
       {
         "files": "*.svelte",
         "options": {
-          "parser": "svelte",
-          "svelteSortOrder": "scripts-markup-styles",
-          "svelteBracketNewLine": true
+          "parser": "svelte"
         }
       }
     ]
