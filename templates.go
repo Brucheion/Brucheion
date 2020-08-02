@@ -67,7 +67,7 @@ func renderAuthTemplate(res http.ResponseWriter, tmpl string, loginPage *LoginPa
 
 // adapted from here: <https://osinet.fr/go/en/articles/bundling-templates-with-pkger/>
 func compileTemplates(dir string) (*template.Template, error) {
-	var t *template.Template
+	t := createBaseTemplate()
 	err := pkger.Walk(dir, func(path string, info os.FileInfo, _ error) error {
 		if info.IsDir() || !strings.HasSuffix(path, ".html") {
 			return nil
