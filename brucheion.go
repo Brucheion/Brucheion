@@ -11,14 +11,15 @@ import (
 
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
 var config Config
-
 var templates *template.Template
 
 //Main starts the program the mux server
 func main() {
-
-	//evaluates flags and sets variables accordingly
 	initializeFlags()
+
+	if *localAssets {
+		log.Println("Will serve static assets from the local filesystem.")
+	}
 
 	if *configLocation != "./config.json" {
 		log.Println("Loading configuration from: " + *configLocation)
@@ -55,7 +56,6 @@ func main() {
 
 //landingPage is the first landing page for experimental testing
 func landingPage(res http.ResponseWriter, req *http.Request) {
-
 	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -96,17 +96,24 @@ func landingPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "main", page)
 }
 
-func setUpRouter() *mux.Router {
+func getEmbeddableDir(path string) (root http.FileSystem) {
+	if *localAssets {
+		return http.Dir(string('.') + path)
+	} else {
+		return pkger.Dir(path)
+	}
+}
 
+func setUpRouter() *mux.Router {
 	//Start the router
 	router := mux.NewRouter().StrictSlash(true)
 
 	//Set up handlers for serving static files
 	libraryHandler := http.StripPrefix("/static/image_archive", http.FileServer(http.Dir("./image_archive")))
-	staticHandler := http.StripPrefix("/static/", http.FileServer(pkger.Dir("/static/")))
-	jsHandler := http.StripPrefix("/js/", http.FileServer(pkger.Dir("/js/")))
+	staticHandler := http.StripPrefix("/static/", http.FileServer(getEmbeddableDir("/static/")))
+	jsHandler := http.StripPrefix("/js/", http.FileServer(getEmbeddableDir("/js/")))
 	cexHandler := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
-	bundleHandler := http.StripPrefix("/assets/ui", http.FileServer(pkger.Dir("/ui/dist")))
+	bundleHandler := http.StripPrefix("/assets/ui", http.FileServer(getEmbeddableDir("/ui/dist")))
 
 	//Set up PathPrefix routes for serving static files
 	router.PathPrefix("/static/image_archive/").Handler(libraryHandler)
