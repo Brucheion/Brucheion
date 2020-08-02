@@ -6,6 +6,7 @@
   import Message from '../components/Message.svelte'
   import { validateUrn } from '../lib/cts-urn'
   import TextInput from '../components/TextInput.svelte'
+  import { validateHttpUrl } from '../lib/url'
 
   let collection = ''
   let imageName = ''
@@ -13,16 +14,22 @@
   let external = true
   let protocol = 'static'
 
-  let statusMessage = null, timeoutHandle
+  let statusMessage = null,
+    timeoutHandle
   let collectionRef, imageNameRef
 
-  $: complete = validateUrn(collection, { noPassage: true }) && validateUrn(imageName) && imageUrl
+  $: complete =
+    validateUrn(collection, { noPassage: true }) &&
+    validateUrn(imageName) &&
+    imageUrl
 
   $: if (statusMessage !== null) {
     clearTimeout(timeoutHandle)
-    timeoutHandle = setTimeout(() => statusMessage = null, 10000)
+    timeoutHandle = setTimeout(() => (statusMessage = null), 10000)
   }
-  $: errorMessage = statusMessage && statusMessage.toLowerCase().includes('error')
+  $: errorMessage =
+    statusMessage && statusMessage.toLowerCase().includes('error')
+  $: external = !validateUrn(imageUrl)
 
   onMount(() => {
     const query = new URLSearchParams(location.search)
@@ -66,54 +73,6 @@
   }
 </script>
 
-<div class="container is-fluid">
-  <section>
-    <form class="form" on:submit={handleSubmit}>
-      <FormLine id="collection" label="Collection">
-        <TextInput id="collection" placeholder="Collection CITE URN" bind:value={collection}
-                   bind:inputRef={collectionRef}
-                   validate={value => (validateUrn(value, {noPassage: true}))}
-                   invalidMessage="Please enter a valid CITE collection URN."/>
-      </FormLine>
-
-      <FormLine id="name" label="Image Name">
-        <TextInput id="name" placeholder="Image CITE URN" bind:value={imageName} bind:inputRef={imageNameRef}
-                   validate={value => validateUrn(value)}
-                   invalidMessage="Please enter a valid CITE object URN."
-                   autocomplete={false}/>
-      </FormLine>
-
-      <FormLine id="source" label="Source">
-        <TextInput id="source" placeholder="Resource URL" bind:value={imageUrl}/>
-      </FormLine>
-
-      <FormLine id="protocol" label="Type">
-        <div class="select">
-          <select id="protocol" bind:value={protocol}>
-            <option value="static">Static</option>
-            <option value="localDZ">Deep Zoom</option>
-            <option value="iiif">IIIF</option>
-          </select>
-        </div>
-      </FormLine>
-
-      <FormLine>
-        <label class="checkbox label checkbox-label">
-          <input type="checkbox" bind:checked={external}>
-          External resource
-        </label>
-      </FormLine>
-
-      <FormLine offset>
-        <button class="button is-success" disabled={!complete} on:click={handleSubmit}>Add Image</button>
-        {#if statusMessage}
-          <Message text={statusMessage} error={errorMessage}/>
-        {/if}
-      </FormLine>
-    </form>
-  </section>
-</div>
-
 <style>
   .form {
     box-sizing: border-box;
@@ -133,8 +92,66 @@
     text-align: left;
   }
 
-  input[type=checkbox] {
+  input[type='checkbox'] {
     position: relative;
     margin: 0 6px 3px 3px;
   }
 </style>
+
+<div class="container is-fluid">
+  <section>
+    <form class="form" on:submit={handleSubmit}>
+      <FormLine id="collection" label="Collection">
+        <TextInput
+          id="collection"
+          placeholder="Collection CITE URN"
+          bind:value={collection}
+          bind:inputRef={collectionRef}
+          validate={(value) => validateUrn(value, { noPassage: true })}
+          invalidMessage="Please enter a valid CITE collection URN." />
+      </FormLine>
+
+      <FormLine id="name" label="Image Name">
+        <TextInput
+          id="name"
+          placeholder="Image CITE URN"
+          bind:value={imageName}
+          bind:inputRef={imageNameRef}
+          validate={(value) => validateUrn(value)}
+          invalidMessage="Please enter a valid CITE object URN."
+          autocomplete={false} />
+      </FormLine>
+
+      <FormLine id="source" label="Source">
+        <TextInput
+          id="source"
+          placeholder="Resource URL"
+          bind:value={imageUrl}
+          validate={(value) => validateUrn(value) || validateHttpUrl(value)}
+          invalidMessage="Please enter a valid CITE object URN or a HTTP(S) URL." />
+      </FormLine>
+
+      <FormLine id="protocol" label="Type">
+        <div class="select">
+          <select id="protocol" bind:value={protocol}>
+            <option value="static">Static</option>
+            <option value="localDZ">Deep Zoom</option>
+            <option value="iiif">IIIF</option>
+          </select>
+        </div>
+      </FormLine>
+
+      <FormLine offset>
+        <button
+          class="button is-success"
+          disabled={!complete}
+          on:click={handleSubmit}>
+          Add Image
+        </button>
+        {#if statusMessage}
+          <Message text={statusMessage} error={errorMessage} />
+        {/if}
+      </FormLine>
+    </form>
+  </section>
+</div>
