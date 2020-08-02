@@ -17,6 +17,7 @@
   let statusMessage = null,
     timeoutHandle
   let collectionRef, imageNameRef
+  let collections = []
 
   $: complete =
     validateUrn(collection, { noPassage: true }) &&
@@ -31,7 +32,7 @@
     statusMessage && statusMessage.toLowerCase().includes('error')
   $: external = !validateUrn(imageUrl)
 
-  onMount(() => {
+  onMount(async () => {
     const query = new URLSearchParams(location.search)
     if (query.has('collection')) {
       if (validateUrn(query.get('collection'), { noPassage: true })) {
@@ -44,7 +45,14 @@
     } else {
       collectionRef.focus()
     }
+
+    await fetchCollections()
   })
+
+  async function fetchCollections() {
+    const res = await fetch('/requestImgCollection/')
+    collections = (await res.json()).item
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -87,11 +95,6 @@
     color: #363636;
   }
 
-  .checkbox-label {
-    padding: 0;
-    text-align: left;
-  }
-
   input[type='checkbox'] {
     position: relative;
     margin: 0 6px 3px 3px;
@@ -108,7 +111,8 @@
           bind:value={collection}
           bind:inputRef={collectionRef}
           validate={(value) => validateUrn(value, { noPassage: true })}
-          invalidMessage="Please enter a valid CITE collection URN." />
+          invalidMessage="Please enter a valid CITE collection URN."
+          items={collections} />
       </FormLine>
 
       <FormLine id="name" label="Image Name">
