@@ -97,18 +97,20 @@ For logging in without authentification start Brucheion with setting the noauth 
 
 ## Development
 
-For development or building Brucheion, you will need the following software: [Go](https://golang.org/) (`>= 1.14`) and [Node.js](https://nodejs.org/) (`>= v12`). The following workflow has been tested on macOS but should work on any Unix-based machine. By using `make`, you can issue the following commands:
+For development or building Brucheion, you will need the following software: [Go](https://golang.org/) (`>= 1.14`) and [Node.js](https://nodejs.org/) (`>= v12`). Furthermore, you will need to obtain a fork of the [`pkger`](https://github.com/markbates/pkger) tool (`go get https://github.com/falafeljan/pkger`).
+
+The following workflow has been tested on macOS but should work on any Unix-based machine. By using `make`, you can issue the following commands:
 
 * `make` Create a production build of Brucheion. Install all dependencies, run all tests, build the UI and compile Brucheion.
 * `make test` Run all tests.
 * `make build` Build the UI and compile Brucheion.
-* `make dev` Continuously build the UI as files are being changed.
+* `make dev` Continuously build the UI as files are changed. Use it in conjunction of the `-localAssets` flag of Brucheion to load changing JavaScript bundles on the fly during runtime.
 * `make deps` Install all Node.js dependencies.
 * `make clean` Remove all generated files. If any undocumented errors occur during development or compilation, try this command and reinstall all dependencies via `make deps`.
 
 Running `make` should sufficiently prepare your machine for development. More recent components of the Brucheion UI are build as an interactive JavaScript application using the [Svelte](https://svelte.dev/) framework. Parts related to this UI are situated in the `ui` folder.
 
-In order to develop the Svelte-based UI, start a development process via `make dev`; it will reprocess all JavaScript files as they are being changed. Then, run the Brucheion binary via `./brucheion` and access Brucheion via `https://localhost:7000/` in your browser. After changing parts of the UI JavaScript code, simply refresh the website.
+In order to develop the Svelte-based UI, start a development process via `make dev`; it will reprocess all JavaScript files as they are being changed. Then, run the Brucheion binary via `./Brucheion` and access Brucheion via `https://localhost:7000/` in your browser. After changing parts of the UI JavaScript code, simply refresh the website.
 
 ### References
 
