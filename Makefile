@@ -1,24 +1,20 @@
-NODE_MODULES=ui/node_modules
-
 GO=go
 NPM=cd ui && npm
 BIN=Brucheion
 
 NODE_MODULES=ui/node_modules
 
-.PHONY: all build build-ui test clean dev deps
+.PHONY: all dev-ui build build-ui test clean deps
 
 all: deps test build
 
-.PHONY: build
 build: build-ui brucheion
 
-.PHONY: brucheion
 brucheion:
 	pkger -exclude image_archive
 	$(GO) build -o $(BIN) -v
 
-.PHONY: build-ui
+build-ui:
 	$(NPM) run build
 
 test:
@@ -30,7 +26,7 @@ clean:
 	rm -f $(BIN)
 	rm -r $(NODE_MODULES)
 
-dev:
+dev-ui:
 	$(NPM) run dev
 
 deps: $(NODE_MODULES)
