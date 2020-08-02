@@ -5,10 +5,6 @@
   export let error = false
 </script>
 
-<div transition:growAndFade>
-  <em class:error>{text}</em>
-</div>
-
 <style>
   em {
     display: inline-block;
@@ -23,3 +19,7 @@
     color: rgb(200, 10, 10);
   }
 </style>
+
+<div transition:growAndFade>
+  <em class:error>{text}</em>
+</div>
