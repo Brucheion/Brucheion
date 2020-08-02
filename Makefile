@@ -15,7 +15,7 @@ build: build-ui brucheion
 
 .PHONY: brucheion
 brucheion:
-	pkger
+	pkger -exclude image_archive
 	$(GO) build -o $(BIN) -v
 
 .PHONY: build-ui
