@@ -18,11 +18,11 @@
     timeoutHandle
   let collectionRef, imageNameRef
   let collections = []
+  let nameExists = false
 
-  $: complete =
-    validateUrn(collection, { noPassage: true }) &&
-    validateUrn(imageName) &&
-    imageUrl
+  $: validNames =
+    validateUrn(collection, { noPassage: true }) && validateUrn(imageName)
+  $: complete = validNames && imageUrl
 
   $: if (statusMessage !== null) {
     clearTimeout(timeoutHandle)
@@ -31,6 +31,14 @@
   $: errorMessage =
     statusMessage && statusMessage.toLowerCase().includes('error')
   $: external = !validateUrn(imageUrl)
+  $: if (validNames) {
+    fetch(`/getImageInfo/${collection}/${imageName}`).then(async (res) => {
+      const imageInfo = await res.json()
+      nameExists = !!imageInfo.urn
+    })
+  } else if (nameExists) {
+    nameExists = false
+  }
 
   onMount(async () => {
     const query = new URLSearchParams(location.search)
@@ -123,7 +131,11 @@
           bind:inputRef={imageNameRef}
           validate={(value) => validateUrn(value)}
           invalidMessage="Please enter a valid CITE object URN."
-          autocomplete={false} />
+          autocomplete="off" />
+        {#if nameExists}
+          <Message
+            text="This URN already exists and will be replaced if submitted." />
+        {/if}
       </FormLine>
 
       <FormLine id="source" label="Source">
