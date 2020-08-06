@@ -6,12 +6,12 @@ users.db
 .session-key
 
 # exclude image_archive and cex
-static/image_archive/*
+image_archive/*
 cex/*
 
 # exception to the rule
 !cex/.gitkeep
-!static/image_archive/test/
+!image_archive/test/
 
 #Goland imls and xmls
 .idea/*
@@ -25,3 +25,5 @@ Brucheion.sublime-workspace
 
 # Build
 Brucheion
+pkged.go
+
