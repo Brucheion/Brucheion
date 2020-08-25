@@ -1,5 +1,6 @@
 <script>
   import { stringify as stringifyQuery } from 'qs'
+  import OpenSeadragon from 'openseadragon'
   import { onMount } from 'svelte'
   import { navigate } from 'svelte-routing'
   import FormLine from '../components/FormLine.svelte'
@@ -7,6 +8,8 @@
   import { validateUrn } from '../lib/cts-urn'
   import TextInput from '../components/TextInput.svelte'
   import { validateHttpUrl } from '../lib/url'
+  import { isIIIFImage } from '../lib/iiif'
+  import { getStaticOpts, getIIIFOpts, getInternalOpts } from '../lib/osd'
 
   let collection = ''
   let imageName = ''
@@ -15,14 +18,17 @@
   let protocol = 'static'
 
   let statusMessage = null,
-    timeoutHandle
+    timeoutHandle = null
   let collectionRef, imageNameRef
   let collections = []
   let nameExists = false
+  let previewViewer = undefined,
+    viewerOpts = undefined
 
   $: validNames =
     validateUrn(collection, { noPassage: true }) && validateUrn(imageName)
-  $: complete = validNames && imageUrl
+  $: validSource = validateUrn(imageUrl) || validateHttpUrl(imageUrl)
+  $: complete = validNames && validSource
 
   $: if (statusMessage !== null) {
     clearTimeout(timeoutHandle)
@@ -38,6 +44,46 @@
     })
   } else if (nameExists) {
     nameExists = false
+  }
+
+  async function displayExternalMedia(imageUrl) {
+    try {
+      const [isManifest, imageManifest] = await isIIIFImage(imageUrl)
+      if (isManifest) {
+        viewerOpts = getIIIFOpts('preview', imageManifest)
+        protocol = 'iiif'
+      } else {
+        viewerOpts = getStaticOpts('preview', imageUrl)
+        protocol = 'static'
+      }
+    } catch (err) {
+      if (!err.message.includes('NetworkError')) {
+        console.error(err.message)
+      }
+
+      viewerOpts = getStaticOpts('preview', imageUrl)
+      protocol = 'static'
+    }
+  }
+
+  $: if (validSource) {
+    if (validateHttpUrl(imageUrl)) {
+      displayExternalMedia(imageUrl)
+    } else if (validateUrn(imageUrl)) {
+      viewerOpts = getInternalOpts('preview', imageUrl)
+      protocol = 'localDZ'
+    }
+  }
+
+  /* We'll need to trick Svelte's reactivity here, since destroying a prior viewer before creating a new one will result
+   * in a circular dependency within the $-statement. Hence, above we just create the viewer options and handle viewer
+   * lifecycles in the below $-statement.
+   */
+  $: if (validSource && viewerOpts) {
+    if (previewViewer) {
+      previewViewer.destroy()
+    }
+    previewViewer = OpenSeadragon(viewerOpts)
   }
 
   onMount(async () => {
@@ -107,6 +153,10 @@
     position: relative;
     margin: 0 6px 3px 3px;
   }
+
+  .preview {
+    height: 600px;
+  }
 </style>
 
 <div class="container is-fluid">
@@ -151,7 +201,7 @@
         <div class="select">
           <select id="protocol" bind:value={protocol}>
             <option value="static">Static</option>
-            <option value="localDZ">Deep Zoom</option>
+            <option value="localDZ">Deep Zoom (local)</option>
             <option value="iiif">IIIF</option>
           </select>
         </div>
@@ -169,5 +219,7 @@
         {/if}
       </FormLine>
     </form>
+
+    <div id="preview" class="preview" />
   </section>
 </div>
