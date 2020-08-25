@@ -23,7 +23,8 @@
   let collections = []
   let nameExists = false
   let previewViewer = undefined,
-    viewerOpts = undefined
+    viewerOpts = undefined,
+    previewVisible = false
 
   $: validNames =
     validateUrn(collection, { noPassage: true }) && validateUrn(imageName)
@@ -75,15 +76,33 @@
     }
   }
 
+  function createViewer(opts) {
+    const { tileSources, ...otherOpts } = opts
+    previewViewer = OpenSeadragon(otherOpts)
+
+    previewViewer.addHandler('open-failed', () => {
+      previewVisible = false
+      previewViewer.destroy()
+    })
+
+    previewViewer.addHandler('open', () => {
+      previewVisible = true
+    })
+
+    previewViewer.open(tileSources)
+  }
+
   /* We'll need to trick Svelte's reactivity here, since destroying a prior viewer before creating a new one will result
    * in a circular dependency within the $-statement. Hence, above we just create the viewer options and handle viewer
    * lifecycles in the below $-statement.
    */
   $: if (validSource && viewerOpts) {
     if (previewViewer) {
+      previewVisible = false
       previewViewer.destroy()
     }
-    previewViewer = OpenSeadragon(viewerOpts)
+
+    createViewer(viewerOpts)
   }
 
   onMount(async () => {
@@ -156,6 +175,13 @@
 
   .preview {
     height: 600px;
+    opacity: 0;
+
+    transition: opacity 125ms ease-out;
+  }
+
+  .preview.visible {
+    opacity: 1;
   }
 </style>
 
@@ -220,6 +246,6 @@
       </FormLine>
     </form>
 
-    <div id="preview" class="preview" />
+    <div id="preview" class="preview" class:visible={previewVisible} />
   </section>
 </div>
