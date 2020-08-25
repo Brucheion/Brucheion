@@ -24,7 +24,8 @@
   let nameExists = false
   let previewViewer = undefined,
     viewerOpts = undefined,
-    previewVisible = false
+    previewVisible = false,
+    previewErrored = false
 
   $: validNames =
     validateUrn(collection, { noPassage: true }) && validateUrn(imageName)
@@ -68,6 +69,8 @@
   }
 
   $: if (validSource) {
+    previewErrored = false
+
     if (validateHttpUrl(imageUrl)) {
       displayExternalMedia(imageUrl)
     } else if (validateUrn(imageUrl)) {
@@ -83,6 +86,7 @@
     previewViewer.addHandler('open-failed', () => {
       previewVisible = false
       previewViewer.destroy()
+      previewErrored = true
     })
 
     previewViewer.addHandler('open', () => {
@@ -173,15 +177,27 @@
     margin: 0 6px 3px 3px;
   }
 
-  .preview {
-    height: 600px;
+  .preview-container {
+    margin-top: 75px;
     opacity: 0;
 
     transition: opacity 125ms ease-out;
   }
 
-  .preview.visible {
+  .preview-container.visible {
     opacity: 1;
+  }
+
+  .preview {
+    box-sizing: border-box;
+    height: 600px;
+    margin-top: 35px;
+    border: 1px solid rgba(230, 230, 230);
+    border-radius: 3px;
+    padding: 3px;
+
+    background: rgba(245, 245, 245);
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
   }
 </style>
 
@@ -244,8 +260,20 @@
           <Message text={statusMessage} error={errorMessage} />
         {/if}
       </FormLine>
-    </form>
 
-    <div id="preview" class="preview" class:visible={previewVisible} />
+      <div
+        class="preview-container"
+        class:visible={previewVisible || previewErrored}>
+        <h3 class="title is-4">Preview</h3>
+        {#if previewErrored}
+          <Message
+            text="The media could not be loaded for preview. You can ingest it
+            nonetheless." />
+        {/if}
+        {#if !previewErrored}
+          <div id="preview" class="preview" />
+        {/if}
+      </div>
+    </form>
   </section>
 </div>
