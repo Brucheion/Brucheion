@@ -17,6 +17,12 @@
     padding: 0;
     text-align: right;
   }
+
+  @media screen and (max-width: 768px) {
+    .line-label {
+      text-align: left;
+    }
+  }
 </style>
 
 <div class="field is-horizontal" class:offset>
