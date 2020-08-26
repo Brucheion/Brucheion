@@ -237,6 +237,11 @@
           bind:value={imageUrl}
           validate={(value) => validateUrn(value) || validateHttpUrl(value)}
           invalidMessage="Please enter a valid CITE object URN or a HTTP(S) URL." />
+        {#if previewErrored}
+          <Message
+            text="The media could not be loaded for preview due to errors. You
+            can ingest it nonetheless." />
+        {/if}
       </FormLine>
 
       <FormLine id="protocol" label="Type">
@@ -261,18 +266,9 @@
         {/if}
       </FormLine>
 
-      <div
-        class="preview-container"
-        class:visible={previewVisible || previewErrored}>
+      <div class="preview-container" class:visible={previewVisible}>
         <h3 class="title is-4">Preview</h3>
-        {#if previewErrored}
-          <Message
-            text="The media could not be loaded for preview. You can ingest it
-            nonetheless." />
-        {/if}
-        {#if !previewErrored}
-          <div id="preview" class="preview" />
-        {/if}
+        <div id="preview" class="preview" />
       </div>
     </form>
   </section>
