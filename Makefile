@@ -16,7 +16,7 @@ pkged.go:
 brucheion: pkged.go
 	$(GO) build -o $(BIN) -v
 
-build-release: deps pkged.go build-ui test
+build-release: deps test build-ui pkged.go
 	env GOOS=darwin  GOARCH=amd64 $(GO) build -o "release/${BIN}-${VERSION}-macos-x86_64"
 	env GOOS=windows GOARCH=386   $(GO) build -o "release/${BIN}-${VERSION}-i386.exe"
 	env GOOS=windows GOARCH=amd64 $(GO) build -o "release/${BIN}-${VERSION}-x86_64.exe"

@@ -1,0 +1,35 @@
+on:
+  push:
+    tags:
+      - 'v*'
+name: Release
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.14'
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12'
+      - name: Checkout tools repo
+        uses: actions/checkout@v2
+        with:
+          repository: falafeljan/pkger
+      - run: cd cmd/pkger && go install
+      - uses: actions/checkout@v2
+      - run: make build-release
+      - id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - uses: fnkr/github-action-ghr@v1
+        env:
+          GHR_PATH: release/
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
