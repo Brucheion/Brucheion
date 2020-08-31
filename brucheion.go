@@ -107,7 +107,7 @@ func setUpRouter() *mux.Router {
 	if *localAssets {
 		staticDir = http.Dir("./static")
 		jsDir = http.Dir("./js")
-		bundleDir = pkger.Dir("./ui/dist")
+		bundleDir = http.Dir("./ui/dist")
 	}
 
 	//Set up handlers for serving static files
