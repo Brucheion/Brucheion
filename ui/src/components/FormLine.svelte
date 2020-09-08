@@ -6,20 +6,33 @@
 
 <style>
   .offset {
-    margin-top: 50px;
+    margin-top: 25px;
   }
 
   .label-wrapper {
-    flex-grow: 2;
+    flex-grow: 1;
+  }
+
+  @media screen and (min-width: 769px) {
+    .label-wrapper {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-end;
+
+      padding: 0;
+    }
   }
 
   .line-label {
+    width: 125px;
     padding: 0;
     text-align: right;
   }
 
   @media screen and (max-width: 768px) {
     .line-label {
+      width: 100%;
       text-align: left;
     }
   }
