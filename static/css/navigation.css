@@ -26,12 +26,24 @@ nav.navbar .container .navbar-brand {
   min-height: auto;
 }
 
+nav.navbar .navbar-brand {
+  padding: 0;
+}
+
+nav.navbar .navbar-brand .navbar-item {
+  padding: 12px;
+}
+
 nav.navbar .navbar-brand .navbar-item.logo img {
-  height: 40px;
+  height: 30px;
 }
 
 nav.navbar .navbar-burger {
-  height: 86px;
+  height: 54px;
+}
+
+nav.navbar .navbar-item-label{
+  padding-left: 5px;
 }
 
 .hero-navigation {
@@ -39,7 +51,7 @@ nav.navbar .navbar-burger {
 }
 
 .hero-navigation .hero-body {
-  padding-top: 25px;
+  padding-top: 37px;
   padding-bottom: 25px;
 }
 
@@ -47,6 +59,10 @@ nav.navbar .navbar-burger {
   display: flex;
   flex-flow: row;
   align-items: center;
+}
+
+.hero-navigation .hero-passage-title .title {
+  font-size: 26px;
 }
 
 @media screen and (max-width: 991px) {
