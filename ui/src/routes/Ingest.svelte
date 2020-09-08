@@ -96,7 +96,7 @@
     previewViewer.open(tileSources)
   }
 
-  /* We'll need to trick Svelte's reactivity here, since destroying a prior viewer before creating a new one will result
+  /* We'll need to trick the Svelte reactivity here, since destroying a prior viewer before creating a new one will result
    * in a circular dependency within the $-statement. Hence, above we just create the viewer options and handle viewer
    * lifecycles in the below $-statement.
    */
@@ -159,6 +159,10 @@
 </script>
 
 <style>
+  .form-column {
+    max-width: 724px;
+  }
+
   .form {
     box-sizing: border-box;
     max-width: 700px;
@@ -178,7 +182,8 @@
   }
 
   .preview-container {
-    margin-top: 75px;
+    margin-top: 25px;
+    padding: 25px;
     opacity: 0;
 
     transition: opacity 125ms ease-out;
@@ -188,10 +193,16 @@
     opacity: 1;
   }
 
+  @media screen and (min-width: 1088px) {
+    .preview-container {
+      margin-top: 0;
+    }
+  }
+
   .preview {
     box-sizing: border-box;
+    max-width: 700px;
     height: 600px;
-    margin-top: 35px;
     border: 1px solid rgba(230, 230, 230);
     border-radius: 3px;
     padding: 3px;
@@ -203,73 +214,80 @@
 
 <div class="container is-fluid">
   <section>
-    <form class="form" on:submit={handleSubmit}>
-      <FormLine id="collection" label="Collection">
-        <TextInput
-          id="collection"
-          placeholder="Collection CITE URN"
-          bind:value={collection}
-          bind:inputRef={collectionRef}
-          validate={(value) => validateUrn(value, { noPassage: true })}
-          invalidMessage="Please enter a valid CITE collection URN."
-          items={collections} />
-      </FormLine>
+    <div class="columns is-desktop">
+      <div class="column form-column">
+        <form class="form" on:submit={handleSubmit}>
+          <h4 class="title is-4">Media Data</h4>
+          <FormLine id="collection" label="Collection">
+            <TextInput
+              id="collection"
+              placeholder="Collection CITE URN"
+              bind:value={collection}
+              bind:inputRef={collectionRef}
+              validate={(value) => validateUrn(value, { noPassage: true })}
+              invalidMessage="Please enter a valid CITE collection URN."
+              items={collections} />
+          </FormLine>
 
-      <FormLine id="name" label="Image Name">
-        <TextInput
-          id="name"
-          placeholder="Image CITE URN"
-          bind:value={imageName}
-          bind:inputRef={imageNameRef}
-          validate={(value) => validateUrn(value)}
-          invalidMessage="Please enter a valid CITE object URN."
-          autocomplete="off" />
-        {#if nameExists}
-          <Message
-            text="This URN already exists and will be replaced if submitted." />
-        {/if}
-      </FormLine>
+          <FormLine id="name" label="Image Name">
+            <TextInput
+              id="name"
+              placeholder="Image CITE URN"
+              bind:value={imageName}
+              bind:inputRef={imageNameRef}
+              validate={(value) => validateUrn(value)}
+              invalidMessage="Please enter a valid CITE object URN."
+              autocomplete="off" />
+            {#if nameExists}
+              <Message
+                text="This URN already exists and will be replaced if submitted." />
+            {/if}
+          </FormLine>
 
-      <FormLine id="source" label="Source">
-        <TextInput
-          id="source"
-          placeholder="Resource URL"
-          bind:value={imageUrl}
-          validate={(value) => validateUrn(value) || validateHttpUrl(value)}
-          invalidMessage="Please enter a valid CITE object URN or a HTTP(S) URL." />
-        {#if previewErrored}
-          <Message
-            text="The media could not be loaded for preview due to errors. You
-            can ingest it nonetheless." />
-        {/if}
-      </FormLine>
+          <FormLine id="source" label="Source">
+            <TextInput
+              id="source"
+              placeholder="Resource URL"
+              bind:value={imageUrl}
+              validate={(value) => validateUrn(value) || validateHttpUrl(value)}
+              invalidMessage="Please enter a valid CITE object URN or a HTTP(S)
+              URL." />
+            {#if previewErrored}
+              <Message
+                text="The media could not be loaded for preview due to errors.
+                You can ingest it nonetheless." />
+            {/if}
+          </FormLine>
 
-      <FormLine id="protocol" label="Type">
-        <div class="select">
-          <select id="protocol" bind:value={protocol}>
-            <option value="static">Static</option>
-            <option value="localDZ">Deep Zoom (local)</option>
-            <option value="iiif">IIIF</option>
-          </select>
-        </div>
-      </FormLine>
+          <FormLine id="protocol" label="Type">
+            <div class="select">
+              <select id="protocol" bind:value={protocol}>
+                <option value="static">Static</option>
+                <option value="localDZ">Deep Zoom (local)</option>
+                <option value="iiif">IIIF</option>
+              </select>
+            </div>
+          </FormLine>
 
-      <FormLine offset>
-        <button
-          class="button is-success"
-          disabled={!complete}
-          on:click={handleSubmit}>
-          Add Image
-        </button>
-        {#if statusMessage}
-          <Message text={statusMessage} error={errorMessage} />
-        {/if}
-      </FormLine>
-
-      <div class="preview-container" class:visible={previewVisible}>
-        <h3 class="title is-4">Preview</h3>
-        <div id="preview" class="preview" />
+          <FormLine offset>
+            <button
+              class="button is-success"
+              disabled={!complete}
+              on:click={handleSubmit}>
+              Add Image
+            </button>
+            {#if statusMessage}
+              <Message text={statusMessage} error={errorMessage} />
+            {/if}
+          </FormLine>
+        </form>
       </div>
-    </form>
+      <div class="column form-column">
+        <div class="preview-container" class:visible={previewVisible}>
+          <h3 class="title is-4">Preview</h3>
+          <div id="preview" class="preview" />
+        </div>
+      </div>
+    </div>
   </section>
 </div>
