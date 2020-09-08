@@ -8,10 +8,10 @@
     </div>
     <div class="navbar-end">
       <span class="navbar-end navbar-burger burger" data-target="navMenu">
-					<span></span>
-					<span></span>
-					<span></span>
-				</span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
     </div>
     <div id="navMenu" class="navbar-menu">
       <div class="navbar-end">
@@ -31,7 +31,8 @@
         </div>
         <div class="navbar-item has-dropdown is-hoverable">
           <p class="navbar-link">
-            <i class="fa fa-lg fa-fw fa-user-circle"></i> {{.User}}
+            <i class="fa fa-lg fa-fw fa-user-circle"></i>
+            <span class="navbar-item-label">{{.User}}</span>
           </p>
           <div class="navbar-dropdown">
             <a href="{{.Host}}/export/exported/" class="navbar-item">Download CEX</a>
