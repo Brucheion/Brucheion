@@ -96,24 +96,26 @@ func landingPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "main", page)
 }
 
-func getEmbeddableDir(path string) (root http.FileSystem) {
-	if *localAssets {
-		return http.Dir(string('.') + path)
-	} else {
-		return pkger.Dir(path)
-	}
-}
-
 func setUpRouter() *mux.Router {
 	//Start the router
 	router := mux.NewRouter().StrictSlash(true)
 
+	staticDir := http.FileSystem(pkger.Dir("/static"))
+	jsDir := http.FileSystem(pkger.Dir("/js"))
+	bundleDir := http.FileSystem(pkger.Dir("/ui/dist"))
+
+	if *localAssets {
+		staticDir = http.Dir("./static")
+		jsDir = http.Dir("./js")
+		bundleDir = http.Dir("./ui/dist")
+	}
+
 	//Set up handlers for serving static files
 	libraryHandler := http.StripPrefix("/static/image_archive", http.FileServer(http.Dir("./image_archive")))
-	staticHandler := http.StripPrefix("/static/", http.FileServer(getEmbeddableDir("/static/")))
-	jsHandler := http.StripPrefix("/js/", http.FileServer(getEmbeddableDir("/js/")))
+	staticHandler := http.StripPrefix("/static/", http.FileServer(staticDir))
+	jsHandler := http.StripPrefix("/js/", http.FileServer(jsDir))
 	cexHandler := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
-	bundleHandler := http.StripPrefix("/assets/ui", http.FileServer(getEmbeddableDir("/ui/dist")))
+	bundleHandler := http.StripPrefix("/assets/ui", http.FileServer(bundleDir))
 
 	//Set up PathPrefix routes for serving static files
 	router.PathPrefix("/static/image_archive/").Handler(libraryHandler)
