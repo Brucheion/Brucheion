@@ -1,119 +1,60 @@
-<img src="static/img/BrucheionLogo.png" alt="" width="500" height="500" align="middle">
+<img src="static/img/logo-flat.png" alt="" width="500">
 
-Brucheion is a Virtual Research Environment (VRE) to create Linked Open Data (LOD) for historical languages and the research of historical objects.
+# Brucheion, the Virtual Research Environment
 
-## Using Brucheion
-
-Parts of Brucheion are ready to be tested. Please note, that the VRE is still under development and potentially buggy.
-
-## Install 
-
-To install Brucheion simply obtain an official release from your Brucheion distribution channels. The release will contain a binary file that will likely run on your operating system. If your operating system isn't supported you will need to compile it on your machine. Compiling on linux for a 64 bit linux the Terminal you may use: `env GOOS=linux GOARCH=amd64 make build`. See this overview explanation of [How To Build Go Executables for Multiple Platforms](https://www.digitalocean.com/community/tutorials/how-to-build-go-executables-for-multiple-platforms-on-ubuntu-16-04).
+Brucheion is a Virtual Research Environment (VRE) to create Linked Open Data (LOD) for historical languages and the research of historical objects. Brucheion runs on a backend server written in the [Go programming language](https://golang.org/) and benefits from Go's performance features and [multilingual text processing capabilities](https://blog.golang.org/strings). The VRE is still under active development and may contain bugs or security issues. If you encounter any issues, please don't hesitate to reach out to us!
 
 
-## Usage
+## Setup
 
-If you simply want to try out Brucheion with the standard configuration you can start it using the terminal:
+To install Brucheion simply obtain the latest release from [the Brucheion GitHub repository](https://github.com/Brucheion/Brucheion/releases). Pre-built binaries for Brucheion are provided for both Windows (32-bit and 64-bit) and macOS (64-bit). If your operating system isn't supported you will need to compile Brucheion on your machine after obtaining the Brucheion source code. Please conduct [the development section below](#development) on how to build Brucheion from source.
 
-![Starting Brucheion using the terminal](static/img/tutorial/callFromTerminal.png)
+Brucheion expects to be situated next to configuration and content files such as the [CITE Exchange (CEX)](https://github.com/cite-architecture/citedx) collection and optional [Deep Zoom Images (DZI)](https://openseadragon.github.io/examples/tilesource-dzi/). If you need help for setting up your Brucheion instance, please reach out to us!
 
-As soon as Brucheion is running you may access it using your favorite browser. 
-
-### Configuration
-
-Brucheion is configured using a file called the config.json. 
-
-![config.json](static/img/tutorial/jsonConfig.png)
-
-JSON is a common data format used for asynchronous browser–server communication, that uses human-readable text to transmit data objects consisting of attribute–value pairs and array data types.<sup id="1">[1](#Wikipedia_JSON)</sup> Therefore it is essential to format config.json correctly.
-
-```JSON
-{
-"host": "http://localhost:7000",
-"port": ":7000",
-"gitHubKey": "20bitkey",
-"githHubSecret": "40bitsecret",
-"gitLabKey": "64bitkey",
-"gitLabSecret": "64bitsecret",
-"gitLabScope": "read_user",
-"maxAge": "43200",
-"userDB": "./users.db"
-}
-
-//"googleKey": "",
-//"googleSecret": "",
+```
+/
+  Brucheion*
+  cex/
+    sample.cex
+  config.json
+  image_archive/
+    sample/
+      ...
 ```
 
-* The file content starts with { and ends with }. 
-* Comments can be added __outside__ of the parenthesis using two forward slashes //
-* Every entry name needs to be written inside parenthesis "" followed by colon and the value in parenthesis.
-* Every, but the last line need to be separated with a comma
-* "host" defines the address your Brucheion server will use
-* "port" the port needs to be redefined for some functions to work
-* "gitHubKey" defines the application key received from GitHub. This should be a 20 bit key, called 'Client ID' in the OAuth application settings.
-* "githHubSecret" defines the application secret received from GitHub. This should be a 40 bit key, called 'Client Secret' in the OAuth application settings.
-* "gitLabSecret" defines the application key received from GitLab. This should be a 64 bit key, called 'Application ID' in the applications user settings.
-* "gitLabSecret" defines the application secret received from GitLab. This should be a 64 bit key, called 'Secret' in the applications user settings.
-* "gitLabScope": "read_user" is necessary to properly set up the login via GitLab. Just leave this line unaltered.
-* "maxAge" defines the time to live for the Brucheion session and its respective cookie in seconds. It may be set to a value that seems fitting for your scenarios. (A specific amount of days can be set multiplying 86400 by the amount of days. So for one day the line would be `"maxAge": "86400 * 1",`)
-* "userDB" defines the location where the user database will be saved. By default it will be saved in the same folder the Brucheion executable resides. If you don't have a user database yet, one will be created with the first execution of Brucheion.
-* Google may be added as a login provider later.
+For configuring Brucheion, please head to [the configuration chapter](docs/configuration.md).
 
-### Login
+With everything in place, you can now run Brucheion in your terminal. Brucheion offers several options for specifying configuration files and enabling further development access. Running `./Brucheion --help` will state:
 
-Users can login with or without verification. It is recommended to login with verification using a login provider. 
+```
+Usage of ./Brucheion:
+  -config string
+        Specify where to load the JSON config from. (defalult: ./config.json (default "./config.json")
+  -localAssets
+        Obtain static assets from the local filesystem during development. (default: false)
+  -noauth
+        Start Brucheion without authenticating with a provider (default: false)
+```
 
-#### The ordinary login process using a login provider
+To learn about how to access Brucheion with accounts and login providers, please head to [the usage chapter](docs/usage.md).
 
-For logging in with a provider start Brucheion normally (without the noauth flag). Brucheion supports authentification with GitHub and GitLab. Accordingly, the user needs a GitHub or a GitLab account. 
-
-1. When the server is running navigate to /login/ (with the standard configuration navigate to http://localhost:7000/login/)
-
-![loginPage](static/img/tutorial/loginBlank.png)
-
-2. Enter a user name of your liking. For this tutorial it'll be Adri.
-
-![loginAdri](static/img/tutorial/loginAdri.png)
-
-3. Choose the login provider that you want to use to authenticate and click on login. If the user is new you should see the following confirmation message:
-
-![loginNewUserGitHubsuccess](static/img/tutorial/newUserGHsuccess.png)
-
-4. To choose another provider simply use the drop-down menu:
-
-![loginChooseProvider](static/img/tutorial/loginChooseProvider.png)
-
-5. You can only use the same user name with the same login provider. For example: if user Adri tries to login using his GitLab account, Brucheion will show an error message:
-
-![loginUsernameInUse](static/img/tutorial/loginUsernameInUse.png)
-
-6. Likewise, a new user can not be registered with a GitHub or GitLab account that is already in use.
-
-#### The login process without a login provider
-
-For logging in without authentification start Brucheion with setting the noauth flag. 
-
-![startWithNoauthFlag](static/img/tutorial/startWithNoauthFlag.png)
 
 ## Development
 
-For development or building Brucheion, you will need the following software: [Go](https://golang.org/) (`>= 1.14`) and [Node.js](https://nodejs.org/) (`>= v12`). Furthermore, you will need to obtain a fork of the [`pkger`](https://github.com/markbates/pkger) tool (`go get https://github.com/falafeljan/pkger`).
+For developing or building Brucheion, you will need the following software: [Go](https://golang.org/) (`>= 1.14`) and [Node.js](https://nodejs.org/) (`>= v12`). Furthermore, you will need to obtain a fork of the [`pkger`](https://github.com/markbates/pkger) tool:
 
-The following workflow has been tested on macOS but should work on any Unix-based machine. By using `make`, you can issue the following commands:
+```bash
+git clone https://github.com/falafeljan/pkger.git
+cd pkger/cmd/pkger
+go install
+```
 
-* `make` Create a production build of Brucheion. Install all dependencies, run all tests, build the UI and compile Brucheion.
-* `make test` Run all tests.
-* `make build` Build the UI and compile Brucheion.
-* `make dev` Continuously build the UI as files are changed. Use it in conjunction of the `-localAssets` flag of Brucheion to load changing JavaScript bundles on the fly during runtime.
-* `make deps` Install all Node.js dependencies.
-* `make clean` Remove all generated files. If any undocumented errors occur during development or compilation, try this command and reinstall all dependencies via `make deps`.
+The Brucheion development workflow has been tested on macOS but should work on any Unix-based machine. By calling `make`, you can create a production build of Brucheion that will obtain all dependencies, run all tests, and build all sources.
 
-Running `make` should sufficiently prepare your machine for development. More recent components of the Brucheion UI are build as an interactive JavaScript application using the [Svelte](https://svelte.dev/) framework. Parts related to this UI are situated in the `ui` folder.
+Running `make` should sufficiently prepare your machine for development. More recent components of the Brucheion UI are build as an interactive JavaScript application using the [Svelte](https://svelte.dev/) JavaScript framework. Parts related to this UI are situated in the `ui` folder.
 
-In order to develop the Svelte-based UI, start a development process via `make dev`; it will reprocess all JavaScript files as they are being changed. Then, run the Brucheion binary via `./Brucheion` and access Brucheion via `https://localhost:7000/` in your browser. After changing parts of the UI JavaScript code, simply refresh the website.
+In order to develop the Svelte-based UI, start a development process via `make dev-ui`; it will process and bundle all JavaScript files as they are being changed. Then, in parallel, run the Brucheion binary via `./Brucheion -localAssets` and access Brucheion via `https://localhost:7000/` in your browser. After changing parts of the UI JavaScript code, simply refresh the website.
 
-### References
+## License
 
-<b id="Wikipedia_JSON">1</b> https://en.wikipedia.org/wiki/JSON [↩](#1)
-
-
+Brucheion is licensed under the [MIT License](/LICENSE).
