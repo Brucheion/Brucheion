@@ -1,0 +1,29 @@
+{
+    "description": "Brucheion is a Virtual Research Environment (VRE) to create Linked Open Data (LOD) for historical languages and the research of historical objects. Brucheion runs on a backend server written in the Go programming language and benefits from Go's performance features and multilingual text processing capabilities. The VRE is still under active development and may contain bugs or security issues. If you encounter any issues, please don't hesitate to reach out to us!", 
+    "license": "MIT", 
+    "title": "Brucheion", 
+    "creators": [
+        {
+            "affiliation": "University of Leipzig", 
+            "orcid": "0000-0002-9425-5850", 
+            "name": "Thomas Koentges"
+        }, 
+        {
+            "affiliation": "University of Leipzig", 
+            "orcid": "0000-0002-1763-5059", 
+            "name": "Jan Kassel"
+        }
+    ],
+   "contributors": [
+        {
+            "affiliation": "University of Leipzig", 
+            "orcid": "0000-0003-4721-3284", 
+            "name": "Adrian Chitralla"
+        },
+        {
+            "affiliation": "University of Leipzig", 
+            "name": "Tyler Neill",
+        }
+    ],
+    "access_right": "open"
+}
