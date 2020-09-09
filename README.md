@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/135154939.svg)](https://zenodo.org/badge/latestdoi/135154939)
+
 <img src="static/img/logo-flat.png" alt="" width="500">
 
 # Brucheion, the Virtual Research Environment
