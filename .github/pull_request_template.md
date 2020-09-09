@@ -1,4 +1,4 @@
-Closes issue(s) # .
+Closes #issue.
 
 ### Functionality this PR provides:
 
