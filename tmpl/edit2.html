@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<title>Brucheion</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -11,11 +12,12 @@
 	<script type="text/javascript" src="{{.Host}}/js/selectionrect.js"></script>
 	<script type="text/javascript" src="{{.Host}}/js/dragging.js"></script>
 	<script type="text/javascript" src="{{.Host}}/js/bootstrap.min.js"></script>
-  {{template "stylesheets" .}}
+	{{template "stylesheets" .}}
 </head>
+
 <body class="has-hero">
-  {{template "navigation" .}}
-  {{template "hero-passage-selection" dict "Title" "Image Citation Editor" "PathName" "edit2" "Page" .}}
+	{{template "navigation" .}}
+	{{template "hero-passage-selection" dict "Title" "Image Citation Editor" "PathName" "edit2" "Page" .}}
 
 	<div class="container is-fluid">
 		<section>
@@ -55,13 +57,15 @@
 						<div class="tile is-child">
 							<form method="post" action="{{.Host}}/saveImage/{{.Title}}">
 								<p class="subtitle">ImageRef
-									<div>
-										<a class="button is-primary" href="#" onclick="manualPost();">Submit</a>
-										<a id="deletearea" class="button is-danger" href="#" onclick="function deleteLink(){document.getElementById('imageTextArea').value = '';}; deleteLink(); return false;">Clear</a>
-									</div>
+								<div>
+									<a class="button is-primary" href="#" onclick="manualPost();">Submit</a>
+									<a id="deletearea" class="button is-danger" href="#"
+										onclick="function deleteLink(){document.getElementById('imageTextArea').value = '';}; deleteLink(); return false;">Clear</a>
+								</div>
 								</p>
 								<p>
-									<textarea id="imageTextArea" name="text" rows="4" , cols="60">{{.ImageRef}}</textarea>
+									<textarea id="imageTextArea" name="text" rows="4" ,
+										cols="60">{{.ImageRef}}</textarea>
 								</p>
 							</form>
 						</div>
@@ -73,7 +77,7 @@
 			</div>
 		</section>
 
-	  {{template "footer"}}
+		{{template "footer"}}
 	</div>
 	<input type="hidden" id="initialCITE" value="{{.ImageJS}}" readonly>
 	<script>
@@ -115,16 +119,14 @@
 		}
 	</script>
 	<script>
-		function manualPost() {
-			var xhttp = new XMLHttpRequest();
-			var imageArea = document.getElementById('imageTextArea').value.replace("#", "+");
-			var actualPost = "{{.Host}}/saveImage/{{.Title}}/" + imageArea;
-			console.log(actualPost);
-			xhttp.open("GET", actualPost, true);
-			xhttp.send();
+		async function manualPost() {
+			const imageArea = document.getElementById('imageTextArea').value.replaceAll("#", "+");
+			const actualPost = "{{.Host}}/saveImage/{{.Title}}/" + imageArea;
+			await fetch(actualPost);
 			window.location = "{{.Host}}/view/{{.Title}}";
-		};
+		}
 	</script>
 	<script type="text/javascript" src="{{.Host}}/js/BrIC.js"></script>
 </body>
+
 </html>
