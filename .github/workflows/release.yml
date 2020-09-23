@@ -19,7 +19,7 @@ jobs:
           repository: falafeljan/pkger
       - run: cd cmd/pkger && go install
       - uses: actions/checkout@v2
-      - run: make build-release
+      - run: make release
       - id: create_release
         uses: actions/create-release@v1
         env:
