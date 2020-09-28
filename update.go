@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/google/go-github/github"
@@ -16,7 +17,7 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/tj/go-update/progress"
-	githubStore "github.com/tj/go-update/stores/github"
+	githubReleases "github.com/tj/go-update/stores/github"
 )
 
 func releasesToString(releases []*update.Release) string {
@@ -68,7 +69,7 @@ func transformRelease(r *github.RepositoryRelease) *update.Release {
 }
 
 // getNewerReleases returns all newer releases of a GitHub repository, sorted from newest to oldest.
-func getNewerReleases(s *githubStore.Store, prerelease bool, timeout time.Duration) (release []*update.Release, err error) {
+func getNewerReleases(s *githubReleases.Store, prerelease bool, timeout time.Duration) (release []*update.Release, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -100,7 +101,7 @@ func getNewerReleases(s *githubStore.Store, prerelease bool, timeout time.Durati
 }
 
 // getLatestRelease returns the latest newer release of a GitHub repository or nil.
-func getLatestRelease(s *githubStore.Store, prerelease bool, timeout time.Duration) (release *update.Release, err error) {
+func getLatestRelease(s *githubReleases.Store, prerelease bool, timeout time.Duration) (release *update.Release, err error) {
 	releases, err := getNewerReleases(s, prerelease, timeout)
 	if err != nil {
 		return nil, err
@@ -112,6 +113,7 @@ func getLatestRelease(s *githubStore.Store, prerelease bool, timeout time.Durati
 	return releases[0], nil
 }
 
+// installRelease replaces the current executable with a downloaded release binary.
 func installRelease(m *update.Manager, a *update.Asset) error {
 	ansi.HideCursor()
 	defer ansi.ShowCursor()
@@ -136,8 +138,9 @@ func installRelease(m *update.Manager, a *update.Asset) error {
 	return nil
 }
 
+// handleUpdates checks for updates and returns true if any were installed.
 func handleUpdates() bool {
-	store := &githubStore.Store{
+	store := &githubReleases.Store{
 		Owner:   "brucheion",
 		Repo:    "brucheion",
 		Version: "2.0.1",
@@ -162,7 +165,18 @@ func handleUpdates() bool {
 		return false
 	}
 
-	fmt.Printf("The latest release with version %s will be installed.\n\n", latest.Version)
+	fmt.Printf("There is a newer release with version %s available.\nDo you want to install it now? (y/[n]) ", latest.Version)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	choice := scanner.Text()
+	fmt.Println()
+
+	if strings.ToLower(choice) != "y" {
+		fmt.Println("Update will not be installed now.")
+		return false
+	}
+
+	fmt.Printf("The latest release with version %s will be installed.\n", latest.Version)
 	err = installRelease(m, a)
 	if err != nil {
 		return false
