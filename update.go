@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/go-github/github"
 	"github.com/tj/go-update"
+	"log"
 	"os"
 	"path"
 	"runtime"
@@ -69,18 +70,22 @@ func transformRelease(r *github.RepositoryRelease) *update.Release {
 }
 
 // getNewerReleases returns all newer releases of a GitHub repository, sorted from newest to oldest.
-func getNewerReleases(s *githubReleases.Store, prerelease bool, timeout time.Duration) (release []*update.Release, err error) {
+func getNewerReleases(
+	store *githubReleases.Store,
+	current *semver.Version,
+	prerelease bool,
+	timeout time.Duration,
+) (release []*update.Release, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	gh := github.NewClient(nil)
 
-	releases, _, err := gh.Repositories.ListReleases(ctx, s.Owner, s.Repo, nil)
+	releases, _, err := gh.Repositories.ListReleases(ctx, store.Owner, store.Repo, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	current, _ := semver.NewVersion(Version)
 	var newer []*update.Release
 
 	for _, r := range releases {
@@ -101,8 +106,13 @@ func getNewerReleases(s *githubReleases.Store, prerelease bool, timeout time.Dur
 }
 
 // getLatestRelease returns the latest newer release of a GitHub repository or nil.
-func getLatestRelease(s *githubReleases.Store, prerelease bool, timeout time.Duration) (release *update.Release, err error) {
-	releases, err := getNewerReleases(s, prerelease, timeout)
+func getLatestRelease(
+	store *githubReleases.Store,
+	current *semver.Version,
+	prerelease bool,
+	timeout time.Duration,
+) (release *update.Release, err error) {
+	releases, err := getNewerReleases(store, current, prerelease, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -140,19 +150,24 @@ func installRelease(m *update.Manager, a *update.Asset) error {
 
 // handleUpdates checks for updates and returns true if any were installed.
 func handleUpdates() bool {
+	current, err := semver.NewVersion(omitVersionPrefix(Version))
+	if err != nil {
+		log.Printf("Could not properly parse current version information of \"%s\".", Version)
+	}
+
 	store := &githubReleases.Store{
 		Owner:   "brucheion",
 		Repo:    "brucheion",
-		Version: "2.0.1",
+		Version: current.String(),
 	}
 	m := &update.Manager{
 		Command: "Brucheion",
 		Store:   store,
 	}
 
-	latest, err := getLatestRelease(store, false, 5*time.Second)
+	latest, err := getLatestRelease(store, current, false, 5*time.Second)
 	if err != nil {
-		fmt.Printf("Error while retrieving latest release: #{err}\n")
+		log.Printf("Error while retrieving update information: %s\n", err)
 		return false
 	} else if latest == nil {
 		fmt.Println("No newer release available.")
