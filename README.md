@@ -36,6 +36,8 @@ Usage of ./Brucheion:
         Obtain static assets from the local filesystem during development. (default: false)
   -noauth
         Start Brucheion without authenticating with a provider (default: false)
+  -update
+        Check for updates and install them at startup. (default: false)
 ```
 
 To learn about how to access Brucheion with accounts and login providers, please head to [the usage chapter](docs/usage.md).
