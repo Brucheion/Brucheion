@@ -155,13 +155,18 @@ func handleUpdates() bool {
 		log.Printf("Could not properly parse current version information of \"%s\".", Version)
 	}
 
+	command := "Brucheion"
+	if runtime.GOOS == "windows" {
+		command += ".exe"
+	}
+
 	store := &githubReleases.Store{
 		Owner:   "brucheion",
 		Repo:    "brucheion",
 		Version: current.String(),
 	}
 	m := &update.Manager{
-		Command: "Brucheion",
+		Command: command,
 		Store:   store,
 	}
 
@@ -197,6 +202,6 @@ func handleUpdates() bool {
 		return false
 	}
 
-	fmt.Printf("\n Updated to %s. Brucheion will exit now in order to apply the update.\n", latest.Version)
+	fmt.Printf("\nUpdated to %s. Brucheion will exit now in order to apply the update.\n", latest.Version)
 	return true
 }
