@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/go-github/github"
+	"github.com/pkg/errors"
 	"github.com/tj/go-update"
 	"log"
 	"os"
@@ -124,26 +125,17 @@ func getLatestRelease(
 }
 
 // installRelease replaces the current executable with a downloaded release binary.
-func installRelease(m *update.Manager, a *update.Asset) error {
+func installRelease(m *update.Manager, a *update.Asset, dir string) error {
 	ansi.HideCursor()
 	defer ansi.ShowCursor()
 
 	tarball, err := a.DownloadProxy(progress.Reader)
 	if err != nil {
-		fmt.Printf("Error while downloading release: %s\n", err)
-		return err
+		return errors.Wrap(err, "Error while downloading release")
 	}
 
-	bin, err := os.Executable()
-	if err != nil {
-		fmt.Println("Error while obtaining executable path")
-		return err
-	}
-
-	dir := path.Dir(bin)
 	if err := m.InstallTo(tarball, dir); err != nil {
-		fmt.Printf("Error while installing release: %s\n", err)
-		return err
+		return errors.Wrap(err, "Error while installing release")
 	}
 	return nil
 }
@@ -152,7 +144,7 @@ func installRelease(m *update.Manager, a *update.Asset) error {
 func handleUpdates() bool {
 	current, err := semver.NewVersion(omitVersionPrefix(Version))
 	if err != nil {
-		log.Printf("Could not properly parse current version information of \"%s\".", Version)
+		log.Fatalf("Could not properly parse current version information %q.", Version)
 	}
 
 	command := "Brucheion"
@@ -196,12 +188,25 @@ func handleUpdates() bool {
 		return false
 	}
 
-	fmt.Printf("The latest release with version %s will be installed.\n", latest.Version)
-	err = installRelease(m, a)
+	bin, err := os.Executable()
 	if err != nil {
-		return false
+		log.Fatalf("Error while obtaining executable path: %s\n", err)
 	}
+	dir := path.Dir(bin)
 
-	fmt.Printf("\nUpdated to %s. Brucheion will exit now in order to apply the update.\n", latest.Version)
+	fmt.Printf("The latest release with version %s will be installed.\n", latest.Version)
+	err = installRelease(m, a, dir)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println()
+
+	ex := path.Base(bin)
+	if ex != command {
+		fmt.Printf("Installed release %s to %q.\n", latest.Version, path.Join(dir, command))
+	} else {
+		fmt.Printf("Updated to %s.\n", latest.Version)
+	}
+	fmt.Println("Brucheion will exit now in order to apply the update.")
 	return true
 }

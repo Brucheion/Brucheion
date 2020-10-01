@@ -24,6 +24,7 @@ require (
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/markbates/goth v1.64.2
 	github.com/markbates/pkger v0.17.0
+	github.com/pkg/errors v0.8.1
 	github.com/tj/go-update v2.2.4+incompatible
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
