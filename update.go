@@ -76,7 +76,7 @@ func getNewerReleases(
 	current *semver.Version,
 	prerelease bool,
 	timeout time.Duration,
-) (release []*update.Release, err error) {
+) ([]*update.Release, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -112,14 +112,14 @@ func getLatestRelease(
 	current *semver.Version,
 	prerelease bool,
 	timeout time.Duration,
-) (release *update.Release, err error) {
+) (*update.Release, error) {
 	releases, err := getNewerReleases(store, current, prerelease, timeout)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(releases) == 0 {
-		return
+		return nil, nil
 	}
 	return releases[0], nil
 }
