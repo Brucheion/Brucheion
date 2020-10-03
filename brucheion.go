@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/markbates/pkger"
@@ -13,12 +15,29 @@ import (
 var config Config
 var templates *template.Template
 
+var BuildTime = ""
+var Version = "development"
+
 //Main starts the program the mux server
 func main() {
 	initializeFlags()
 
+	if Version == "development" {
+		fmt.Println("This is a development build of Brucheion.")
+	} else {
+		fmt.Printf("Brucheion %s, built %s\n", Version, BuildTime)
+	}
+
+	if *checkForUpdates {
+		if Version == "development" {
+			log.Println("Development builds can't self-update.")
+		} else if handleUpdates() {
+			os.Exit(0)
+		}
+	}
+
 	if *localAssets {
-		log.Println("Will serve static assets from the local filesystem.")
+		log.Println("Serving static assets from the local filesystem.")
 	}
 
 	if *configLocation != "./config.json" {
