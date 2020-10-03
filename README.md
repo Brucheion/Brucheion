@@ -36,6 +36,8 @@ Usage of ./Brucheion:
         Obtain static assets from the local filesystem during development. (default: false)
   -noauth
         Start Brucheion without authenticating with a provider (default: false)
+  -update
+        Check for updates and install them at startup. (default: false)
 ```
 
 To learn about how to access Brucheion with accounts and login providers, please head to [the usage chapter](docs/usage.md).
@@ -55,7 +57,7 @@ The Brucheion development workflow has been tested on macOS but should work on a
 
 Running `make` should sufficiently prepare your machine for development. More recent components of the Brucheion UI are build as an interactive JavaScript application using the [Svelte](https://svelte.dev/) JavaScript framework. Parts related to this UI are situated in the `ui` folder.
 
-In order to develop the Svelte-based UI, start a development process via `make dev-ui`; it will process and bundle all JavaScript files as they are being changed. Then, in parallel, run the Brucheion binary via `./Brucheion -localAssets` and access Brucheion via `https://localhost:7000/` in your browser. After changing parts of the UI JavaScript code, simply refresh the website.
+In order to develop the Svelte-based UI, start a development process via `make app-dev`; it will process and bundle all JavaScript files as they are being changed. Then, in parallel, run the Brucheion binary via `./Brucheion -localAssets` and access Brucheion via `https://localhost:7000/` in your browser. After changing parts of the UI JavaScript code, simply refresh the website.
 
 ## License
 
