@@ -5,6 +5,9 @@ Thumbs.db
 users.db
 .session-key
 
+#VS CODE
+brucheion.code-workspace
+
 # exclude image_archive and cex
 image_archive/*
 cex/*
