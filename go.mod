@@ -25,6 +25,7 @@ require (
 	github.com/markbates/goth v1.64.2
 	github.com/markbates/pkger v0.17.0
 	github.com/pkg/errors v0.8.1
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/tj/go-update v2.2.4+incompatible
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9

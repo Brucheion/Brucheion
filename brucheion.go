@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/markbates/pkger"
+	"github.com/skratchdot/open-golang/open"
 )
 
 //The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
@@ -66,11 +68,20 @@ func main() {
 		log.Println("Started in noAuth mode.")
 	}
 
-	//Create new router instance with associated routes
-	router := setUpRouter()
+	router := createRouter()
 
-	log.Println("Listening at " + config.Host + "...")
-	log.Fatal(http.ListenAndServe(config.Port, router))
+	log.Printf("Listening at %s\n", config.Host)
+	l, err := net.Listen("tcp", config.Port)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = open.Start(config.Host)
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Fatal(http.Serve(l, router))
 }
 
 //landingPage is the first landing page for experimental testing
@@ -115,7 +126,7 @@ func landingPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "main", page)
 }
 
-func setUpRouter() *mux.Router {
+func createRouter() *mux.Router {
 	//Start the router
 	router := mux.NewRouter().StrictSlash(true)
 
