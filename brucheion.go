@@ -76,9 +76,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = open.Start(config.Host)
-	if err != nil {
-		log.Println(err)
+	if Version != "development" {
+		err = open.Start(config.Host)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	log.Fatal(http.Serve(l, router))
