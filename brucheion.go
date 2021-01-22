@@ -168,6 +168,7 @@ func createRouter() *mux.Router {
 	router.HandleFunc("/new/{key}/{updated}/", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
+	router.HandleFunc("/ingest/cex", createSpaHandler("CEX Ingestion"))
 	router.HandleFunc("/ingest/image", createSpaHandler("Image Ingestion"))
 	router.HandleFunc("/multicompare/{urn}/", MultiPage).Methods("GET")
 	router.HandleFunc("/seealignment/{urn}", SeeAlignment).Methods("GET")
@@ -207,7 +208,7 @@ func createRouter() *mux.Router {
 	return router
 }
 
-func createPermanentRedirect(path string) func(http.ResponseWriter, *http.Request){
+func createPermanentRedirect(path string) func(http.ResponseWriter, *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		http.Redirect(res, req, config.Host+path, http.StatusMovedPermanently)
 	}
