@@ -168,7 +168,7 @@ func createRouter() *mux.Router {
 	router.HandleFunc("/new/{key}/{updated}/", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
-	router.HandleFunc("/ingest", createSpaHandler("Image Ingestion"))
+	router.HandleFunc("/ingest/image", createSpaHandler("Image Ingestion"))
 	router.HandleFunc("/multicompare/{urn}/", MultiPage).Methods("GET")
 	router.HandleFunc("/seealignment/{urn}", SeeAlignment).Methods("GET")
 	router.HandleFunc("/tablealignment/{urn}", TableAlignments).Methods("GET")
@@ -198,9 +198,19 @@ func createRouter() *mux.Router {
 	router.HandleFunc("/deleteCollection/", deleteCollection)
 	router.HandleFunc("/requestImgCollection/", requestImgCollection)
 	router.HandleFunc("/favicon.ico", FaviconHandler)
+
+	// Legacy redirects
+	router.HandleFunc("/ingest", createPermanentRedirect("/ingest/image"))
+
 	router.NotFoundHandler = http.HandlerFunc(NotFoundRedirect)
 
 	return router
+}
+
+func createPermanentRedirect(path string) func(http.ResponseWriter, *http.Request){
+	return func(res http.ResponseWriter, req *http.Request) {
+		http.Redirect(res, req, config.Host+path, http.StatusMovedPermanently)
+	}
 }
 
 //NotFoundRedirect redirects user to login in case an invalid request was issued.
