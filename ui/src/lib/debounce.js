@@ -1,17 +1,18 @@
-export default function debounce(callback, delay) {
-  let timeoutHandle
+export default function debounce(fn, delay) {
+  let timeout
 
-  return {
-    call: (...args) => {
-      if (timeoutHandle) {
-        clearTimeout(timeoutHandle)
-      }
-      timeoutHandle = setTimeout(() => callback(...args), delay)
-    },
-    cancel: () => {
-      if (timeoutHandle) {
-        clearTimeout(timeoutHandle)
-      }
-    },
+  const call = (...args) => {
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+    timeout = setTimeout(() => fn(...args), delay)
   }
+
+  call.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+  }
+
+  return call
 }
