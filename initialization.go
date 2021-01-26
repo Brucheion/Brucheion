@@ -30,19 +30,13 @@ func loadConfiguration(file string) Config {
 }
 
 func getSessionKey() []byte {
-	brucheionPath, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		return securecookie.GenerateRandomKey(64)
-	}
-
-	keyFile := filepath.Join(brucheionPath, ".session-key")
+	keyFile := filepath.Join(dataPath, ".session-key")
 	content, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		key := securecookie.GenerateRandomKey(64)
 		_ = ioutil.WriteFile(keyFile, key, 0666)
 		return key
 	}
-
 	return content
 }
 

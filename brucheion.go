@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/markbates/pkger"
@@ -20,8 +21,13 @@ var templates *template.Template
 var BuildTime = ""
 var Version = "development"
 
+
+var dataPath string
+var err error
+
 //Main starts the program the mux server
 func main() {
+	fmt.Printf("brucheion path: %s\n", dataPath)
 	initializeFlags()
 
 	if Version == "development" {
@@ -48,6 +54,11 @@ func main() {
 	} else {
 		log.Println("Loading configuration from: ./config.json")
 		config = loadConfiguration("./config.json")
+	}
+
+	dataPath, err = filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	dir := pkger.Include("/tmpl")
@@ -131,6 +142,7 @@ func landingPage(res http.ResponseWriter, req *http.Request) {
 func createRouter() *mux.Router {
 	//Start the router
 	router := mux.NewRouter().StrictSlash(true)
+	a := router.PathPrefix("/api/v1").Subrouter()
 
 	staticDir := http.FileSystem(pkger.Dir("/static"))
 	jsDir := http.FileSystem(pkger.Dir("/js"))
@@ -199,6 +211,9 @@ func createRouter() *mux.Router {
 	router.HandleFunc("/deleteCollection/", deleteCollection)
 	router.HandleFunc("/requestImgCollection/", requestImgCollection)
 	router.HandleFunc("/favicon.ico", FaviconHandler)
+
+	// New API routes
+	a.HandleFunc("/cex/exists", handleCEXExists)
 
 	// Legacy redirects
 	router.HandleFunc("/ingest", createPermanentRedirect("/ingest/image"))
