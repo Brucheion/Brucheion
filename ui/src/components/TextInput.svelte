@@ -12,6 +12,7 @@
   export let disabled = false
   export let invalidMessage = undefined
   export let autocomplete = 'on'
+  export let invalid = false
 
   export let items = undefined
   export let minLength = 3
@@ -20,7 +21,6 @@
   const dispatch = createEventDispatcher()
 
   let changed = false
-  let invalid = false
   let overlayOpen = false
   let selectedIndex = 0
   let timer = null
@@ -30,7 +30,7 @@
   $: changed = changed || (value !== '' && !changed)
   $: if (!items) {
     if (changed && !validate(value)) {
-      setInvalid.call()
+      setInvalid()
     } else {
       setInvalid.cancel()
       invalid = false

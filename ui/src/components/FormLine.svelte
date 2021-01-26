@@ -17,7 +17,7 @@
     .label-wrapper {
       display: flex;
       flex-flow: row;
-      align-items: center;
+      align-items: flex-start;
       justify-content: flex-end;
 
       padding: 0;
@@ -26,14 +26,16 @@
 
   .line-label {
     width: 125px;
-    padding: 0;
+    padding: 6px 0;
     text-align: right;
+    line-height: 1.5;
   }
 
   @media screen and (max-width: 768px) {
     .line-label {
       width: 100%;
       text-align: left;
+      padding: 2px 0;
     }
   }
 </style>
@@ -42,6 +44,8 @@
   <div class="field-label is-normal label-wrapper">
     {#if label}
       <label class="label line-label" for={id}>{label}</label>
+    {:else}
+      <div class="line-label" />
     {/if}
   </div>
   <div class="field-body">
