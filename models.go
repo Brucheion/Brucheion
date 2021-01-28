@@ -80,7 +80,7 @@ type imageCollection struct {
 }
 
 // BoltCatalog contains all metadata of a CITE URN and is
-//used in LoadCEX and page functions
+//used in handleCEXLoad and page functions
 type BoltCatalog struct {
 	URN           string `json:"urn"`
 	Citation      string `json:"citationScheme"`
@@ -224,14 +224,14 @@ type cexMeta struct {
 // *** CITE Data Containers ***
 //These are probably going to be retired altogether.
 
-//BoltData is the container for CITE data imported from CEX files and is used in LoadCEX
+//BoltData is the container for CITE data imported from CEX files and is used in handleCEXLoad
 type BoltData struct {
 	Bucket  []string // workurn
 	Data    []gocite.Work
 	Catalog []BoltCatalog
 }
 
-//BoltWork is the container for BultURNs and their associated keys and is used in LoadCEX
+//BoltWork is the container for BultURNs and their associated keys and is used in handleCEXLoad
 type BoltWork struct {
 	Key  []string // cts-node urn
 	Data []BoltURN

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -38,6 +40,10 @@ type JSONResponse struct {
 	Data    interface{} `json:"data"`
 }
 
+func respondWithSuccess(w http.ResponseWriter) {
+	respondWithJSON(w, "success", "", nil, 200)
+}
+
 func respondWithError(w http.ResponseWriter, message string, code int) {
 	respondWithJSON(w, "error", message, nil, code)
 }
@@ -57,4 +63,29 @@ func respondWithJSON(w http.ResponseWriter, status string, message string, data 
 		Message: message,
 		Data:    data,
 	})
+}
+
+// requireSession is a middleware for wrapping an http.HandlerFunc
+//   and checking for a valid user session. The username is then
+//   stored in the request context.
+func requireSession(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session, err := getSession(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user, message, loggedIn := testLoginStatus("", session)
+		if !loggedIn {
+			log.Println(message)
+			Logout(w, r)
+			return
+		}
+
+		c := context.WithValue(r.Context(), "session", session)
+		d := context.WithValue(c, "user", user)
+		r = r.WithContext(d)
+		h(w, r)
+	}
 }
