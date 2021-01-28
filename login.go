@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -442,4 +443,21 @@ func testLoginStatus(function string, session *sessions.Session) (user, message 
 		loggedin = false                                                                    //set loggedin to true
 	}
 	return user, message, loggedin //return username, message, and login state
+}
+
+// getSessionUser retrieves the Brucheion user name from a HTTP request. If it
+// was properly validated with requireSession, the request session should
+// be available in the request context. If not, the function will throw an
+// error.
+func getSessionUser(r *http.Request) (user string, err error) {
+	session, ok := r.Context().Value("session").(sessions.Session)
+	if !ok {
+		return "", errors.New("could not retrieve request session")
+	}
+
+	user, ok = session.Values["BrucheionUserName"].(string)
+	if !ok {
+		return "", errors.New("could not retrieve Brucheion user name from session")
+	}
+	return user, nil
 }
