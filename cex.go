@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -157,48 +159,36 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	http.ServeContent(res, req, filename, modtime, bytes.NewReader([]byte(content)))
 }
 
-//LoadCEX loads a CEX file, parses it, and saves its contents in the user DB.
+//handleCEXLoad loads a CEX file, parses it, and saves its contents in the user DB.
 //Maybe pass the parsed content to function in db.go?
 //could possibly be overhauled with new gocite release
-func LoadCEX(res http.ResponseWriter, req *http.Request) {
+func handleCEXLoad(res http.ResponseWriter, req *http.Request) {
+	user := req.Context().Value("user").(string)
+	vars := mux.Vars(req)
+	fn := vars["cex"]
+	fp := filepath.Join(dataPath, "cex", fn+".cex")
+	content, err := ioutil.ReadFile(fp)
+	if err != nil {
+		log.Println("Error reading file " + fp + ": \n" + err.Error())
+		io.WriteString(res, "error reading CEX file")
+		return
+	}
 
-	//First get the session..
-	session, err := getSession(req)
+	err = loadCEX(string(content), user)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	respondWithSuccess(res)
+}
 
-	//..and check if user is logged in.
-	user, message, loggedin := testLoginStatus("LoadCEX", session)
-	if loggedin {
-		log.Println(message)
-	} else {
-		log.Println(message)
-		Logout(res, req)
-		return
-	}
-
-	vars := mux.Vars(req)
-	cex := vars["cex"]                              //get the name of the CEX file from URL
-	httpReq := config.Host + "/cex/" + cex + ".cex" //build the URL to pass to cexHandler
-	data, err := getContent(httpReq)                //get response data using getContent and cexHandler
-	if err != nil {
-		message = ("CEX file " + cex + ".cex not found.")
-		log.Println(message)
-		io.WriteString(res, message)
-		return
-	}
-
-	str := string(data) //make the response data a string
+func loadCEX(data string, user string) error {
 	var urns, areas []string
 	var catalog []BoltCatalog
 
-	message = "LoadCEX: loading " + cex + ".cex"
-	log.Println(message)
 	//read in the relations of the CEX file cutting away all unnecessary signs
-	if strings.Contains(str, "#!relations") {
-		relations := strings.Split(str, "#!relations")[1]
+	if strings.Contains(data, "#!relations") {
+		relations := strings.Split(data, "#!relations")[1]
 		relations = strings.Split(relations, "#!")[0]
 		re := regexp.MustCompile("(?m)[\r\n]*^//.*$")
 		relations = re.ReplaceAllString(relations, "")
@@ -223,8 +213,8 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//read in the ctscatalog (if exists)
-	if strings.Contains(str, "#!ctscatalog") {
-		ctsCatalog := strings.Split(str, "#!ctscatalog")[1]
+	if strings.Contains(data, "#!ctscatalog") {
+		ctsCatalog := strings.Split(data, "#!ctscatalog")[1]
 		ctsCatalog = strings.Split(ctsCatalog, "#!")[0]
 		re := regexp.MustCompile("(?m)[\r\n]*^//.*$")
 		ctsCatalog = re.ReplaceAllString(ctsCatalog, "")
@@ -268,7 +258,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//read in the cts data
-	ctsdata := strings.Split(str, "#!ctsdata")[1]
+	ctsdata := strings.Split(data, "#!ctsdata")[1]
 	ctsdata = strings.Split(ctsdata, "#!")[0]
 	re := regexp.MustCompile("(?m)[\r\n]*^//.*$")
 	ctsdata = re.ReplaceAllString(ctsdata, "")
@@ -374,9 +364,8 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 	dbname := pwd + "/" + user + ".db"
 	db, err := openBoltDB(dbname) //open bolt DB using helper function
 	if err != nil {
-		log.Println(fmt.Printf("LoadCEX: error opening userDB for writing: %s", err))
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
+		log.Println(fmt.Printf("handleCEXLoad: error opening userDB for writing: %s", err))
+		return err
 	}
 	defer db.Close()
 	for i := range boltdata.Bucket {
@@ -430,9 +419,7 @@ func LoadCEX(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 	}
-	message = ("CEX file " + cex + ".cex loaded into Brucheion successfully.")
-	log.Println(message)
-	io.WriteString(res, message)
-	//This function should load a page using a template and display a propper success flash.
-	//Alternatively it could become a helper function alltogether.
+
+	log.Println("CEX data loaded into Brucheion successfully.")
+	return nil
 }
