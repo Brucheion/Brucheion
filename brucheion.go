@@ -175,7 +175,6 @@ func createRouter() *mux.Router {
 	router.HandleFunc("/logout/", Logout)                         //Logs out the User. Moved to helper.go
 	router.HandleFunc("/{urn}/treenode.json/", Treenode)          //Function at treeBank.go
 	router.HandleFunc("/main/", landingPage)                      //So far this is just the page, a user is redirected to after login
-	router.HandleFunc("/load/{cex}/", requireSession(handleCEXLoad))
 	router.HandleFunc("/new/{key}/{updated}/", newText)
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
