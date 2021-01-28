@@ -6,11 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -157,29 +155,6 @@ func ExportCEX(res http.ResponseWriter, req *http.Request) {
 	res.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	res.Header().Add("Content-Disposition", contentdispo)
 	http.ServeContent(res, req, filename, modtime, bytes.NewReader([]byte(content)))
-}
-
-//handleCEXLoad loads a CEX file, parses it, and saves its contents in the user DB.
-//Maybe pass the parsed content to function in db.go?
-//could possibly be overhauled with new gocite release
-func handleCEXLoad(res http.ResponseWriter, req *http.Request) {
-	user := req.Context().Value("user").(string)
-	vars := mux.Vars(req)
-	fn := vars["cex"]
-	fp := filepath.Join(dataPath, "cex", fn+".cex")
-	content, err := ioutil.ReadFile(fp)
-	if err != nil {
-		log.Println("Error reading file " + fp + ": \n" + err.Error())
-		io.WriteString(res, "error reading CEX file")
-		return
-	}
-
-	err = loadCEX(string(content), user)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	respondWithSuccess(res)
 }
 
 func loadCEX(data string, user string) error {
