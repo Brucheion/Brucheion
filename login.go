@@ -450,7 +450,7 @@ func testLoginStatus(function string, session *sessions.Session) (user, message 
 // be available in the request context. If not, the function will throw an
 // error.
 func getSessionUser(r *http.Request) (user string, err error) {
-	session, ok := r.Context().Value("session").(sessions.Session)
+	session, ok := r.Context().Value("session").(*sessions.Session)
 	if !ok {
 		return "", errors.New("could not retrieve request session")
 	}

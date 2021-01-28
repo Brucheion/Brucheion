@@ -1,55 +1,34 @@
 <script>
   import FormLine from '../components/FormLine.svelte'
-  import TextInput from '../components/TextInput.svelte'
-  import Message from '../components/Message.svelte'
-  import debounce from '../lib/debounce'
-  import { purename } from '../lib/fs'
 
-  let inputRef = undefined
+  let inputRef
   let cexFile = ''
-  let fileName = ''
   let complete = false
-  let validName = true
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-  }
-
-  async function handleFileName(fileName) {
-    let res
-    try {
-      res = await fetch(`/api/v1/cex/exists?name=${fileName}`)
-    } catch (err) {
-      validName = true
+    if (inputRef.files.length < 1) {
       return
     }
 
+    const file = inputRef.files[0]
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const res = await fetch('/api/v1/cex/upload', {
+      method: 'POST',
+      body: formData,
+    })
+
+    const data = await res.json()
     if (res.status !== 200) {
-      validName = false
-      return
-    }
-    const d = await res.json()
-    if (d.status !== 'success' || d.data.exists) {
-      validName = false
-      return
-    }
-    validName = true
-  }
-  const debouncedHandleFileName = debounce(handleFileName, 500)
-
-  $: if (cexFile && inputRef) {
-    const [file] = inputRef.files
-
-    if (file.name.match(/\.cex$/)) {
-      if (!fileName) {
-        fileName = purename(file.name)
-      }
+      console.error('HALP', data)
+    } else {
+      console.log('cool :)', data)
     }
   }
 
-  $: if (!!fileName) {
-    debouncedHandleFileName(fileName)
-  }
+  $: complete = !!cexFile
 </script>
 
 <style>
@@ -88,20 +67,6 @@
               class="input-file"
               bind:value={cexFile}
               bind:this={inputRef} />
-          </FormLine>
-
-          <FormLine id="file-name" label="File name">
-            <TextInput
-              id="file-name"
-              placeholder="References file name"
-              bind:value={fileName}
-              invalid={!validName} />
-
-            {#if !validName}
-              <Message
-                error={true}
-                text="This name is not valid. Please choose a different one." />
-            {/if}
           </FormLine>
 
           <FormLine offset>
