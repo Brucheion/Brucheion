@@ -212,7 +212,6 @@ func createRouter() *mux.Router {
 	router.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// API routes
-	a.HandleFunc("/cex/exists", requireSession(handleCEXExists))
 	a.HandleFunc("/cex/upload", requireSession(handleCEXUpload))
 
 	// legacy redirects

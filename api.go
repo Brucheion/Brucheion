@@ -6,34 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
-	"regexp"
 )
-
-// somewhat naive & pessimistic
-var isSafeFileName = regexp.MustCompile(`^[a-zA-Z0-9-_\.]+$`).MatchString
-
-type JSONExistsResponse struct {
-	Exists bool `json:"exists"`
-}
-
-func handleCEXExists(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
-	if name == "" {
-		respondWithError(w, "Parameter `name` is missing", 400)
-		return
-	} else if !isSafeFileName(name) {
-		respondWithError(w, "Parameter `name` contains invalid characters", 400)
-		return
-	}
-
-	p := filepath.Join(dataPath, "cex", name+".cex")
-	_, err := os.Stat(p)
-	exists := !os.IsNotExist(err)
-
-	respondWithData(w, JSONExistsResponse{Exists: exists}, 200)
-}
 
 // handleCEXUpload reads a CEX file transferred in a POST request into memory
 // and attempts to load the contained CEX data into the user database.
@@ -52,7 +26,7 @@ func handleCEXUpload(w http.ResponseWriter, r *http.Request) {
 
 	// max. 20mb in size
 	r.ParseMultipartForm(20 << 20)
-	file, handler, err := r.FormFile("cex-file")
+	file, handler, err := r.FormFile("file")
 	if err != nil {
 		respondWithError(w, "file_not_found", 400)
 		return
