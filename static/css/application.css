@@ -246,7 +246,7 @@ header {
 	font-weight: bold;
 }
 
-footer {
+footer.credits-footer {
 	font-size: 80%;
 	bottom: -50px;
 	padding-right: 60px;
