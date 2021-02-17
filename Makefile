@@ -3,19 +3,16 @@ NPM=cd ui && npm
 BIN=Brucheion
 NODE_MODULES=ui/node_modules
 
-.PHONY: all app-dev build release app test clean deps pkged.go
+.PHONY: all app-dev build release app test clean deps
 
 all: deps test build
 
 build: app brucheion
 
-pkged.go:
-	pkger -exclude image_archive
-
-brucheion: pkged.go
+brucheion:
 	$(GO) build -o $(BIN) -v
 
-release: deps test app pkged.go
+release: deps test app
 	./scripts/release.sh
 
 app:
