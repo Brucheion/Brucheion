@@ -1,6 +1,6 @@
 module github.com/brucheion/brucheion
 
-go 1.14
+go 1.16
 
 require (
 	github.com/ThomasK81/gocite v0.0.0-20190524090057-fb657bdec753
@@ -23,7 +23,6 @@ require (
 	github.com/kierdavis/ansi v0.0.0-20180105022324-90d93b0fcae2
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/markbates/goth v1.67.1
-	github.com/markbates/pkger v0.17.0
 	github.com/pkg/errors v0.9.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/tj/go-update v2.2.4+incompatible

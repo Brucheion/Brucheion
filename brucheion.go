@@ -1,8 +1,10 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -10,7 +12,6 @@ import (
 	"path/filepath"
 
 	"github.com/gorilla/mux"
-	"github.com/markbates/pkger"
 	"github.com/skratchdot/open-golang/open"
 )
 
@@ -23,6 +24,9 @@ var Version = "development"
 
 var dataPath string
 var err error
+
+//go:embed tmpl static js ui/dist
+var assets embed.FS
 
 //Main starts the program the mux server
 func main() {
@@ -58,14 +62,13 @@ func main() {
 	dataPath, err = filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
+
 	}
 
-	dir := pkger.Include("/tmpl")
-	t, err := compileTemplates(dir)
+	t := createBaseTemplate()
+	templates, err = t.ParseFS(mustFS(fs.Sub(assets, "tmpl")), "*.html", "shared/*.html")
 	if err != nil {
 		log.Fatal(err)
-	} else {
-		templates = t
 	}
 
 	//Create new Cookiestore instance for use with Brucheion
@@ -138,14 +141,23 @@ func landingPage(res http.ResponseWriter, req *http.Request) {
 	renderTemplate(res, "main", page)
 }
 
+// mustFS is a helper that wraps a call to a function returning (*fs.FS, error)
+// and panics if the error is non-nil.
+func mustFS(f fs.FS, err error) fs.FS {
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return f
+}
+
 func createRouter() *mux.Router {
 	//Start the router
 	router := mux.NewRouter().StrictSlash(true)
 	a := router.PathPrefix("/api/v1").Subrouter()
 
-	staticDir := http.FileSystem(pkger.Dir("/static"))
-	jsDir := http.FileSystem(pkger.Dir("/js"))
-	bundleDir := http.FileSystem(pkger.Dir("/ui/dist"))
+	staticDir := http.FS(mustFS(fs.Sub(assets, "static")))
+	jsDir := http.FS(mustFS(fs.Sub(assets, "js")))
+	bundleDir := http.FS(mustFS(fs.Sub(assets, "ui/dist")))
 
 	if *localAssets {
 		staticDir = http.Dir("./static")

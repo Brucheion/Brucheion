@@ -45,13 +45,7 @@ To learn about how to access Brucheion with accounts and login providers, please
 
 ## Development
 
-For developing or building Brucheion, you will need the following software: [Go](https://golang.org/) (`>= 1.14`) and [Node.js](https://nodejs.org/) (`>= v12`). Furthermore, you will need to obtain a fork of the [`pkger`](https://github.com/markbates/pkger) tool:
-
-```bash
-git clone https://github.com/falafeljan/pkger.git
-cd pkger/cmd/pkger
-go install
-```
+For developing or building Brucheion, you will need the following software: [Go](https://golang.org/) (`>= 1.14`) and [Node.js](https://nodejs.org/) (`>= v12`).
 
 The Brucheion development workflow has been tested on macOS but should work on any Unix-based machine. By calling `make`, you can create a production build of Brucheion that will obtain all dependencies, run all tests, and build all sources.
 
