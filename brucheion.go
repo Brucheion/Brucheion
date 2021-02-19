@@ -30,7 +30,6 @@ var assets embed.FS
 
 //Main starts the program the mux server
 func main() {
-	fmt.Printf("brucheion path: %s\n", dataPath)
 	initializeFlags()
 
 	if Version == "development" {
@@ -62,8 +61,8 @@ func main() {
 	dataPath, err = filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
-
 	}
+	log.Printf("Data path: %s\n", dataPath)
 
 	t := createBaseTemplate()
 	templates, err = t.ParseFS(mustFS(fs.Sub(assets, "tmpl")), "*.html", "shared/*.html")
