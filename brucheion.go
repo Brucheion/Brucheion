@@ -15,8 +15,8 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
-//The configuration that is needed for for the cookiestore. Holds Host information and provider secrets.
 var config Config
+var providers Providers
 var templates *template.Template
 
 var BuildTime = ""
@@ -28,7 +28,6 @@ var err error
 //go:embed tmpl static js ui/dist
 var assets embed.FS
 
-//Main starts the program the mux server
 func main() {
 	initializeFlags()
 
@@ -46,16 +45,10 @@ func main() {
 		}
 	}
 
-	if *localAssets {
+	if *localAssets && Version == "development" {
 		log.Println("Serving static assets from the local filesystem.")
-	}
-
-	if *configLocation != "./config.json" {
-		log.Println("Loading configuration from: " + *configLocation)
-		config = loadConfiguration(*configLocation)
-	} else {
-		log.Println("Loading configuration from: ./config.json")
-		config = loadConfiguration("./config.json")
+	} else if *localAssets && Version != "development" {
+		log.Println("Production builds can't serve static assets from the local filesystem.")
 	}
 
 	dataPath, err = filepath.Abs(filepath.Dir(os.Args[0]))
@@ -63,6 +56,21 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Data path: %s\n", dataPath)
+
+	providers, err = loadProviders()
+	if err != nil {
+		log.Fatalf("Loading authentication providers failed: %s\n", err.Error())
+	}
+
+	cp := filepath.Join(dataPath, "config.json")
+	if *configLocation != "" {
+		cp = *configLocation
+	}
+	log.Printf("Loading configuration from: %s\n", cp)
+	config, err = loadConfiguration(cp)
+	if err != nil {
+		log.Fatalf("Loading configuration failed: %s\n", err.Error())
+	}
 
 	t := createBaseTemplate()
 	templates, err = t.ParseFS(mustFS(fs.Sub(assets, "tmpl")), "*.html", "shared/*.html")

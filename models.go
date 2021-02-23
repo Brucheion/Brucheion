@@ -14,21 +14,6 @@ import (
 //Config stores Host/Port Information, the location of the user DB and settings for the cookiestores
 //and is loaded from a config file using loadConfiguration
 //Host and Port are used for parsing and delivering pages, Key/Secret pairs are obtained from the provider when registering the application.
-type Config struct {
-	Host                              string            `json:"host"`
-	Port                              string            `json:"port"`
-	GitHubKey                         string            `json:"gitHubKey"`
-	GitHubSecret                      string            `json:"githHubSecret"`
-	GitLabKey                         string            `json:"gitLabKey"`
-	GitLabSecret                      string            `json:"gitLabSecret"`
-	GitLabScope                       string            `json:"gitLabScope"` //for accessing GitLab user information this has to be "read_user"
-	GoogleKey                         string            `json:"googleKey"`
-	GoogleSecret                      string            `json:"googleSecret"`
-	MaxAge                            int               `json:"maxAge"` //sets the lifetime of the brucheion session
-	UserDB                            string            `json:"userDB"`
-	OrthographyNormalisationFilenames map[string]string `json:"orthographyNormalisationFilenames"`
-	UseNormalization                  bool              `json:"useNormalization"`
-}
 
 //BrucheionUser stores Information about the logged in Brucheion user
 type BrucheionUser struct {

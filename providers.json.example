@@ -1,0 +1,14 @@
+{
+  "github": {
+    "key": "foo",
+    "secret": "bar"
+  },
+  "gitlab": {
+    "key": "baz",
+    "secret": "foo"
+  },
+  "google": {
+    "key": "bar",
+    "secret": "baz"
+  }
+}

@@ -31,7 +31,7 @@ With everything in place, you can now run Brucheion in your terminal. Brucheion 
 ```
 Usage of ./Brucheion:
   -config string
-        Specify where to load the JSON config from. (defalult: ./config.json (default "./config.json")
+        Specify where to load the JSON config from. (default: from data directory)
   -localAssets
         Obtain static assets from the local filesystem during development. (default: false)
   -noauth
@@ -46,6 +46,8 @@ To learn about how to access Brucheion with accounts and login providers, please
 ## Development
 
 For developing or building Brucheion, you will need the following software: [Go](https://golang.org/) (`>= 1.14`) and [Node.js](https://nodejs.org/) (`>= v12`).
+
+For configuring the necessary parts of Brucheion, you will need to create a `providers.json` file that will provide the required keys and secrets to authentication providers. You can create your own one based off `providers.json.example`. Be advised that all providers are expected to be specified, not just a subset.
 
 The Brucheion development workflow has been tested on macOS but should work on any Unix-based machine. By calling `make`, you can create a production build of Brucheion that will obtain all dependencies, run all tests, and build all sources.
 
