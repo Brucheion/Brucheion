@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -9,24 +11,57 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gorilla/securecookie" //for generating the cookieStore key
-	"github.com/gorilla/sessions"     //for Cookiestore and other session functionality
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 
-	"github.com/boltdb/bolt" //for working with the bolt DB key-value store
+	"github.com/boltdb/bolt"
 )
 
-// LoadConfiguration loads and parses the JSON config file and returns Config.
-//todo: Errorhandling
-func loadConfiguration(file string) Config {
-	var newConfig Config                       //initialize Config variable newConfig
-	configFile, openFileError := os.Open(file) //attempt to open file
-	defer configFile.Close()                   //push closing on call list
-	if openFileError != nil {                  //error handling
-		fmt.Println("Open file error: " + openFileError.Error())
+type Config struct {
+	Host                              string            `json:"host"`
+	Port                              string            `json:"port"`
+	MaxAge                            int               `json:"maxAge"`
+	UserDB                            string            `json:"userDB"`
+	OrthographyNormalisationFilenames map[string]string `json:"orthographyNormalisationFilenames"`
+	UseNormalization                  bool              `json:"useNormalization"`
+}
+
+type ProviderAccess struct {
+	Key    string `json:"key"`
+	Secret string `json:"secret"`
+}
+type Providers struct {
+	GitHub ProviderAccess `json:"github"`
+	GitLab ProviderAccess `json:"gitlab"`
+	Google ProviderAccess `json:"google"`
+}
+
+//go:embed providers.json
+var provdata []byte
+
+// loadProviders loads provider keys and secrets from the embedded providers JSON data and returns a decoded Providers
+// structure.
+func loadProviders() (Providers, error) {
+	var p Providers
+	r := bytes.NewReader(provdata)
+	d := json.NewDecoder(r)
+	err := d.Decode(&p)
+	return p, err
+}
+
+// loadConfiguration loads and parses the JSON configuration file and returns a Config structure.
+func loadConfiguration(file string) (Config, error) {
+	var c Config
+
+	cf, err := os.Open(file)
+	defer cf.Close()
+	if err != nil {
+		return Config{}, err
 	}
-	jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
-	jsonParser.Decode(&newConfig)             //parse configFile to config
-	return newConfig                          //return ServerConfig config
+
+	jsonParser := json.NewDecoder(cf)
+	err = jsonParser.Decode(&c)
+	return c, err
 }
 
 func getSessionKey() []byte {
