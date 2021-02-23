@@ -1,7 +1,7 @@
 {
   "host": "http://localhost:7000",
   "port": ":7000",
-  "maxAge": "45",
+  "maxAge": 45,
   "userDB": "./users.db",
   "orthographyNormalisationFilenames": { "sans": "./SanskritOrthography.json" },
   "useNormalization": true
