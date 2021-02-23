@@ -1,29 +1,17 @@
-# Windows and Mac OS X
+# OS-related
 Thumbs.db
 .DS_Store
-*.db
-users.db
+
 .session-key
 
-#VS CODE
-brucheion.code-workspace
-
-# exclude image_archive and cex
+# User data
+*.db
 image_archive/*
 cex/*
-
-# exception to the rule
 !cex/.gitkeep
 !image_archive/test/
 
-#Goland imls and xmls
-.idea/*
-
-#sublime project files
-Brucheion.sublime-project
-Brucheion.sublime-workspace
-
-#logs
+# Logs
 *.log
 
 # Build
