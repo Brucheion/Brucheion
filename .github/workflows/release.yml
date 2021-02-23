@@ -14,6 +14,14 @@ jobs:
         with:
           node-version: '12'
       - uses: actions/checkout@v2
+      - env:
+          GITHUB_KEY: ${{ secrets.GH_KEY }}
+          GITHUB_SECRET: ${{ secrets.GH_SECRET }}
+          GITLAB_KEY: ${{ secrets.GITLAB_KEY }}
+          GITLAB_SECRET: ${{ secrets.GITLAB_SECRET }}
+          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
+          GOOGLE_SECRET: ${{ secrets.GOOGLE_SECRET }}
+        run: ./scripts/prepare-providers.sh
       - run: make release
       - id: create_release
         uses: actions/create-release@v1
