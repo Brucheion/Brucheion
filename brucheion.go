@@ -198,7 +198,7 @@ func createRouter() *mux.Router {
 	router.HandleFunc("/view/{urn}/", ViewPage)
 	router.HandleFunc("/tree/", TreePage)
 	router.HandleFunc("/ingest/cex", createSpaHandler("CEX Ingestion"))
-	router.HandleFunc("/ingest/image", createSpaHandler("Image Ingestion"))
+	router.HandleFunc("/ingest/image", requireAuth(createSpaHandler("Image Ingestion")))
 	router.HandleFunc("/multicompare/{urn}/", MultiPage).Methods("GET")
 	router.HandleFunc("/seealignment/{urn}", SeeAlignment).Methods("GET")
 	router.HandleFunc("/tablealignment/{urn}", TableAlignments).Methods("GET")
@@ -230,7 +230,7 @@ func createRouter() *mux.Router {
 	router.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// API routes
-	a.HandleFunc("/cex/upload", requireSession(handleCEXUpload))
+	a.HandleFunc("/cex/upload", requireAuth(handleCEXUpload))
 
 	// legacy redirects
 	router.HandleFunc("/ingest", createPermanentRedirect("/ingest/image"))
