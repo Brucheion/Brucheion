@@ -446,7 +446,7 @@ func testLoginStatus(function string, session *sessions.Session) (user, message 
 }
 
 // getSessionUser retrieves the Brucheion user name from a HTTP request. If it
-// was properly validated with requireSession, the request session should
+// was properly validated with requireAuth, the request session should
 // be available in the request context. If not, the function will throw an
 // error.
 func getSessionUser(r *http.Request) (user string, err error) {

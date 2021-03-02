@@ -356,12 +356,7 @@ func loadCEX(data string, user string) error {
 			if err != nil {
 				return err
 			}
-
-			err = bucket.Put(catkey, catvalue)
-			if err != nil {
-				return err
-			}
-			return nil
+			return bucket.Put(catkey, catvalue)
 		})
 
 		if err != nil {
@@ -381,12 +376,7 @@ func loadCEX(data string, user string) error {
 				if err != nil {
 					return err
 				}
-
-				err = bucket.Put(key, value)
-				if err != nil {
-					return err
-				}
-				return nil
+				return bucket.Put(key, value)
 			})
 
 			if err != nil {

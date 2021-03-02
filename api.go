@@ -95,10 +95,10 @@ func respondWithJSON(w http.ResponseWriter, status string, message string, data 
 	})
 }
 
-// requireSession is a middleware for wrapping an http.HandlerFunc
+// requireAuth is a middleware for wrapping an http.HandlerFunc
 // and checking for a valid user session. The username is then
 // stored in the request context.
-func requireSession(h http.HandlerFunc) http.HandlerFunc {
+func requireAuth(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session, err := getSession(r)
 		if err != nil {
