@@ -17,7 +17,7 @@
     bad_cex_data:
       'The CEX data contained erroneous data and could not be processed.',
     unknown:
-      'An unknown error occurred. This is not necessarily related to the uploaded CEX data',
+      'An unknown error occurred. This is not necessarily due to the uploaded CEX data. Please try again and log in again if necessary.',
   }
 
   function showModal() {
@@ -38,11 +38,21 @@
     const formData = new FormData()
     formData.append('file', file)
 
+    let res
     loading = true
-    const res = await fetch('/api/v1/cex/upload', {
-      method: 'POST',
-      body: formData,
-    })
+    try {
+      res = await fetch('/api/v1/cex/upload', {
+        method: 'POST',
+        body: formData,
+        redirect: 'error',
+        credentials: 'same-origin',
+      })
+    } catch (err) {
+      loading = false
+      errorMessage = errorMessages.unknown
+      showModal()
+      return
+    }
     loading = false
 
     if (res.status !== 200) {
