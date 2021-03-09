@@ -1,0 +1,7 @@
+#work-image {
+    height: 500px;
+}
+
+#work-image.landscape {
+    height: 350px;
+}

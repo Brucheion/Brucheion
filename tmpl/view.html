@@ -1,136 +1,189 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<title>Brucheion</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-	<script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
-	<script type="text/javascript" src="{{.Host}}/js/openseadragon.js"></script>
-	<script type="text/javascript" src="{{.Host}}/js/openseadragon-guides.js"></script>
-	<script type="text/javascript" src="{{.Host}}/js/selection.js"></script>
-	<script type="text/javascript" src="{{.Host}}/js/selectionoverlay.js"></script>
-	<script type="text/javascript" src="{{.Host}}/js/selectionrect.js"></script>
-	<script type="text/javascript" src="{{.Host}}/js/dragging.js"></script>
-	<script type="text/javascript" src="{{.Host}}/js/bootstrap.min.js"></script>
-  {{template "stylesheets" .}}
-	{{.ImageScript}}
-</head>
-<body class="has-hero">
-  {{template "navigation" .}}
-  {{template "hero-passage-selection" dict "Title" "Passage Overview" "PathName" "view" "Page" .}}
+  <head>
+    <title>Brucheion</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script type="text/javascript" src="{{.Host}}/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/openseadragon.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/openseadragon-guides.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/selection.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/selectionoverlay.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/selectionrect.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/dragging.js"></script>
+    <script type="text/javascript" src="{{.Host}}/js/bootstrap.min.js"></script>
+    {{template "stylesheets" .}}
+    {{.ImageScript}}
+    <link rel="stylesheet" type="text/css" href="{{.Host}}/static/css/view.css" />
+  </head>
+  <body class="has-hero">
+    {{template "navigation" .}}
+    {{template "hero-passage-selection" dict "Title" "Passage Overview" "PathName" "view" "Page" .}}
 
-	<div class="container is-fluid">
-		<section></section>
-		<div class="tile is-ancestor">
-			<div class="tile is-parent">
-				<div class="tile is-child box tile-resizable">
-					<p class="has-text-right"><a class="button is-small" href="/edit2/{{.Title}}/">EDIT IMAGE
-							REFERENCES</a></p>
-					<br />
-					<p>ImageRef: {{.ImageHTML}}</p>
-				</div>
-			</div>
-			<div class="tile is-parent">
-				<div class="tile is-child box tile-resizable">
-					<p class="has-text-right"><a class="button is-small" href="/editcat/{{.Title}}/">EDIT METADATA</a>
-					</p>
-					<br />
-					<table>
-						<tr>
-							<td>WorkURN: {{.CatID}}</td>
-							<td>Scheme: {{.CatCit}}</td>
-						</tr>
-						<tr>
-							<td>Workgroup: {{.CatGroup}}</td>
-							<td>Title: {{.CatWork}}</td>
-						</tr>
-						<tr>
-							<td>Version: {{.CatVers}}</td>
-							<td>Exemplar: {{.CatExmpl}}</td>
-						</tr>
-						<tr>
-							<td>Online: {{.CatOn}}</td>
-							<td>Language: {{.CatLan}}</td>
-						</tr>
-					</table>
-				</div>
-			</div>
-		</div>
-		<section>
-			<div class="tile is-ancestor">
-				<div class="tile is-parent">
-					<div class="tile is-child box tile-resizable" style="height: 500px;">
-						<div id="image_imageContainer"></div>
-					</div>
-				</div>
-				<div class="tile is-parent">
-					<div class="tile is-child box tile-resizable">
-						<br />
-						<div class="tile is-child">
-							<p class="has-text-left">Previous: {{.PreviousLink}}</p>
-							<p class="has-text-left">Next: {{.NextLink}}</p>
-						</div>
-						<div class="tile is-child columns">
-							<div class="column">
-								<button type="button" onclick="makeXSmall()"><span
-										style="font-size: x-small">Aa</span></button>
-								<button type="button" onclick="makeSmall()"><span
-										style="font-size: small">Aa</span></button>
-								<button type="button" onclick="makeMedium()"><span
-										style="font-size: medium">Aa</span></button>
-								<button type="button" onclick="makeBig()"><span
-										style="font-size: large">Aa</span></button>
-								<button type="button" onclick="makeXBig()"><span
-										style="font-size: x-large">Aa</span></button>
-							</div>
-							<div class="column">
-								<p class="has-text-right"><a class="button is-small" href="/edit/{{.Title}}/">EDIT
-										TRANSCRIPTION</a></p>
-							</div>
-						</div>
-						<div style="text-indent: 2em">
-							{{.Text}}
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
+    <div class="container is-fluid">
+      <section></section>
+      <div class="tile is-ancestor">
+        <div class="tile is-parent">
+          <div class="tile is-child box tile-resizable">
+            <p class="has-text-right">
+              <a class="button is-small" href="/edit2/{{.Title}}/">EDIT IMAGE REFERENCES</a>
+            </p>
+            <br />
+            <p>ImageRef: {{.ImageHTML}}</p>
+          </div>
+        </div>
+        <div class="tile is-parent">
+          <div class="tile is-child box tile-resizable">
+            <p class="has-text-right">
+              <a class="button is-small" href="/editcat/{{.Title}}/">EDIT METADATA</a>
+            </p>
+            <br />
+            <table>
+              <tr>
+                <td>WorkURN: {{.CatID}}</td>
+                <td>Scheme: {{.CatCit}}</td>
+              </tr>
+              <tr>
+                <td>Workgroup: {{.CatGroup}}</td>
+                <td>Title: {{.CatWork}}</td>
+              </tr>
+              <tr>
+                <td>Version: {{.CatVers}}</td>
+                <td>Exemplar: {{.CatExmpl}}</td>
+              </tr>
+              <tr>
+                <td>Online: {{.CatOn}}</td>
+                <td>Language: {{.CatLan}}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <section>
+        <div class="tile is-ancestor" id="work-row-1">
+          <div class="tile is-parent">
+            <div class="tile is-child box tile-resizable" id="work-image">
+              <div id="image_imageContainer"></div>
+            </div>
+          </div>
+          <div class="tile is-parent" id="work-transcript">
+            <div class="tile is-child box tile-resizable">
+              <div class="buttons has-addons" id="orientation-selection">
+                <button class="button" data-value="portrait" title="Select portrait orientation (side-by-side)">
+                  <span class="icon is-small">
+                    <img src="/static/img/orientation-portrait.svg" alt="Portrait orientation" />
+                  </span>
+                </button>
+                <button class="button" data-value="landscape" title="Select landscape orientation (below each other)">
+                  <span class="icon is-small">
+                    <img src="/static/img/orientation-landscape.svg" alt="Landscape" />
+                  </span>
+                </button>
+              </div>
 
-		{{template "footer"}}
-	</div>
-	<input type="hidden" id="initialCITE" value="{{.ImageJS}}" readonly>
-	<script type="text/javascript" src="{{.Host}}/js/BrIC.js"></script>
-	<script>
-		function makeXBig() {
-			var x = document.getElementsByName("textpassage");
-			for (var i = 0; i < x.length; i++) {
-				x[i].style.fontSize = "x-large";
-			};
-		};
-		function makeBig() {
-			var x = document.getElementsByName("textpassage");
-			for (var i = 0; i < x.length; i++) {
-				x[i].style.fontSize = "large";
-			};
-		};
-		function makeMedium() {
-			var x = document.getElementsByName("textpassage");
-			for (var i = 0; i < x.length; i++) {
-				x[i].style.fontSize = "medium";
-			}
-		};
-		function makeXSmall() {
-			var x = document.getElementsByName("textpassage");
-			for (var i = 0; i < x.length; i++) {
-				x[i].style.fontSize = "x-small";
-			}
-		};
-		function makeSmall() {
-			var x = document.getElementsByName("textpassage");
-			for (var i = 0; i < x.length; i++) {
-				x[i].style.fontSize = "small";
-			}
-		};
-	</script>
-</body>
+              <div class="buttons has-addons" id="text-size-selection">
+                <button class="button" data-value="small" title="Select small transcription text size">
+                  <span class="icon is-small">
+                    <img src="/static/img/text-sm.svg" alt="Small text size" />
+                  </span>
+                </button>
+                <button class="button" data-value="medium" title="Select medium transcription text size">
+                  <span class="icon is-small">
+                    <img src="/static/img/text-md.svg" alt="Medium text size" />
+                  </span>
+                </button>
+                <button class="button" data-value="large" title="Select large transcription text size">
+                  <span class="icon is-small">
+                    <img src="/static/img/text-lg.svg" alt="Large text size" />
+                  </span>
+                </button>
+              </div>
 
+              <div class="buttons">
+                <a class="button is-small" href="/edit/{{.Title}}/">EDIT TRANSCRIPTION</a>
+              </div>
+
+              <br />
+              <div class="tile is-child">
+                <p class="has-text-left">Previous: {{.PreviousLink}}</p>
+                <p class="has-text-left">Next: {{.NextLink}}</p>
+              </div>
+
+              <div style="text-indent: 2em;">
+                {{.Text}}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tile is-ancestor" id="work-row-2"></div>
+      </section>
+
+      {{template "footer"}}
+    </div>
+    <input type="hidden" id="initialCITE" value="{{.ImageJS}}" readonly />
+    <script type="text/javascript" src="{{.Host}}/js/BrIC.js"></script>
+    <script>
+      let orientation = "portrait";
+      let textSize = "medium";
+      let viewerTimeout
+
+      function setActiveButton(buttons, value) {
+        for (const button of buttons) {
+          if (button.dataset.value === value) {
+            button.classList.add("is-active");
+          } else {
+            button.classList.remove("is-active");
+          }
+        }
+      }
+
+      function attachHandlers(buttons, onSelect) {
+        for (const button of buttons) {
+          const value = button.dataset.value;
+
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+
+            onSelect(value);
+            setActiveButton(buttons, value);
+          });
+        }
+      }
+
+      window.addEventListener("load", () => {
+        const orientationButtons = document.querySelectorAll("#orientation-selection button");
+        const textButtons = document.querySelectorAll("#text-size-selection button");
+        const image = document.getElementById("work-image");
+        const transcript = document.getElementById("work-transcript");
+
+        setActiveButton(orientationButtons, orientation);
+        attachHandlers(orientationButtons, (value) => {
+          orientation = value;
+
+          if (orientation === "landscape") {
+            image.classList.add("is-12", "landscape");
+            document.getElementById("work-row-2").appendChild(transcript);
+          } else {
+            image.classList.remove("is-12", "landscape");
+            document.getElementById("work-row-1").appendChild(transcript);
+          }
+
+          if (viewer) {
+            if (viewerTimeout) {
+              window.clearTimeout(viewerTimeout)
+            }
+            viewerTimeout = window.setTimeout(() => viewer.viewport.goHome(), 250)
+          }
+        });
+
+        setActiveButton(textButtons, textSize);
+        attachHandlers(textButtons, (value) => {
+          textSize = value;
+
+          for (const p of document.getElementsByName("textpassage")) {
+            p.style.fontSize = textSize;
+          }
+        });
+      });
+    </script>
+  </body>
 </html>
