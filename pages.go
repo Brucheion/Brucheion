@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,25 @@ import (
 
 	"github.com/gorilla/mux"
 )
+
+type numberedLine struct {
+	number int
+	text   string
+}
+
+func makeNumberedLines(passage []string) []numberedLine {
+	passagePattern := regexp.MustCompile("{[a-zA-Z0-9]+[_\\d+]*?[rv,]}")
+	i := 1
+	p := make([]numberedLine, 0, len(passage))
+	for _, line := range passage {
+		if passagePattern.MatchString(line) {
+			i = 1
+		}
+		p = append(p, numberedLine{number: i, text: line})
+		i += 1
+	}
+	return p
+}
 
 // ViewPage prepares, loads, and renders the Passage Overview
 //todo: overhaul with new database functions
@@ -60,8 +80,16 @@ func ViewPage(res http.ResponseWriter, req *http.Request) {
 	text := retrievedPassage.Text.TXT
 	passages := strings.Split(text, "\r\n")
 	text = ""
-	for i, v := range passages {
-		text = text + "<p name=\"textpassage\" style=\"padding: 0 0 0.25em 0\">" + "<span style=\"font-weight:bold\">" + strconv.Itoa(i+1) + ": " + "</span>" + v + "</p>"
+	/* for i, v := range passages {
+	} */
+	// line_nums_by_folio := countPassageLineNums(passages)
+	numberedLines := makeNumberedLines(passages)
+	for _, line := range numberedLines {
+		text += `
+			<p name="textpassage" style="padding: 0 0 0.25em 0">
+				<span style="font-weight: bold">` + strconv.Itoa(line.number) + `: </span>
+				` + line.text + `
+			</p>`
 	}
 	previous := retrievedPassage.Prev.PassageID
 	next := retrievedPassage.Next.PassageID
