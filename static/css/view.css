@@ -5,3 +5,18 @@
 #work-image.landscape {
     height: 350px;
 }
+
+.view-toolbar {
+    display: flex;
+    flex-flow: row;
+}
+
+.spacer-h-md {
+    display: block;
+    width: 9px;
+    height: 1px;
+}
+
+.spacer-h-fill {
+    margin-left: auto;
+}
