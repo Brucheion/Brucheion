@@ -67,38 +67,40 @@
           </div>
           <div class="tile is-parent" id="work-transcript">
             <div class="tile is-child box tile-resizable">
-              <div class="buttons has-addons" id="orientation-selection">
-                <button class="button" data-value="portrait" title="Select portrait orientation (side-by-side)">
-                  <span class="icon is-small">
-                    <img src="/static/img/orientation-portrait.svg" alt="Portrait orientation" />
-                  </span>
-                </button>
-                <button class="button" data-value="landscape" title="Select landscape orientation (below each other)">
-                  <span class="icon is-small">
-                    <img src="/static/img/orientation-landscape.svg" alt="Landscape" />
-                  </span>
-                </button>
-              </div>
+              <div class="view-toolbar">
+                <div class="buttons has-addons" id="orientation-selection">
+                  <button class="button" data-value="portrait" title="Select portrait orientation (side-by-side)">
+                    <span class="icon is-small">
+                      <img src="/static/img/orientation-portrait.svg" alt="Portrait orientation" />
+                    </span>
+                  </button>
+                  <button class="button" data-value="landscape" title="Select landscape orientation (below each other)">
+                    <span class="icon is-small">
+                      <img src="/static/img/orientation-landscape.svg" alt="Landscape" />
+                    </span>
+                  </button>
+                </div>
+                <div class="spacer-h-md"></div>
 
-              <div class="buttons has-addons" id="text-size-selection">
-                <button class="button" data-value="small" title="Select small transcription text size">
-                  <span class="icon is-small">
-                    <img src="/static/img/text-sm.svg" alt="Small text size" />
-                  </span>
-                </button>
-                <button class="button" data-value="medium" title="Select medium transcription text size">
-                  <span class="icon is-small">
-                    <img src="/static/img/text-md.svg" alt="Medium text size" />
-                  </span>
-                </button>
-                <button class="button" data-value="large" title="Select large transcription text size">
-                  <span class="icon is-small">
-                    <img src="/static/img/text-lg.svg" alt="Large text size" />
-                  </span>
-                </button>
-              </div>
+                <div class="buttons has-addons" id="text-size-selection">
+                  <button class="button" data-value="small" title="Select small transcription text size">
+                    <span class="icon is-small">
+                      <img src="/static/img/text-sm.svg" alt="Small text size" />
+                    </span>
+                  </button>
+                  <button class="button" data-value="medium" title="Select medium transcription text size">
+                    <span class="icon is-small">
+                      <img src="/static/img/text-md.svg" alt="Medium text size" />
+                    </span>
+                  </button>
+                  <button class="button" data-value="large" title="Select large transcription text size">
+                    <span class="icon is-small">
+                      <img src="/static/img/text-lg.svg" alt="Large text size" />
+                    </span>
+                  </button>
+                </div>
+                <div class="spacer-h-md spacer-h-fill"></div>
 
-              <div class="buttons">
                 <a class="button is-small" href="/edit/{{.Title}}/">EDIT TRANSCRIPTION</a>
               </div>
 
@@ -124,7 +126,7 @@
     <script>
       let orientation = "portrait";
       let textSize = "medium";
-      let viewerTimeout
+      let viewerTimeout;
 
       function setActiveButton(buttons, value) {
         for (const button of buttons) {
@@ -169,9 +171,9 @@
 
           if (viewer) {
             if (viewerTimeout) {
-              window.clearTimeout(viewerTimeout)
+              window.clearTimeout(viewerTimeout);
             }
-            viewerTimeout = window.setTimeout(() => viewer.viewport.goHome(), 250)
+            viewerTimeout = window.setTimeout(() => viewer.viewport.goHome(), 250);
           }
         });
 
