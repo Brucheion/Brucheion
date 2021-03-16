@@ -12,7 +12,7 @@ build: app brucheion
 brucheion:
 	$(GO) build -o $(BIN) -v
 
-release: deps test app
+release: deps app test
 	./scripts/release.sh
 
 app:
