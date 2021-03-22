@@ -212,6 +212,8 @@ github.com/tj/go-kinesis v0.0.0-20171128231115-08b17f58cb1b/go.mod h1:/yhzCV0xPf
 github.com/tj/go-spin v1.1.0/go.mod h1:Mg1mzmePZm4dva8Qz60H2lHwmJ2loum4VIrLgVnKwh4=
 github.com/tj/go-update v2.2.4+incompatible h1:7Rkw5ZyRSFb3QyEWM7sHCy9rCy1/r66elkOyGlfnZFc=
 github.com/tj/go-update v2.2.4+incompatible/go.mod h1:waFwwyiAhGey2e+dNoYQ/iLhIcFqhCW7zL/+vDU1WLo=
+github.com/tj/go-update v2.2.5-0.20200519121640-62b4b798fd68+incompatible h1:guTq1YxwB8XSILkI9q4IrOmrCOS6Hc1L3hmOhi4Swcs=
+github.com/tj/go-update v2.2.5-0.20200519121640-62b4b798fd68+incompatible/go.mod h1:waFwwyiAhGey2e+dNoYQ/iLhIcFqhCW7zL/+vDU1WLo=
 github.com/ulikunitz/xz v0.5.6/go.mod h1:2bypXElzHzzJZwzH67Y6wb67pO62Rzfn7BSiF4ABRW8=
 github.com/ulikunitz/xz v0.5.8 h1:ERv8V6GKqVi23rgu5cj9pVfVzJbOqAY2Ntl88O6c2nQ=
 github.com/ulikunitz/xz v0.5.8/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
