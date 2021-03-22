@@ -43,7 +43,6 @@ func makeNumberedLines(passage []string) []numberedLine {
 // ViewPage prepares, loads, and renders the Passage Overview
 //todo: overhaul with new database functions
 func ViewPage(res http.ResponseWriter, req *http.Request) {
-
 	//First get the session..
 	session, err := getSession(req)
 	if err != nil {

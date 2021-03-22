@@ -231,6 +231,7 @@ func createRouter() *mux.Router {
 
 	// API routes
 	a.HandleFunc("/cex/upload", requireAuth(handleCEXUpload))
+	a.HandleFunc("/passage/{urn}", requireAuth(handlePassage))
 
 	// legacy redirects
 	router.HandleFunc("/ingest", createPermanentRedirect("/ingest/image"))
