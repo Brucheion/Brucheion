@@ -3,11 +3,87 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/ThomasK81/gocite"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 )
+
+type Passage struct {
+	ID                 string      `json:"id"`
+	Transcriber        string      `json:"transcriber"`
+	TranscriptionLines []string    `json:"transcriptionLines"`
+	PreviousPassage    string      `json:"previousPassage"`
+	NextPassage        string      `json:"nextPassage"`
+	FirstPassage       string      `json:"firstPassage"`
+	LastPassage        string      `json:"lastPassage"`
+	ImageRefs          []string    `json:"imageRefs"`
+	TextRefs           []string    `json:"textRefs"`
+	Catalog            BoltCatalog `json:"catalog"`
+}
+
+// handlePassage retrieves a passage and associated information from the user database.
+func handlePassage(w http.ResponseWriter, r *http.Request) {
+	user, err := getSessionUser(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", 401)
+		return
+	}
+
+	vars := mux.Vars(r)
+	urn := vars["urn"]
+	if !gocite.IsCTSURN(urn) {
+		http.Error(w, "Bad request", 400)
+		return
+	}
+
+	dbName := user + ".db"
+	textRefs := Buckets(dbName)
+	bucketName := strings.Join(strings.Split(urn, ":")[0:4], ":") + ":"
+
+	d, err := BoltRetrieve(dbName, bucketName, urn)
+	if err != nil {
+		http.Error(w, "Internal server error", 500)
+		return
+	}
+	c, err := BoltRetrieve(dbName, bucketName, bucketName)
+	if err != nil {
+		http.Error(w, "Internal server error", 500)
+		return
+	}
+
+	catalog := BoltCatalog{}
+	passage := gocite.Passage{}
+	json.Unmarshal([]byte(d.JSON), &passage)
+	json.Unmarshal([]byte(c.JSON), &catalog)
+
+	text := passage.Text.TXT
+	passages := strings.Split(text, "\r\n")
+	work, _ := BoltRetrieveWork(dbName, bucketName)
+
+	var imageRefs []string
+	for _, tmp := range passage.ImageLinks {
+		imageRefs = append(imageRefs, tmp.Object)
+	}
+
+	p := Passage{
+		ID:                 passage.PassageID,
+		Transcriber:        user,
+		TranscriptionLines: passages,
+		PreviousPassage:    passage.Prev.PassageID,
+		NextPassage:        passage.Next.PassageID,
+		FirstPassage:       work.First.PassageID,
+		LastPassage:        work.Last.PassageID,
+		ImageRefs:          imageRefs,
+		TextRefs:           textRefs,
+		Catalog:            catalog,
+	}
+
+	respondWithData(w, p, 200)
+}
 
 // handleCEXUpload reads a CEX file transferred in a POST request into memory
 // and attempts to load the contained CEX data into the user database.
