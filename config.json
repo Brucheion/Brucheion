@@ -3,6 +3,9 @@
   "port": ":7000",
   "maxAge": 86400,
   "userDB": "./users.db",
-  "orthographyNormalisationFilenames": { "sans": "./SanskritOrthography.json" },
+  "orthographyNormalisationFilenames": {
+    "san": "./SanskritOrthography.json",
+    "sans": "./SanskritOrthography.json"
+  },
   "useNormalization": true
 }
