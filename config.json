@@ -4,8 +4,8 @@
   "maxAge": 86400,
   "userDB": "./users.db",
   "orthographyNormalisationFilenames": {
-    "san": "./SanskritOrthography.json",
-    "sans": "./SanskritOrthography.json"
+    "san": "SanskritOrthography.json",
+    "sans": "SanskritOrthography.json"
   },
   "useNormalization": true
 }

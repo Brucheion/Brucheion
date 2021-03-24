@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -40,17 +41,21 @@ type ResultJSONlist struct {
 }
 
 // modified version of initialization.go, loadConfiguration()
-func loadOrthographyNormalisationConfig(language_code string) OrthographyNormalisationConfig {
-	configFilename := config.OrthographyNormalisationFilenames[language_code]
-	var newConfig OrthographyNormalisationConfig         //initialize config as OrthographyNormalisationConfig
-	configFile, openFileError := os.Open(configFilename) //attempt to open file
-	defer configFile.Close()                             //push closing on call list
-	if openFileError != nil {                            //error handling
-		fmt.Println("Open file error: " + openFileError.Error())
+func loadOrthographyNormalisationConfig(languageCode string) (c OrthographyNormalisationConfig, err error) {
+	fn := config.OrthographyNormalisationFilenames[languageCode]
+	if fn == "" {
+		return c, fmt.Errorf("orthography language code not found: %s", languageCode)
 	}
-	jsonParser := json.NewDecoder(configFile) //initialize jsonParser with configFile
-	jsonParser.Decode(&newConfig)             //parse configFile to newConfig
-	return newConfig
+
+	f, err := os.Open(filepath.Join(dataPath, fn))
+	defer f.Close()
+	if err != nil {
+		return c, err
+	}
+
+	jsonParser := json.NewDecoder(f)
+	jsonParser.Decode(&c)
+	return c, nil
 }
 
 // might be nice to add to work.go
@@ -210,7 +215,12 @@ func normalizeOrthographyTemporarily(res http.ResponseWriter, req *http.Request)
 
 		// use work_urn to pick out appropriate orthography config replacements
 		work_language_code := GetWorkLangFromCatalog(work_urn, dbname)
-		orthographyNormalisationConfig := loadOrthographyNormalisationConfig(work_language_code)
+		orthographyNormalisationConfig, err := loadOrthographyNormalisationConfig(work_language_code)
+		if err != nil {
+			fmt.Printf("Error while loading orthography normalization config: %s\n", err.Error())
+			http.Error(res, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 
 		// fetch passage text
 		passage := GetPassageByURNOnly(passage_urn, dbname)
@@ -286,7 +296,12 @@ func normalizeOrthographyAndSave(res http.ResponseWriter, req *http.Request) {
 
 		// use work_urn to pick out appropriate orthography config replacements
 		work_language_code := GetWorkLangFromCatalog(work_urn, dbname)
-		orthographyNormalisationConfig := loadOrthographyNormalisationConfig(work_language_code)
+		orthographyNormalisationConfig, err := loadOrthographyNormalisationConfig(work_language_code)
+		if err != nil {
+			fmt.Printf("Error while loading orthography normalization config: %s\n", err.Error())
+			http.Error(res, "Internal server error", http.StatusInternalServerError)
+			return
+		}
 
 		// fetch passage text
 		passage := GetPassageByURNOnly(passage_urn, dbname)
