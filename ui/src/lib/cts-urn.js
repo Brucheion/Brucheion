@@ -8,10 +8,11 @@ const citeUrn = URN.create('urn', {
 function validateUrn(urn, opts = {}) {
   const noPassage = opts.noPassage || false
   const components = citeUrn.parse(urn)
+  const nid = opts.nid || citeNid
 
   return (
     !!components &&
-    components.nid === citeNid &&
+    components.nid === nid &&
     !!components.namespace &&
     !!components.work &&
     ((noPassage && !components.passage) || (!noPassage && !!components.passage))
