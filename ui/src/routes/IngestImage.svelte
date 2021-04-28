@@ -201,13 +201,13 @@
 
   .preview {
     box-sizing: border-box;
-    max-width: 700px;
-    height: 600px;
-    border: 1px solid rgba(230, 230, 230);
-    border-radius: 3px;
-    padding: 3px;
+    max-width: 701px;
+    height: 601px;
+    border: 2px solid rgba(230, 230, 230);
+    border-radius: 4px;
+    padding: 4px;
 
-    background: rgba(245, 245, 245);
+    background: rgba(246, 245, 245);
     box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
   }
 </style>
