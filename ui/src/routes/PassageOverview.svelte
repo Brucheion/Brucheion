@@ -5,9 +5,8 @@
   export let urn
   let passage, err
 
-  if (!validateUrn(urn, { nid: 'cts' })) {
-    // TODO
-    err = new Error('Not found')
+  $: if (!validateUrn(urn, { nid: 'cts' })) {
+    err = new Error('Passage not found')
   }
 
   $: getPassage(urn)
@@ -21,12 +20,8 @@
   }
 </script>
 
-<div>
-  <code>{urn}</code>
-
-  {#if passage && !err}
-    <PassageDesk {passage} />
-  {:else if err}
-    <p>An error occurred: {err}</p>
-  {/if}
-</div>
+{#if passage && !err}
+  <PassageDesk {passage} />
+{:else if err}
+  <p>An error occurred: {err}</p>
+{/if}
