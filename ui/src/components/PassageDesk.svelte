@@ -12,7 +12,8 @@
     previewFailed = false,
     selectedImageRef = undefined,
     didMount = false,
-    selectedCatalogUrn = passage.catalog.urn
+    selectedCatalogUrn = passage.catalog.urn,
+    showMetadata = false
 
   // FIXME: this is a pretty naive attempt to catch the passage ID
   $: passageId = passage.id.split(':').pop()
@@ -53,6 +54,10 @@
     navigate(`/view/${selectedCatalogUrn}${passageId}`)
   }
 
+  function handleToggleMetadata() {
+    showMetadata = !showMetadata
+  }
+
   /* this should update the folio viewer a) once after mounting and b) when `passage` changes due to reactivity.
    * this is just a lazy trick to trigger the viewer update in coordination with svelte's reactivity */
   $: if (didMount) {
@@ -68,6 +73,7 @@
     --toolbar-bg-color: rgb(240, 240, 240);
     --toolbar-text-color: rgb(50, 50, 50);
     --toolbar-border-color: rgb(200, 200, 200);
+    --pane-bg-color: rgba(248, 248, 248);
   }
 
   .toolbar {
@@ -106,12 +112,16 @@
     margin-left: 2px;
   }
   /* space left */
-  .toolbar li.sl {
+  .toolbar li.pl {
     margin-left: 8px;
   }
   /* border left */
   .toolbar li.bl {
     border-left: 1px solid var(--toolbar-border-color);
+  }
+  /* fill left */
+  .toolbar li.fl {
+    margin-left: auto;
   }
 
   .toolbar li:last-child {
@@ -156,6 +166,19 @@
     flex-direction: column;
   }
 
+  .vertical-split {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+  }
+
+  .vertical-split .pane {
+    border-left: 1px solid var(--toolbar-border-color);
+  }
+  .vertical-split .pane:first-child {
+    border-left: 0;
+  }
+
   .preview {
     display: flex;
     flex-direction: column;
@@ -164,9 +187,10 @@
 
     box-sizing: border-box;
     width: 100%;
-    height: 450px;
+    height: 500px;
     padding: 4px;
-    background: rgba(246, 245, 245);
+
+    background: var(--pane-bg-color);
   }
 
   :global(.openseadragon-container) {
@@ -175,8 +199,36 @@
 
   .transcription {
     box-sizing: border-box;
+    height: 100%;
     padding: 16px;
     overflow-y: scroll;
+  }
+
+  .metadata {
+    font: 14px/130% 'Inter', sans-serif;
+    background: white;
+  }
+
+  .metadata dl dt {
+    padding: 8px 16px 4px;
+  }
+
+  .metadata dl dd {
+    padding: 0px 16px 8px;
+  }
+
+  .metadata dl dt:nth-child(4n + 1),
+  .metadata dl dt:nth-child(4n + 1) + dd {
+    background: var(--pane-bg-color);
+  }
+
+  .close-pane {
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .close-pane:hover {
+    text-decoration: none;
   }
 </style>
 
@@ -186,7 +238,7 @@
       <label>Passage</label>
     </li>
 
-    <li class="sl">
+    <li class="pl">
       <div class="select">
         <select
           bind:value={selectedCatalogUrn}
@@ -201,15 +253,18 @@
       <code>{passageId}</code>
     </li>
 
-    <li class="sl">
+    <li class="pl">
       <Link to={`/view/${passage.previousPassage}`}>← Previous Passage</Link>
     </li>
     <li class="bl">
       <Link to={`/view/${passage.nextPassage}`}>Next Passage →</Link>
     </li>
 
-    <li class="sl">
-      <a href="#">Metadata</a>
+    <li class="pl">
+      <a href="#" on:click|preventDefault={handleToggleMetadata}>
+        {#if showMetadata}Hide{:else}Show{/if}
+        Metadata
+      </a>
     </li>
   </ul>
 </nav>
@@ -236,7 +291,7 @@
         </form>
       </li>
 
-      <li class="sl">
+      <li class="pl">
         <Link to={`/edit2/${passage.id}`}>Edit References</Link>
       </li>
     </ul>
@@ -244,18 +299,65 @@
   </section>
 
   <section class="pane">
-    <ul class="toolbar">
-      <li>
-        <label>Transcription</label>
-      </li>
-    </ul>
-    <div class="transcription">
-      <p>
-        {#each passage.transcriptionLines as line}
-          {line}
-          <br />
-        {/each}
-      </p>
+    <div class="vertical-split">
+      <div class="pane">
+        <ul class="toolbar">
+          <li>
+            <label>Transcription</label>
+          </li>
+          <li>
+            <a href={`/edit/${passage.id}`}>Edit</a>
+          </li>
+        </ul>
+        <div class="transcription">
+          <p>
+            {#each passage.transcriptionLines as line}
+              {line}
+              <br />
+            {/each}
+          </p>
+        </div>
+      </div>
+      {#if showMetadata}
+        <div class="pane">
+          <ul class="toolbar">
+            <li>
+              <label>Metadata</label>
+            </li>
+            <li>
+              <a href={`/editcat/${passage.id}`}>Edit</a>
+            </li>
+            <li class="fl">
+              <a
+                href="#"
+                class="close-pane"
+                on:click|preventDefault={() => (showMetadata = false)}>
+                ×
+              </a>
+            </li>
+          </ul>
+          <div class="metadata">
+            <dl>
+              <dt>Work URN</dt>
+              <dd>{passage.catalog.urn}</dd>
+              <dt>Scheme</dt>
+              <dd>{passage.catalog.citationScheme}</dd>
+              <dt>Workgroup</dt>
+              <dd>{passage.catalog.groupName}</dd>
+              <dt>Title</dt>
+              <dd>{passage.catalog.workTitle}</dd>
+              <dt>Version Label</dt>
+              <dd>{passage.catalog.versionLabel}</dd>
+              <dt>Exemplar Label</dt>
+              <dd>{passage.catalog.exemplarLabel}</dd>
+              <dt>Online</dt>
+              <dd>{passage.catalog.online}</dd>
+              <dt>Language</dt>
+              <dd>{passage.catalog.language}</dd>
+            </dl>
+          </div>
+        </div>
+      {/if}
     </div>
   </section>
 </div>
