@@ -35,9 +35,14 @@
     height: 12px;
     padding: 4px;
 
-    background: var(--toolbar-bg-color);
+    background-color: var(--toolbar-bg-color);
     border-top: 1px solid var(--toolbar-border-color);
     cursor: ns-resize;
+    transition: background-color 120ms ease-in-out;
+  }
+
+  .bar.active {
+    background-color: rgb(255, 255, 255);
   }
 
   .handle {
@@ -46,7 +51,12 @@
     width: 32px;
     height: 4px;
     border-radius: 2px;
-    background: rgb(100, 100, 100);
+    background-color: rgb(100, 100, 100);
+    transition: background-color 120ms ease-in-out;
+  }
+
+  .bar:hover .handle {
+    background-color: rgb(0, 0, 0);
   }
 
   .resizing {
@@ -57,6 +67,10 @@
 <svelte:window on:mouseup={handleMouseUp} />
 <svelte:body class:resizing />
 
-<div class="bar" bind:this={barElement} on:mousedown={handleMouseDown}>
+<div
+  class="bar"
+  bind:this={barElement}
+  on:mousedown={handleMouseDown}
+  class:active={resizing}>
   <div class="handle" />
 </div>
