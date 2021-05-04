@@ -1,6 +1,7 @@
 <script>
   import { validateUrn } from '../lib/cts-urn'
   import PassageDesk from '../components/PassageDesk.svelte'
+  import NavigationFix from '../components/NavigationFix.svelte'
 
   export let urn
   let passage, err
@@ -22,6 +23,7 @@
 
 {#if passage && !err}
   <PassageDesk {passage} />
+  <NavigationFix passageURN={passage.id} />
 {:else if err}
   <p>An error occurred: {err}</p>
 {/if}
