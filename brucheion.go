@@ -25,7 +25,7 @@ var Version = "development"
 var dataPath string
 var err error
 
-//go:embed tmpl static js ui/dist
+//go:embed tmpl static js app/dist
 var assets embed.FS
 
 func main() {
@@ -164,12 +164,12 @@ func createRouter() *mux.Router {
 
 	staticDir := http.FS(mustFS(fs.Sub(assets, "static")))
 	jsDir := http.FS(mustFS(fs.Sub(assets, "js")))
-	bundleDir := http.FS(mustFS(fs.Sub(assets, "ui/dist")))
+	bundleDir := http.FS(mustFS(fs.Sub(assets, "app/dist")))
 
 	if *localAssets {
 		staticDir = http.Dir("./static")
 		jsDir = http.Dir("./js")
-		bundleDir = http.Dir("./ui/dist")
+		bundleDir = http.Dir("./app/dist")
 	}
 
 	//Set up handlers for serving static files
@@ -177,14 +177,14 @@ func createRouter() *mux.Router {
 	staticHandler := http.StripPrefix("/static/", http.FileServer(staticDir))
 	jsHandler := http.StripPrefix("/js/", http.FileServer(jsDir))
 	cexHandler := http.StripPrefix("/cex/", http.FileServer(http.Dir("./cex/")))
-	bundleHandler := http.StripPrefix("/assets/ui", http.FileServer(bundleDir))
+	bundleHandler := http.StripPrefix("/assets/app", http.FileServer(bundleDir))
 
 	//Set up PathPrefix routes for serving static files
 	router.PathPrefix("/static/image_archive/").Handler(libraryHandler)
 	router.PathPrefix("/static/").Handler(staticHandler)
 	router.PathPrefix("/js/").Handler(jsHandler)
 	router.PathPrefix("/cex/").Handler(cexHandler)
-	router.PathPrefix("/assets/ui").Handler(bundleHandler)
+	router.PathPrefix("/assets/app").Handler(bundleHandler)
 
 	//Set up HandleFunc routes
 	router.HandleFunc("/login/", loginGET).Methods("GET")         //The initial page. Ideally the page users start from. This is where users are redirected to if not logged in corectly. Displays an error message.

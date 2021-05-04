@@ -1,9 +1,9 @@
 GO=go
-NPM=cd ui && npm
+NPM=cd app && npm
 BIN=Brucheion
-NODE_MODULES=ui/node_modules
+NODE_MODULES=app/node_modules
 
-.PHONY: all app-dev build release app test clean deps
+.PHONY: all dev build release app test clean deps
 
 all: deps test build
 
@@ -20,17 +20,17 @@ app:
 
 test: app
 	$(GO) test -v ./...
-	cd ui && npm test
+	cd app && npm test
 
 clean:
 	$(GO) clean
 	rm -f $(BIN)
 	rm -r $(NODE_MODULES)
 
-app-dev:
+dev:
 	$(NPM) run dev
 
 deps: $(NODE_MODULES)
 
-$(NODE_MODULES): ui/package.json ui/package-lock.json
+$(NODE_MODULES): app/package.json app/package-lock.json
 	$(NPM) install
