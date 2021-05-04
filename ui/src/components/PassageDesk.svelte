@@ -3,6 +3,7 @@
   import { Link, navigate } from 'svelte-routing'
   import OpenSeadragon from 'openseadragon'
   import { getInternalOpts } from '../lib/osd'
+  import ResizeBar from './ResizeBar.svelte'
 
   export let passage
 
@@ -13,7 +14,9 @@
     selectedImageRef = undefined,
     didMount = false,
     selectedCatalogUrn = passage.catalog.urn,
-    showMetadata = false
+    showMetadata = false,
+    previewContainer = undefined,
+    previewHeight = 350
 
   // FIXME: this is a pretty naive attempt to catch the passage ID
   $: passageId = passage.id.split(':').pop()
@@ -57,6 +60,9 @@
   function handleToggleMetadata() {
     showMetadata = !showMetadata
   }
+  function handleHideMetadata() {
+    showMetadata = false
+  }
 
   /* this should update the folio viewer a) once after mounting and b) when `passage` changes due to reactivity.
    * this is just a lazy trick to trigger the viewer update in coordination with svelte's reactivity */
@@ -66,16 +72,13 @@
   onMount(() => {
     didMount = true
   })
+
+  function handleResize(e) {
+    previewHeight = e.detail.y - previewContainer.offsetTop
+  }
 </script>
 
 <style>
-  :global(:root) {
-    --toolbar-bg-color: rgb(240, 240, 240);
-    --toolbar-text-color: rgb(50, 50, 50);
-    --toolbar-border-color: rgb(200, 200, 200);
-    --pane-bg-color: rgba(248, 248, 248);
-  }
-
   .toolbar {
     display: flex;
     flex-direction: row;
@@ -187,7 +190,7 @@
 
     box-sizing: border-box;
     width: 100%;
-    height: 500px;
+    height: var(--height, 500px);
     padding: 4px;
 
     background: var(--pane-bg-color);
@@ -276,27 +279,31 @@
         <label>Folio</label>
       </li>
       <li>
-        <form on:submit|preventDefault={() => console.log('help?')}>
-          <div class="select">
-            <select bind:value={selectedImageRef}>
-              {#if !!passage.imageRefs}
-                {#each passage.imageRefs as ref}
-                  <option value={ref}>{ref}</option>
-                {/each}
-              {:else}
-                <option disabled>No image references</option>
-              {/if}
-            </select>
-          </div>
-        </form>
+        <div class="select">
+          <select bind:value={selectedImageRef}>
+            {#if !!passage.imageRefs}
+              {#each passage.imageRefs as ref}
+                <option value={ref}>{ref}</option>
+              {/each}
+            {:else}
+              <option disabled>No image references</option>
+            {/if}
+          </select>
+        </div>
       </li>
 
       <li class="pl">
         <Link to={`/edit2/${passage.id}`}>Edit References</Link>
       </li>
     </ul>
-    <div id="preview" class="preview" />
+    <div
+      bind:this={previewContainer}
+      id="preview"
+      class="preview"
+      style="--height: {previewHeight}px" />
   </section>
+
+  <ResizeBar on:resize={handleResize} />
 
   <section class="pane">
     <div class="vertical-split">
@@ -331,7 +338,7 @@
               <a
                 href="#"
                 class="close-pane"
-                on:click|preventDefault={() => (showMetadata = false)}>
+                on:click|preventDefault={handleHideMetadata}>
                 ×
               </a>
             </li>
