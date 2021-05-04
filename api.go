@@ -25,6 +25,22 @@ type Passage struct {
 	Catalog            BoltCatalog `json:"catalog"`
 }
 
+type User struct {
+	Name string `json:"name"`
+}
+
+func handleUser(w http.ResponseWriter, r *http.Request) {
+	user, err := getSessionUser(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", 401)
+		return
+	}
+
+	respondWithData(w, User{
+		Name: user,
+	}, 200)
+}
+
 // handlePassage retrieves a passage and associated information from the user database.
 func handlePassage(w http.ResponseWriter, r *http.Request) {
 	user, err := getSessionUser(r)

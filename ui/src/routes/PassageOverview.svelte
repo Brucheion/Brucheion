@@ -4,14 +4,17 @@
   import NavigationFix from '../components/NavigationFix.svelte'
 
   export let urn
-  let passage, err
+  let passage, user, err
 
   $: if (!validateUrn(urn, { nid: 'cts' })) {
     err = new Error('Passage not found')
   }
 
-  $: getPassage(urn)
-    .then((p) => (passage = p))
+  $: Promise.all([getPassage(urn), getUser()])
+    .then(([p, u]) => {
+      passage = p
+      user = u
+    })
     .catch((e) => (err = e))
 
   async function getPassage(urn) {
@@ -19,11 +22,17 @@
     const d = await res.json()
     return d.data
   }
+
+  async function getUser() {
+    const res = await fetch(`/api/v1/user`)
+    const d = await res.json()
+    return d.data
+  }
 </script>
 
 {#if passage && !err}
   <PassageDesk {passage} />
-  <NavigationFix passageURN={passage.id} />
+  <NavigationFix passageURN={passage.id} userName={user.name} />
 {:else if err}
   <p>An error occurred: {err}</p>
 {/if}

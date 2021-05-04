@@ -5,7 +5,7 @@
    * Brucheion's UI is being transitioned to the client side :^)
    */
   import { onMount } from 'svelte'
-  export let passageURN
+  export let passageURN, userName
   let templateElement
 
   onMount(() => {
@@ -35,7 +35,7 @@
     <div class="navbar-item has-dropdown is-hoverable">
       <p class="navbar-link">
         <i class="fa fa-lg fa-fw fa-user-circle" />
-        <span class="navbar-item-label">(username)</span>
+        <span class="navbar-item-label">{userName}</span>
       </p>
       <div class="navbar-dropdown">
         <a href="/export/exported/" class="navbar-item">Download CEX</a>
