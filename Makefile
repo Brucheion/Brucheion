@@ -18,7 +18,7 @@ release: deps app test
 app:
 	$(NPM) run build
 
-test:
+test: app
 	$(GO) test -v ./...
 	cd ui && npm test
 
