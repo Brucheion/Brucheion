@@ -128,19 +128,14 @@ func landingPage(res http.ResponseWriter, req *http.Request) {
 	dbname := config.UserDB
 
 	buckets := Buckets(dbname)
-	log.Println()
+	//log.Println()
 	log.Printf("func MainPage. Printing buckets of %s:\n", dbname)
 	log.Println()
 	log.Println(buckets)
 
-	//test := BoltRetrieve(dbname, "users", "test")
-	adri, _ := BoltRetrieve(dbname, "users", "adri")
 
-	log.Println("User test:")
-	log.Println(BoltRetrieve(dbname, "users", "test"))
-	log.Println("User adri:")
-	log.Println(adri)
-	//log.Println("user adri: " + BoltRetrieve(dbname, users, adri) + "\n")
+	log.Printf("BoldRetrive of user %s:", user)
+	log.Println(BoltRetrieve(dbname, "users", user))
 
 	page := &Page{
 		User: user,
