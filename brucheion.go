@@ -116,7 +116,7 @@ func main() {
 		//	log.Fatal("$PORT must be set")
 	}
 
-    log.Fatal(http.ListenAndServe(":" + port, r))
+    log.Fatal(http.ListenAndServe(":" + port, router))
 
 //	log.Fatal(http.Serve(l, router))
 }
