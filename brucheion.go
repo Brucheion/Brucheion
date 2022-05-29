@@ -93,7 +93,7 @@ func main() {
 		log.Println("Started in noAuth mode.")
 	}
 
-	router := createRouter()
+
 //	log.Printf("Listening at %s\n", os.Getenv("HEROKU_APP_NAME"))
 
 //	log.Printf("Listening at %s\n", config.Host)
@@ -121,6 +121,8 @@ func main() {
 	if host != "" {
 		config.Host = os.Getenv("URL")
 	}
+
+	router := createRouter()
 	
     log.Fatal(http.ListenAndServe(":" + port, router))
 
