@@ -52,20 +52,6 @@ func loadProviders() (Providers, error) {
 //go:embed config.json
 var configdata string
 
-// loadConfiguration loads and parses the JSON configuration file and returns a Config structure.
-// func loadConfiguration(file string) (Config, error) {
-// 	var c Config
-// 	cf, err := os.Open(file)
-// 	defer cf.Close()
-// 	if err != nil {
-// 		return Config{}, err
-// 	}
-
-// 	jsonParser := json.NewDecoder(cf)
-// 	err = jsonParser.Decode(&c)
-// 	return c, err
-// }
-
 func loadConfiguration() (Config, error) {
 	var c Config
 	configReader := strings.NewReader(configdata)
