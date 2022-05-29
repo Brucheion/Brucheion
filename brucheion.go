@@ -119,7 +119,7 @@ func main() {
 
 	host := os.Getenv("URL")
 	if host != "" {
-		*config.Host = os.Getenv("URL")
+		config.Host = os.Getenv("URL")
 	}
 
 	router := createRouter()
