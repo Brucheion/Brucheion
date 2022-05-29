@@ -6,13 +6,13 @@ import (
 	"html/template"
 	"io/fs"
 	"log"
-//	"net"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/gorilla/mux"
-//	"github.com/skratchdot/open-golang/open"
+	"github.com/skratchdot/open-golang/open"
 )
 
 var config Config
@@ -94,67 +94,38 @@ func main() {
 	}
 
 
-//	log.Printf("Listening at %s\n", os.Getenv("HEROKU_APP_NAME"))
-
-//	log.Printf("Listening at %s\n", config.Host)
-//	l, err := net.Listen("tcp", config.Port)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-
-//	if Version != "development" {
-//		err = open.Start(config.Host)
-//		if err != nil {
-//			log.Println(err)
-//		}
-//	}
-
     // Bind to a port and pass our router in
-//	port := os.Getenv("PORT")
 
-//	if port == "" {
-//		port = config.Port
-//		//	log.Fatal("$PORT must be set")
-//	}
-
-//	host := os.Getenv("URL")
-//	if host != "" {
-//		config.Host = os.Getenv("URL")
-//	}
-
-//	router := createRouter()
-	
-//    log.Fatal(http.ListenAndServe(":" + port, router))
 	router := createRouter()
 	
 	host := os.Getenv("URL")
-//	if host !="" { //if started for heroku
+	if host !="" { //if started for heroku
 		port := os.Getenv("PORT")
 		if port == "" {
 			log.Fatal("$PORT must be set")
 		}
 	
 		config.Host = host
-		config.Port = ":" + port
-	log.Printf("Listening at %s\n", host)
-	log.Printf("Listening at %s\n", config.Host)
-		log.Fatal(http.ListenAndServe(config.Port, router))
-//	} else {
-//		log.Printf("Listening at %s\n", config.Host)
-//		l, err := net.Listen("tcp", config.Port)
-//		if err != nil {
-//			log.Fatal(err)
-//		}
+		//config.Port = ":" + port
+		log.Printf("Listening from URL's var at %s\n", host)
+		log.Fatal(http.ListenAndServe(":" + port, router))
 
-//		if Version != "development" {
-//			err = open.Start(config.Host)
-//			if err != nil {
-//				log.Println(err)
-//			}
-//		}
+	} else {
+		log.Printf("Listening from config at %s:%s\n", config.Host, config.Port)
+		l, err := net.Listen("tcp", config.Port)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-//		log.Fatal(http.Serve(l, router))
-//	}
+		if Version != "development" {
+			err = open.Start(config.Host)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		log.Fatal(http.Serve(l, router))
+	}
 
 }
 
