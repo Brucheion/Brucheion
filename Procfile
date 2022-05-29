@@ -1,1 +1,1 @@
-web: bin/Brucheion -noauth -heroku
+web: bin/Brucheion -noauth 
