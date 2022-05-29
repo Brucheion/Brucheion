@@ -94,6 +94,7 @@ func main() {
 	}
 
 	router := createRouter()
+	log.Printf("Listening at %s\n", os.Getenv("HEROKU_APP_NAME"))
 
 //	log.Printf("Listening at %s\n", config.Host)
 //	l, err := net.Listen("tcp", config.Port)
@@ -254,13 +255,15 @@ func createRouter() *mux.Router {
 
 func createPermanentRedirect(path string) func(http.ResponseWriter, *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		http.Redirect(res, req, config.Host+path, http.StatusMovedPermanently)
+//		http.Redirect(res, req, config.Host+path, http.StatusMovedPermanently)
+		http.Redirect(res, req, path, http.StatusMovedPermanently)
 	}
 }
 
 //NotFoundRedirect redirects user to login in case an invalid request was issued.
 func NotFoundRedirect(res http.ResponseWriter, req *http.Request) {
-	newLink := config.Host + "/login/"
+//	newLink := config.Host + "/login/"
+	newLink :=  "/login/"
 	http.Redirect(res, req, newLink, 301)
 }
 
