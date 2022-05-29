@@ -1,4 +1,4 @@
-module github.com/brucheion/brucheion
+module github.com/Brucheion/Brucheion
 
 go 1.16
 
