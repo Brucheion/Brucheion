@@ -126,14 +126,15 @@ func main() {
 	
 //    log.Fatal(http.ListenAndServe(":" + port, router))
 	router := createRouter()
-
-	if *heroku { //if started for heroku
+	
+	host := os.Getenv("URL")
+	if host !="" { //if started for heroku
 		port := os.Getenv("PORT")
 		if port == "" {
 			log.Fatal("$PORT must be set")
 		}
 
-		config.Host = "http://ts-brucheion.herokuapp.com"
+		config.Host = host
 		config.Port = ":" + port
 		log.Fatal(http.ListenAndServe(config.Port, router))
 	} else {
