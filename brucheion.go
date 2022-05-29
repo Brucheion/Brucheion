@@ -95,8 +95,14 @@ func main() {
 
 	router := createRouter()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = config.Port
+		//	log.Fatal("$PORT must be set")
+	}
+
 	log.Printf("Listening at %s\n", config.Host)
-	l, err := net.Listen("tcp", config.Port)
+	l, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatal(err)
 	}
