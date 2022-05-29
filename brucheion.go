@@ -100,8 +100,7 @@ func main() {
 		router := createRouter()
 
 		log.Fatal(http.ListenAndServe(":" + port, router))
-	}
-	else {
+	} else {
 		router := createRouter()
 
 		log.Printf("Listening from config at %s:%s\n", config.Host, config.Port)
