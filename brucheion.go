@@ -25,7 +25,7 @@ var Version = "development"
 var dataPath string
 var err error
 
-//go:embed tmpl static js app/dist
+//go:embed tmpl static js app/dist/*
 var assets embed.FS
 
 func main() {
