@@ -1,5 +1,5 @@
 {
-  "host": " https://ts-brucheion.herokuapp.com/",
+  "host": "http://localhost:7000",
   "port": ":7000",
   "maxAge": 86400,
   "userDB": "./users.db",

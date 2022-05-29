@@ -110,23 +110,49 @@ func main() {
 //	}
 
     // Bind to a port and pass our router in
-	port := os.Getenv("PORT")
+//	port := os.Getenv("PORT")
 
-	if port == "" {
-		port = config.Port
-		//	log.Fatal("$PORT must be set")
-	}
+//	if port == "" {
+//		port = config.Port
+//		//	log.Fatal("$PORT must be set")
+//	}
 
-	host := os.Getenv("URL")
-	if host != "" {
-		config.Host = os.Getenv("URL")
-	}
+//	host := os.Getenv("URL")
+//	if host != "" {
+//		config.Host = os.Getenv("URL")
+//	}
 
-	router := createRouter()
+//	router := createRouter()
 	
-    log.Fatal(http.ListenAndServe(":" + port, router))
+//    log.Fatal(http.ListenAndServe(":" + port, router))
+	router := createRouter()
 
-//	log.Fatal(http.Serve(l, router))
+	if *heroku { //if started for heroku
+		port := os.Getenv("PORT")
+		if port == "" {
+			log.Fatal("$PORT must be set")
+		}
+
+		config.Host = "http://ts-brucheion.herokuapp.com"
+		config.Port = ":" + port
+		log.Fatal(http.ListenAndServe(config.Port, router))
+	} else {
+		log.Printf("Listening at %s\n", config.Host)
+		l, err := net.Listen("tcp", config.Port)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if Version != "development" {
+			err = open.Start(config.Host)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		log.Fatal(http.Serve(l, router))
+	}
+
 }
 
 //landingPage is the first landing page for experimental testing
