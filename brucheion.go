@@ -62,12 +62,17 @@ func main() {
 		log.Fatalf("Loading authentication providers failed: %s\n", err.Error())
 	}
 
-	cp := filepath.Join(dataPath, "config.json")
-	if *configLocation != "" {
-		cp = *configLocation
-	}
-	log.Printf("Loading configuration from: %s\n", cp)
-	config, err = loadConfiguration(cp)
+//	cp := filepath.Join(dataPath, "config.json")
+//	if *configLocation != "" {
+//		cp = *configLocation
+//	}
+//	log.Printf("Loading configuration from: %s\n", cp)
+//	config, err = loadConfiguration(cp)
+//	if err != nil {
+//		log.Fatalf("Loading configuration failed: %s\n", err.Error())
+//	}
+
+	config, err = loadConfiguration()
 	if err != nil {
 		log.Fatalf("Loading configuration failed: %s\n", err.Error())
 	}
