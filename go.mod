@@ -1,5 +1,6 @@
-module github.com/Brucheion/Brucheion
+module github.com/tsiparinda/Brucheion
 
+// +heroku goVersion go1.18
 go 1.16
 
 require (
