@@ -25,7 +25,7 @@ var Version = "development"
 var dataPath string
 var err error
 
-//go:embed tmpl static js app/dist/*
+//go:embed tmpl static js dist
 var assets embed.FS
 
 func main() {
@@ -159,12 +159,12 @@ func createRouter() *mux.Router {
 
 	staticDir := http.FS(mustFS(fs.Sub(assets, "static")))
 	jsDir := http.FS(mustFS(fs.Sub(assets, "js")))
-	bundleDir := http.FS(mustFS(fs.Sub(assets, "app/dist")))
+	bundleDir := http.FS(mustFS(fs.Sub(assets, "dist")))
 
 	if *localAssets {
 		staticDir = http.Dir("./static")
 		jsDir = http.Dir("./js")
-		bundleDir = http.Dir("./app/dist")
+		bundleDir = http.Dir("./dist")
 	}
 
 	//Set up handlers for serving static files
