@@ -95,26 +95,23 @@ func main() {
 
 	router := createRouter()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = config.Port
-		//	log.Fatal("$PORT must be set")
-	}
+//	log.Printf("Listening at %s\n", config.Host)
+//	l, err := net.Listen("tcp", config.Port)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 
-	log.Printf("Listening at %s\n", config.Host)
-	l, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatal(err)
-	}
+//	if Version != "development" {
+//		err = open.Start(config.Host)
+//		if err != nil {
+//			log.Println(err)
+//		}
+//	}
 
-	if Version != "development" {
-		err = open.Start(config.Host)
-		if err != nil {
-			log.Println(err)
-		}
-	}
+    // Bind to a port and pass our router in
+    log.Fatal(http.ListenAndServe(":" + port, r))
 
-	log.Fatal(http.Serve(l, router))
+//	log.Fatal(http.Serve(l, router))
 }
 
 //landingPage is the first landing page for experimental testing
