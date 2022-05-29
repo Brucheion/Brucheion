@@ -295,6 +295,7 @@ func createPermanentRedirect(path string) func(http.ResponseWriter, *http.Reques
 
 //NotFoundRedirect redirects user to login in case an invalid request was issued.
 func NotFoundRedirect(res http.ResponseWriter, req *http.Request) {
+		log.Printf("Config.host is %s\n", config.Host)
 	newLink := config.Host + "/login/"
 	http.Redirect(res, req, newLink, 301)
 }
