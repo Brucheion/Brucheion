@@ -6,13 +6,13 @@ import (
 	"html/template"
 	"io/fs"
 	"log"
-//	"net"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/gorilla/mux"
-//	"github.com/skratchdot/open-golang/open"
+	"github.com/skratchdot/open-golang/open"
 )
 
 var config Config
