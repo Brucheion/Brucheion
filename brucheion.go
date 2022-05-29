@@ -128,31 +128,31 @@ func main() {
 	router := createRouter()
 	
 	host := os.Getenv("URL")
-	if host !="" { //if started for heroku
+//	if host !="" { //if started for heroku
 		port := os.Getenv("PORT")
 		if port == "" {
 			log.Fatal("$PORT must be set")
 		}
-
+	log.Printf("Listening at %s\n", host)
 		config.Host = host
 		config.Port = ":" + port
 		log.Fatal(http.ListenAndServe(config.Port, router))
-	} else {
-		log.Printf("Listening at %s\n", config.Host)
-		l, err := net.Listen("tcp", config.Port)
-		if err != nil {
-			log.Fatal(err)
-		}
+//	} else {
+//		log.Printf("Listening at %s\n", config.Host)
+//		l, err := net.Listen("tcp", config.Port)
+//		if err != nil {
+//			log.Fatal(err)
+//		}
 
-		if Version != "development" {
-			err = open.Start(config.Host)
-			if err != nil {
-				log.Println(err)
-			}
-		}
+//		if Version != "development" {
+//			err = open.Start(config.Host)
+//			if err != nil {
+//				log.Println(err)
+//			}
+//		}
 
-		log.Fatal(http.Serve(l, router))
-	}
+//		log.Fatal(http.Serve(l, router))
+//	}
 
 }
 
