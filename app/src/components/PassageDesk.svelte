@@ -238,14 +238,14 @@
 <nav role="navigation">
   <ul class="toolbar">
     <li>
-      <label>Passage</label>
+      <label for="passage.id">Passage</label>
     </li>
 
     <li class="pl">
       <div class="select">
         <select
           bind:value={selectedCatalogUrn}
-          on:change={handleWitnessSelection}>
+          on:blur={handleWitnessSelection}>
           {#each passage.textRefs as ref}
             <option value={ref}>{ref}</option>
           {/each}
@@ -263,20 +263,8 @@
       <Link to={`/view/${passage.nextPassage}`}>Next Passage →</Link>
     </li>
 
-    <li class="pl">
-      <a href="#" on:click|preventDefault={handleToggleMetadata}>
-        {#if showMetadata}Hide{:else}Show{/if}
-        Metadata
-      </a>
-    </li>
-  </ul>
-</nav>
-
-<div class="desk">
-  <section class="pane grow static">
-    <ul class="toolbar stacked-below">
       <li>
-        <label>Folio</label>
+        <label for="passage.id">Folio</label>
       </li>
       <li>
         <div class="select">
@@ -295,7 +283,19 @@
       <li class="pl">
         <Link to={`/edit2/${passage.id}`}>Edit References</Link>
       </li>
-    </ul>
+
+    <li class="pl">
+      <a href="#" on:click|preventDefault={handleToggleMetadata}>
+        {#if showMetadata}Hide{:else}Show{/if}
+        Metadata
+      </a>
+    </li>
+
+  </ul>
+</nav>
+
+<div class="desk">
+  <section class="pane grow static">
     <div
       bind:this={previewContainer}
       id="preview"
@@ -310,7 +310,7 @@
       <div class="pane">
         <ul class="toolbar">
           <li>
-            <label>Transcription</label>
+            <label for="passage.id">Transcription</label>
           </li>
           <li>
             <a href={`/edit/${passage.id}`}>Edit</a>
@@ -329,7 +329,7 @@
         <div class="pane">
           <ul class="toolbar">
             <li>
-              <label>Metadata</label>
+              <label for="passage.id">Metadata</label>
             </li>
             <li>
               <a href={`/editcat/${passage.id}`}>Edit</a>
