@@ -1,4 +1,4 @@
-module github.com/tsiparinda/Brucheion
+module github.com/Brucheion/Brucheion
 
 // +heroku goVersion go1.18
 go 1.18
