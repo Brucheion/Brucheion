@@ -25,7 +25,7 @@ var Version = "development"
 var dataPath string
 var err error
 
-//go:embed tmpl static js dist
+//go:embed tmpl static js app/dist
 var assets embed.FS
 
 func main() {
@@ -62,7 +62,12 @@ func main() {
 		log.Fatalf("Loading authentication providers failed: %s\n", err.Error())
 	}
 
-	config, err = loadConfiguration()
+	cp := filepath.Join(dataPath, "config.json")
+	if *configLocation != "" {
+		cp = *configLocation
+	}
+	log.Printf("Loading configuration from: %s\n", cp)
+	config, err = loadConfiguration(cp)
 	if err != nil {
 		log.Fatalf("Loading configuration failed: %s\n", err.Error())
 	}
@@ -83,42 +88,22 @@ func main() {
 		log.Println("Started in noAuth mode.")
 	}
 
+	router := createRouter()
 
-    // Bind to a port and pass our router in
-	host := os.Getenv("URL")
-	
-	if host !="" { //if started for heroku
-		port := os.Getenv("PORT")
-		if port == "" {
-			log.Fatal("$PORT must be set")
-		}
-	
-		config.Host = host
-		//config.Port = ":" + port
-		log.Printf("Listening from URL's var at %s\n", host)
-
-		router := createRouter()
-
-		log.Fatal(http.ListenAndServe(":" + port, router))
-	} else {
-		router := createRouter()
-
-		log.Printf("Listening from config at %s:%s\n", config.Host, config.Port)
-		l, err := net.Listen("tcp", config.Port)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if Version != "development" {
-			err = open.Start(config.Host)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-
-		log.Fatal(http.Serve(l, router))
+	log.Printf("Listening at %s\n", config.Host)
+	l, err := net.Listen("tcp", config.Port)
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	if Version != "development" {
+		err = open.Start(config.Host)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	log.Fatal(http.Serve(l, router))
 }
 
 //landingPage is the first landing page for experimental testing
@@ -143,14 +128,19 @@ func landingPage(res http.ResponseWriter, req *http.Request) {
 	dbname := config.UserDB
 
 	buckets := Buckets(dbname)
-	//log.Println()
+	log.Println()
 	log.Printf("func MainPage. Printing buckets of %s:\n", dbname)
 	log.Println()
 	log.Println(buckets)
 
+	//test := BoltRetrieve(dbname, "users", "test")
+	adri, _ := BoltRetrieve(dbname, "users", "adri")
 
-	log.Printf("BoldRetrive of user %s:", user)
-	log.Println(BoltRetrieve(dbname, "users", user))
+	log.Println("User test:")
+	log.Println(BoltRetrieve(dbname, "users", "test"))
+	log.Println("User adri:")
+	log.Println(adri)
+	//log.Println("user adri: " + BoltRetrieve(dbname, users, adri) + "\n")
 
 	page := &Page{
 		User: user,
@@ -174,12 +164,12 @@ func createRouter() *mux.Router {
 
 	staticDir := http.FS(mustFS(fs.Sub(assets, "static")))
 	jsDir := http.FS(mustFS(fs.Sub(assets, "js")))
-	bundleDir := http.FS(mustFS(fs.Sub(assets, "dist")))
+	bundleDir := http.FS(mustFS(fs.Sub(assets, "app/dist")))
 
 	if *localAssets {
 		staticDir = http.Dir("./static")
 		jsDir = http.Dir("./js")
-		bundleDir = http.Dir("./dist")
+		bundleDir = http.Dir("./app/dist")
 	}
 
 	//Set up handlers for serving static files
