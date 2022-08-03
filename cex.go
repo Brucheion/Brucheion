@@ -45,7 +45,7 @@ func (m dataframe) Swap(i, j int) {
 // ExportCEX exports CEX data from the user database to a CEX file
 //Reference on CEX files: https://cite-architecture.github.io/citedx/CEX-spec-3.0.1/
 func ExportCEX(res http.ResponseWriter, req *http.Request) {
-log.Printf("I m in export  cex")
+
 	//First get the session..
 	session, err := getSession(req)
 	if err != nil {
@@ -161,8 +161,6 @@ func loadCEX(data string, user string) error {
 	var urns, areas []string
 	var catalog []BoltCatalog
 
-    log.Printf("I m in load cex")
-
 	//read in the relations of the CEX file cutting away all unnecessary signs
 	if strings.Contains(data, "#!relations") {
 		relations := strings.Split(data, "#!relations")[1]
@@ -256,7 +254,7 @@ func loadCEX(data string, user string) error {
 			fmt.Println(line)
 			log.Fatal(error)
 		}
-	 	switch {
+		switch {
 		case len(line) == 2:
 			texturns = append(texturns, line[0])
 			text = append(text, line[1])

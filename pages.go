@@ -44,7 +44,6 @@ func makeNumberedLines(passage []string) []numberedLine {
 //todo: overhaul with new database functions
 func ViewPage(res http.ResponseWriter, req *http.Request) {
 	//First get the session..
-	log.Println("Im in viewpage!!!")
 	session, err := getSession(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -430,7 +429,7 @@ func consolidatePage(res http.ResponseWriter, req *http.Request) {
 //EditPage prepares, loads, and renders the Transcription Desk
 //can possibly be overhauled using gocite release 2.0.0
 func EditPage(res http.ResponseWriter, req *http.Request) {
-	log.Println("Im in EditPage!!!")
+
 	//First get the session..
 	session, err := getSession(req)
 	if err != nil {
@@ -620,7 +619,7 @@ func Edit2Page(res http.ResponseWriter, req *http.Request) {
 
 //EditCatPage prepares, loads, and renders the Edit Metadata page
 func EditCatPage(res http.ResponseWriter, req *http.Request) {
-	log.Println("Im in EditPageEditCatPage!!!")
+
 	//First get the session..
 	session, err := getSession(req)
 	if err != nil {
@@ -678,7 +677,6 @@ func EditCatPage(res http.ResponseWriter, req *http.Request) {
 
 //MultiPage prepares, loads, and renders the Multicompare page
 func MultiPage(res http.ResponseWriter, req *http.Request) {
-	log.Println("Im in MultiPage!!!")
 
 	//First get the session..
 	session, err := getSession(req)

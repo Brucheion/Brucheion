@@ -4,11 +4,11 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"strings"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/gorilla/securecookie"
@@ -49,14 +49,18 @@ func loadProviders() (Providers, error) {
 	return p, err
 }
 
-//go:embed config.json
-var configdata string
-
-func loadConfiguration() (Config, error) {
+// loadConfiguration loads and parses the JSON configuration file and returns a Config structure.
+func loadConfiguration(file string) (Config, error) {
 	var c Config
-	configReader := strings.NewReader(configdata)
-	jsonParser := json.NewDecoder(configReader)
- 	err = jsonParser.Decode(&c)
+
+	cf, err := os.Open(file)
+	defer cf.Close()
+	if err != nil {
+		return Config{}, err
+	}
+
+	jsonParser := json.NewDecoder(cf)
+	err = jsonParser.Decode(&c)
 	return c, err
 }
 
