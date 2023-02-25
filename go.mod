@@ -37,7 +37,7 @@ require (
 	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c // indirect
-	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 )
