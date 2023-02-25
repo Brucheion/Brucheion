@@ -17,7 +17,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/tj/go-update v2.2.5-0.20200519121640-62b4b798fd68+incompatible
-	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
+	golang.org/x/net v0.7.0
 )
 
 require (
@@ -37,7 +37,7 @@ require (
 	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c // indirect
-	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68 // indirect
+	golang.org/x/sys v0.5.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 )
